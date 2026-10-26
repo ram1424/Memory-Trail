@@ -4,6 +4,7 @@ import SwiftData
 struct TimelineView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
+    @State private var showingClearTimelineConfirmation = false
 
     var body: some View {
         Group {
@@ -35,6 +36,41 @@ struct TimelineView: View {
             }
         }
         .navigationTitle("Timeline")
+        .toolbar {
+            ToolbarItem {
+                Button(role: .destructive) {
+                    showingClearTimelineConfirmation = true
+                } label: {
+                    Label("Clear Timeline", systemImage: "trash")
+                }
+                .disabled(memories.isEmpty)
+                .help("Clear Timeline")
+            }
+        }
+        .confirmationDialog(
+            "Clear Timeline?",
+            isPresented: $showingClearTimelineConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear Entire Timeline", role: .destructive) {
+                clearTimeline()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This permanently deletes all \(memories.count) timeline items from Memory Lane. This action cannot be undone.")
+        }
+    }
+
+    private func clearTimeline() {
+        for item in memories {
+            modelContext.delete(item)
+        }
+
+        do {
+            try modelContext.save()
+        } catch {
+            assertionFailure("Unable to clear Memory Lane timeline: \(error)")
+        }
     }
 
     private var groupedDays: [(day: Date, items: [MemoryItem])] {
