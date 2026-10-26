@@ -36,6 +36,7 @@
 		AA0000030000000000000003 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000110000000000000011 /* SharedStore.swift */; };
 		AA0000040000000000000004 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000120000000000000012 /* ShareViewController.swift */; };
 		AA0000050000000000000005 /* RecallShare.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA0000130000000000000013 /* RecallShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BB0000010000000000000001 /* RecallAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000110000000000000011 /* RecallAppIntents.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,6 +63,7 @@
 		AA0000110000000000000011 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Services/SharedStore.swift"; sourceTree = "<group>"; };
 		AA0000120000000000000012 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShareExtension/ShareViewController.swift"; sourceTree = "<group>"; };
 		AA0000130000000000000013 /* RecallShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecallShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB0000110000000000000011 /* RecallAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "iOS/RecallAppIntents.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -90,6 +92,7 @@
 			8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */,
 			852A24A7AF9B8D309686CCDA /* TimelineView.swift */,
 			DBDA21FF29BA248DAD0D5814 /* RecalliOSApp.swift */,
+			BB0000110000000000000011 /* RecallAppIntents.swift */,
 			9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */,
 			93B173E22FB694D1026018A7 /* RecallMacApp.swift */,
 			86BE5228102BBE430BCEEA46 /* Assets.xcassets */,
@@ -145,6 +148,7 @@
 			741E86DC1738123CE046416C /* SettingsView.swift in Sources */,
 			834E664C191406741291A914 /* RecalliOSApp.swift in Sources */,
 			AA0000010000000000000001 /* SharedStore.swift in Sources */,
+			BB0000010000000000000001 /* RecallAppIntents.swift in Sources */,
 		); runOnlyForDeploymentPostprocessing = 0; };
 		AA0000400000000000000040 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
 			AA0000020000000000000002 /* MemoryItem.swift in Sources */,
