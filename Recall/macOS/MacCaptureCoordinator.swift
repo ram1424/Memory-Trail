@@ -72,15 +72,18 @@ final class MacCaptureCoordinator {
 
         let name = application.localizedName ?? "Application"
 
-        context?.insert(
-            MemoryItem(
-                title: "Opened \(name)",
-                body: bundleID,
-                sourceApp: name,
-                sourceBundleID: bundleID,
-                sourceKind: .appActivity
+        if let context {
+            context.insert(
+                MemoryItem(
+                    title: "Opened \(name)",
+                    body: bundleID,
+                    sourceApp: name,
+                    sourceBundleID: bundleID,
+                    sourceKind: .appActivity
+                )
             )
-        )
+            try? context.save()
+        }
 
         lastWindowSignature = ""
     }
@@ -125,16 +128,19 @@ final class MacCaptureCoordinator {
         lastWindowSignature = signature
         lastWindowLoggedAt = now
 
-        context?.insert(
-            MemoryItem(
-                title: title,
-                body: detailedBody(for: title, applicationName: appName, bundleID: bundleID),
-                sourceApp: appName,
-                sourceBundleID: bundleID,
-                sourceKind: .appActivity,
-                sourceURL: windowContext.sourceURL
+        if let context {
+            context.insert(
+                MemoryItem(
+                    title: title,
+                    body: detailedBody(for: title, applicationName: appName, bundleID: bundleID),
+                    sourceApp: appName,
+                    sourceBundleID: bundleID,
+                    sourceKind: .appActivity,
+                    sourceURL: windowContext.sourceURL
+                )
             )
-        )
+            try? context.save()
+        }
     }
 
     private func focusedWindowContext(pid: pid_t) -> FocusedWindowContext? {

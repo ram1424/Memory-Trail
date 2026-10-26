@@ -58,32 +58,73 @@ struct MemoryRow: View {
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(item.title)
-                        .font(.headline)
-                        .lineLimit(1)
-                    if item.isFavorite {
-                        Image(systemName: "star.fill")
-                            .font(.caption)
+                if item.sourceKind == .appActivity {
+                    HStack {
+                        Text(item.sourceApp)
+                            .font(.headline)
+                            .lineLimit(1)
+
+                        if item.isFavorite {
+                            Image(systemName: "star.fill")
+                                .font(.caption)
+                        }
                     }
-                }
 
-                if !item.body.isEmpty {
-                    Text(item.body)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
+                    if isFocusedWindowEntry {
+                        Text(item.title)
+                            .font(.subheadline.weight(.medium))
+                            .lineLimit(2)
 
-                HStack(spacing: 8) {
-                    Text(item.sourceApp)
-                    Text("•")
+                        if !item.body.isEmpty {
+                            Text(item.body)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+                    } else {
+                        Text(item.title)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
                     Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                } else {
+                    HStack {
+                        Text(item.title)
+                            .font(.headline)
+                            .lineLimit(1)
+
+                        if item.isFavorite {
+                            Image(systemName: "star.fill")
+                                .font(.caption)
+                        }
+                    }
+
+                    if !item.body.isEmpty {
+                        Text(item.body)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+
+                    HStack(spacing: 8) {
+                        Text(item.sourceApp)
+                        Text("•")
+                        Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
                 }
-                .font(.caption)
-                .foregroundStyle(.tertiary)
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private var isFocusedWindowEntry: Bool {
+        item.sourceKind == .appActivity &&
+        !item.title.hasPrefix("Opened ")
     }
 }
