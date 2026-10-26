@@ -7,40 +7,19 @@
 
 /* Begin PBXBuildFile section */
 		1894C2E5F7C138A36D3E4486 /* MemoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D466FC931781ED9924C60B /* MemoryItem.swift */; };
-		D7547A98E7947D9C3ED0EEC5 /* MemoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D466FC931781ED9924C60B /* MemoryItem.swift */; };
 		809D3BB21CEBB4A8648560C9 /* RecallPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA0A219568FE30787F0A21C /* RecallPreferences.swift */; };
-		DC278EEC7DE7A540A7290F24 /* RecallPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA0A219568FE30787F0A21C /* RecallPreferences.swift */; };
 		7726E38D0112AFFA8CD5C0CA /* SearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A48F812D58BC8404510A48 /* SearchService.swift */; };
-		D7AB2FD325C27FC7231408DA /* SearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A48F812D58BC8404510A48 /* SearchService.swift */; };
 		653CFD42E1976F8199D3836A /* AddMemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95AF29DA1A6C278C457FFC2 /* AddMemoryView.swift */; };
-		F1933646E4DB2CE8B2DEDF59 /* AddMemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B95AF29DA1A6C278C457FFC2 /* AddMemoryView.swift */; };
 		65E9E89D30809A6B84254196 /* FavoritesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11621EAE08E9AA1E5C7B2974 /* FavoritesView.swift */; };
-		F67F991D7A8C50D268789126 /* FavoritesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11621EAE08E9AA1E5C7B2974 /* FavoritesView.swift */; };
 		87BAF739A768034DABDAAC66 /* MemoryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7D1CFD5091390B4F809B9AB /* MemoryDetailView.swift */; };
-		F6B1E39C93A3878DFEA38EF0 /* MemoryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7D1CFD5091390B4F809B9AB /* MemoryDetailView.swift */; };
 		A0A27F820E1B61353D4DD95B /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4856DCDD88664772DD22329 /* RootView.swift */; };
-		881F2D39B5B24749CAB8CCBC /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4856DCDD88664772DD22329 /* RootView.swift */; };
 		E9A697527BD99E490D21E5D6 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D24D64E6D2A2456C5EA0A3 /* SearchView.swift */; };
-		4615E01DF6E32772863361A8 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31D24D64E6D2A2456C5EA0A3 /* SearchView.swift */; };
 		5580E555E76AD7F38BBE0340 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */; };
-		741E86DC1738123CE046416C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */; };
 		272EFD26C2D6749C0FD7E3B1 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852A24A7AF9B8D309686CCDA /* TimelineView.swift */; };
-		E867DD8603323368A079701B /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852A24A7AF9B8D309686CCDA /* TimelineView.swift */; };
-		834E664C191406741291A914 /* RecalliOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBDA21FF29BA248DAD0D5814 /* RecalliOSApp.swift */; };
 		097F71DE700CC1BEBCE419F9 /* MacCaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */; };
 		A20D703715FF7BF072E4D095 /* RecallMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B173E22FB694D1026018A7 /* RecallMacApp.swift */; };
 		3235F8AE2EA774A50A4DC1A3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 86BE5228102BBE430BCEEA46 /* Assets.xcassets */; };
-		126E38F74AB911EB8C5D9454 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 86BE5228102BBE430BCEEA46 /* Assets.xcassets */; };
-		AA0000010000000000000001 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000110000000000000011 /* SharedStore.swift */; };
-		AA0000020000000000000002 /* MemoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D466FC931781ED9924C60B /* MemoryItem.swift */; };
-		AA0000030000000000000003 /* SharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000110000000000000011 /* SharedStore.swift */; };
-		AA0000040000000000000004 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000120000000000000012 /* ShareViewController.swift */; };
-		AA0000050000000000000005 /* RecallShare.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA0000130000000000000013 /* RecallShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		AA0000230000000000000023 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 98F54143AB4E86B28C3AFEE0 /* Project object */; proxyType = 1; remoteGlobalIDString = AA0000300000000000000030; remoteInfo = RecallShare; };
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		12D466FC931781ED9924C60B /* MemoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Models/MemoryItem.swift"; sourceTree = "<group>"; };
@@ -53,25 +32,14 @@
 		31D24D64E6D2A2456C5EA0A3 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Views/SearchView.swift"; sourceTree = "<group>"; };
 		8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Views/SettingsView.swift"; sourceTree = "<group>"; };
 		852A24A7AF9B8D309686CCDA /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Views/TimelineView.swift"; sourceTree = "<group>"; };
-		DBDA21FF29BA248DAD0D5814 /* RecalliOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "iOS/RecalliOSApp.swift"; sourceTree = "<group>"; };
 		9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/MacCaptureCoordinator.swift"; sourceTree = "<group>"; };
 		93B173E22FB694D1026018A7 /* RecallMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/RecallMacApp.swift"; sourceTree = "<group>"; };
 		86BE5228102BBE430BCEEA46 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
 		418E31727DBBF22E398D3B71 /* Recall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Recall.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CF3B6A62016441216F5CC9EF /* Recall iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Recall iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		AA0000110000000000000011 /* SharedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Services/SharedStore.swift"; sourceTree = "<group>"; };
-		AA0000120000000000000012 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ShareExtension/ShareViewController.swift"; sourceTree = "<group>"; };
-		AA0000130000000000000013 /* RecallShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecallShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		AA0000220000000000000022 /* Embed App Extensions */ = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (AA0000050000000000000005 /* RecallShare.appex in Embed App Extensions */); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0; };
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		2A8C225853EEDD85673D1D85 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		FB754B29B60F57602032F2BB = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		AA0000210000000000000021 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -80,8 +48,6 @@
 			12D466FC931781ED9924C60B /* MemoryItem.swift */,
 			DEA0A219568FE30787F0A21C /* RecallPreferences.swift */,
 			12A48F812D58BC8404510A48 /* SearchService.swift */,
-			AA0000110000000000000011 /* SharedStore.swift */,
-			AA0000120000000000000012 /* ShareViewController.swift */,
 			B95AF29DA1A6C278C457FFC2 /* AddMemoryView.swift */,
 			11621EAE08E9AA1E5C7B2974 /* FavoritesView.swift */,
 			F7D1CFD5091390B4F809B9AB /* MemoryDetailView.swift */,
@@ -89,32 +55,23 @@
 			31D24D64E6D2A2456C5EA0A3 /* SearchView.swift */,
 			8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */,
 			852A24A7AF9B8D309686CCDA /* TimelineView.swift */,
-			DBDA21FF29BA248DAD0D5814 /* RecalliOSApp.swift */,
 			9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */,
 			93B173E22FB694D1026018A7 /* RecallMacApp.swift */,
 			86BE5228102BBE430BCEEA46 /* Assets.xcassets */,
 		); };
-		FBDC4F23F93125BBEEAE800C /* Products */ = {isa = PBXGroup; name = Products; sourceTree = "<group>"; children = (418E31727DBBF22E398D3B71 /* Recall.app */, CF3B6A62016441216F5CC9EF /* Recall iOS.app */, AA0000130000000000000013 /* RecallShare.appex */); };
+		FBDC4F23F93125BBEEAE800C /* Products */ = {isa = PBXGroup; name = Products; sourceTree = "<group>"; children = (418E31727DBBF22E398D3B71 /* Recall.app */); };
 /* End PBXGroup section */
-
-/* Begin PBXTargetDependency section */
-		AA0000240000000000000024 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = AA0000300000000000000030 /* RecallShare */; targetProxy = AA0000230000000000000023 /* PBXContainerItemProxy */; };
-/* End PBXTargetDependency section */
 
 /* Begin PBXNativeTarget section */
 		CA89A484BCBA566AA1A41918 /* Recall macOS */ = {isa = PBXNativeTarget; buildConfigurationList = D1D76D6F8285D9D1F093ADC2; buildPhases = (3375EA04324642D337D927D6, 2A8C225853EEDD85673D1D85, A6F35E0A8AA2F4D01CD59A6F); buildRules = (); dependencies = (); name = "Recall macOS"; productName = Recall; productReference = 418E31727DBBF22E398D3B71; productType = "com.apple.product-type.application"; };
-		2E93F186DF6F72C96AB7037D /* Recall iOS */ = {isa = PBXNativeTarget; buildConfigurationList = C9C3BF7658B2C47A8B8B1838; buildPhases = (189BD69EF93CA5E9CF791285, FB754B29B60F57602032F2BB, 757D63722108C4D0854F0AEB, AA0000220000000000000022); buildRules = (); dependencies = (AA0000240000000000000024); name = "Recall iOS"; productName = "Recall iOS"; productReference = CF3B6A62016441216F5CC9EF; productType = "com.apple.product-type.application"; };
-		AA0000300000000000000030 /* RecallShare */ = {isa = PBXNativeTarget; buildConfigurationList = AA0000600000000000000060; buildPhases = (AA0000400000000000000040, AA0000210000000000000021, AA0000410000000000000041); buildRules = (); dependencies = (); name = RecallShare; productName = RecallShare; productReference = AA0000130000000000000013 /* RecallShare.appex */; productType = "com.apple.product-type.app-extension"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		98F54143AB4E86B28C3AFEE0 /* Project object */ = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600; TargetAttributes = {CA89A484BCBA566AA1A41918 = {CreatedOnToolsVersion = 16.0; }; 2E93F186DF6F72C96AB7037D = {CreatedOnToolsVersion = 16.0; }; AA0000300000000000000030 = {CreatedOnToolsVersion = 16.0; }; }; }; buildConfigurationList = 642847098F0B60C253877A57; compatibilityVersion = "Xcode 15.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = E50290A24C49A459B43487C5; productRefGroup = FBDC4F23F93125BBEEAE800C; projectDirPath = ""; projectRoot = ""; targets = (CA89A484BCBA566AA1A41918, 2E93F186DF6F72C96AB7037D, AA0000300000000000000030); };
+		98F54143AB4E86B28C3AFEE0 /* Project object */ = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600; TargetAttributes = {CA89A484BCBA566AA1A41918 = {CreatedOnToolsVersion = 16.0; }; }; }; buildConfigurationList = 642847098F0B60C253877A57; compatibilityVersion = "Xcode 15.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = E50290A24C49A459B43487C5; productRefGroup = FBDC4F23F93125BBEEAE800C; projectDirPath = ""; projectRoot = ""; targets = (CA89A484BCBA566AA1A41918); };
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A6F35E0A8AA2F4D01CD59A6F = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (3235F8AE2EA774A50A4DC1A3); runOnlyForDeploymentPostprocessing = 0; };
-		757D63722108C4D0854F0AEB = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (126E38F74AB911EB8C5D9454); runOnlyForDeploymentPostprocessing = 0; };
-		AA0000410000000000000041 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -132,25 +89,6 @@
 			097F71DE700CC1BEBCE419F9 /* MacCaptureCoordinator.swift in Sources */,
 			A20D703715FF7BF072E4D095 /* RecallMacApp.swift in Sources */,
 		); runOnlyForDeploymentPostprocessing = 0; };
-		189BD69EF93CA5E9CF791285 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
-			D7547A98E7947D9C3ED0EEC5 /* MemoryItem.swift in Sources */,
-			DC278EEC7DE7A540A7290F24 /* RecallPreferences.swift in Sources */,
-			D7AB2FD325C27FC7231408DA /* SearchService.swift in Sources */,
-			881F2D39B5B24749CAB8CCBC /* RootView.swift in Sources */,
-			E867DD8603323368A079701B /* TimelineView.swift in Sources */,
-			4615E01DF6E32772863361A8 /* SearchView.swift in Sources */,
-			F67F991D7A8C50D268789126 /* FavoritesView.swift in Sources */,
-			F1933646E4DB2CE8B2DEDF59 /* AddMemoryView.swift in Sources */,
-			F6B1E39C93A3878DFEA38EF0 /* MemoryDetailView.swift in Sources */,
-			741E86DC1738123CE046416C /* SettingsView.swift in Sources */,
-			834E664C191406741291A914 /* RecalliOSApp.swift in Sources */,
-			AA0000010000000000000001 /* SharedStore.swift in Sources */,
-		); runOnlyForDeploymentPostprocessing = 0; };
-		AA0000400000000000000040 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
-			AA0000020000000000000002 /* MemoryItem.swift in Sources */,
-			AA0000030000000000000003 /* SharedStore.swift in Sources */,
-			AA0000040000000000000004 /* ShareViewController.swift in Sources */,
-		); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -158,17 +96,11 @@
 		811CB99F7A296F7846C18A7F = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; GCC_C_LANGUAGE_STANDARD = gnu17; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
 		FCEC940375E41513E5F12B9E = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.recall.macos; PRODUCT_NAME = Recall; SDKROOT = macosx; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
 		1109CF6EAE1A139E1319B4A7 = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.recall.macos; PRODUCT_NAME = Recall; SDKROOT = macosx; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
-		C71788DF4F81C9137989F291 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_ENTITLEMENTS = "Recall/iOS/Recall iOS.entitlements"; CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.recall; PRODUCT_NAME = "Recall iOS"; INFOPLIST_KEY_CFBundleDisplayName = Recall; SDKROOT = iphoneos; TARGETED_DEVICE_FAMILY = "1,2"; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; SUPPORTS_MACCATALYST = NO; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
-		1614696E664D13E2EAB2EFEC = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_ENTITLEMENTS = "Recall/iOS/Recall iOS.entitlements"; CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.recall; PRODUCT_NAME = "Recall iOS"; INFOPLIST_KEY_CFBundleDisplayName = Recall; SDKROOT = iphoneos; TARGETED_DEVICE_FAMILY = "1,2"; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; SUPPORTS_MACCATALYST = NO; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
-		AA0000500000000000000050 = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = Recall/ShareExtension/RecallShare.entitlements; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Recall/ShareExtension/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.recall.share; PRODUCT_NAME = RecallShare; SDKROOT = iphoneos; SKIP_INSTALL = YES; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
-		AA0000510000000000000051 = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = Recall/ShareExtension/RecallShare.entitlements; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Recall/ShareExtension/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.recall.share; PRODUCT_NAME = RecallShare; SDKROOT = iphoneos; SKIP_INSTALL = YES; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
 		642847098F0B60C253877A57 = {isa = XCConfigurationList; buildConfigurations = (D08DD63EED508AD30D0CB0B4, 811CB99F7A296F7846C18A7F); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		D1D76D6F8285D9D1F093ADC2 = {isa = XCConfigurationList; buildConfigurations = (FCEC940375E41513E5F12B9E, 1109CF6EAE1A139E1319B4A7); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		C9C3BF7658B2C47A8B8B1838 = {isa = XCConfigurationList; buildConfigurations = (C71788DF4F81C9137989F291, 1614696E664D13E2EAB2EFEC); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		AA0000600000000000000060 = {isa = XCConfigurationList; buildConfigurations = (AA0000500000000000000050, AA0000510000000000000051); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 
 	};
