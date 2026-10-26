@@ -17,7 +17,7 @@
 		5580E555E76AD7F38BBE0340 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */; };
 		272EFD26C2D6749C0FD7E3B1 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852A24A7AF9B8D309686CCDA /* TimelineView.swift */; };
 		097F71DE700CC1BEBCE419F9 /* MacCaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */; };
-		A20D703715FF7BF072E4D095 /* RecallMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B173E22FB694D1026018A7 /* RecallMacApp.swift */; };
+		A20D703715FF7BF072E4D095 /* MemoryLaneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B173E22FB694D1026018A7 /* MemoryLaneApp.swift */; };
 		3235F8AE2EA774A50A4DC1A3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 86BE5228102BBE430BCEEA46 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -33,7 +33,7 @@
 		8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Views/SettingsView.swift"; sourceTree = "<group>"; };
 		852A24A7AF9B8D309686CCDA /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Views/TimelineView.swift"; sourceTree = "<group>"; };
 		9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/MacCaptureCoordinator.swift"; sourceTree = "<group>"; };
-		93B173E22FB694D1026018A7 /* RecallMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/RecallMacApp.swift"; sourceTree = "<group>"; };
+		93B173E22FB694D1026018A7 /* MemoryLaneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/MemoryLaneApp.swift"; sourceTree = "<group>"; };
 		86BE5228102BBE430BCEEA46 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
 		418E31727DBBF22E398D3B71 /* Memory Lane.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Memory Lane.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB1100010000000000000001 /* GenerateMemoryLaneIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Resources/GenerateMemoryLaneIcon.swift; sourceTree = "<group>"; };
@@ -44,8 +44,8 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		E50290A24C49A459B43487C5 = {isa = PBXGroup; children = (51A0769EA9AB48E8CDE6D811 /* Recall */, FBDC4F23F93125BBEEAE800C /* Products */); sourceTree = "<group>"; };
-		51A0769EA9AB48E8CDE6D811 /* Recall */ = {isa = PBXGroup; path = Recall; sourceTree = "<group>"; children = (
+		E50290A24C49A459B43487C5 = {isa = PBXGroup; children = (51A0769EA9AB48E8CDE6D811 /* MemoryLane */, FBDC4F23F93125BBEEAE800C /* Products */); sourceTree = "<group>"; };
+		51A0769EA9AB48E8CDE6D811 /* MemoryLane */ = {isa = PBXGroup; path = MemoryLane; sourceTree = "<group>"; children = (
 			12D466FC931781ED9924C60B /* MemoryItem.swift */,
 			DEA0A219568FE30787F0A21C /* RecallPreferences.swift */,
 			12A48F812D58BC8404510A48 /* SearchService.swift */,
@@ -57,7 +57,7 @@
 			8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */,
 			852A24A7AF9B8D309686CCDA /* TimelineView.swift */,
 			9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */,
-			93B173E22FB694D1026018A7 /* RecallMacApp.swift */,
+			93B173E22FB694D1026018A7 /* MemoryLaneApp.swift */,
 			86BE5228102BBE430BCEEA46 /* Assets.xcassets */,
 			BB1100010000000000000001 /* GenerateMemoryLaneIcon.swift */,
 		); };
@@ -82,7 +82,7 @@
 			buildActionMask = 2147483647;
 			files = ();
 			inputPaths = (
-				"$(SRCROOT)/Recall/Resources/GenerateMemoryLaneIcon.swift",
+				"$(SRCROOT)/MemoryLane/Resources/GenerateMemoryLaneIcon.swift",
 			);
 			name = "Generate Memory Lane Icon";
 			outputPaths = ();
@@ -105,7 +105,7 @@
 			87BAF739A768034DABDAAC66 /* MemoryDetailView.swift in Sources */,
 			5580E555E76AD7F38BBE0340 /* SettingsView.swift in Sources */,
 			097F71DE700CC1BEBCE419F9 /* MacCaptureCoordinator.swift in Sources */,
-			A20D703715FF7BF072E4D095 /* RecallMacApp.swift in Sources */,
+			A20D703715FF7BF072E4D095 /* MemoryLaneApp.swift in Sources */,
 		); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 

@@ -24,7 +24,7 @@ Memory Lane is a privacy-first personal activity timeline for macOS. This reposi
 
 ## Open
 
-Open `Recall.xcodeproj` in Xcode and select the `Memory Lane` scheme.
+Open `Memory Lane.xcodeproj` in Xcode and select the `Memory Lane` scheme.
 
 Memory Lane is a macOS-only project with a single application target.
 
