@@ -17,18 +17,9 @@ struct SettingsView: View {
                 Toggle("Remember app switches", isOn: $preferences.captureAppActivity)
                 Toggle("Remember copied text", isOn: $preferences.captureClipboard)
 #elseif os(iOS)
-                Label("Use the Share Sheet for rich context, or create Shortcuts automations to log app opens automatically.", systemImage: "bolt.horizontal.circle")
+                Label("Use the iPhone Share Sheet to save activity to Recall. In Safari, Files, Photos, Mail, Teams, or another supported app, tap Share → Save to Recall. iOS does not allow Recall to silently monitor every app you open.", systemImage: "square.and.arrow.up")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-
-                DisclosureGroup("Automatic App-Open Logging Setup") {
-                    Text("In the Shortcuts app, create a Personal Automation. Choose App → Is Opened → select an app such as Safari or Teams → Run Immediately. Add the Recall action “Log App Open” and set App Name to the app you selected. Repeat for each app you want Recall to log.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                    Text("Example: When Safari is opened → Log App Open → App Name: Safari")
-                        .font(.caption)
-                }
 
                 Button {
                     saveTestCapture()

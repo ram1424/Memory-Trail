@@ -1,6 +1,7 @@
 #if os(iOS)
 import UIKit
 import UniformTypeIdentifiers
+import SwiftData
 
 final class ShareViewController: UIViewController {
     private let statusLabel = UILabel()
@@ -44,15 +45,19 @@ final class ShareViewController: UIViewController {
                 return
             }
 
-            try RecallSharedStore.enqueue(
-                RecallPendingItem(
+            let container = try RecallSharedStore.makeContainer()
+            let context = ModelContext(container)
+            context.insert(
+                MemoryItem(
                     title: captured.title,
                     body: captured.body,
                     sourceApp: captured.sourceApp,
+                    sourceBundleID: "",
                     sourceKind: captured.kind,
                     sourceURL: captured.url
                 )
             )
+            try context.save()
 
             statusLabel.text = "Saved to Recall"
             try? await Task.sleep(for: .milliseconds(450))
