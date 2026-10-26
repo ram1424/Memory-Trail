@@ -40,12 +40,12 @@ struct MemoryLaneApp: App {
 
 
     private static let menuBarIcon: NSImage = {
-        let canvas = NSSize(width: 16, height: 16)
+        let canvas = NSSize(width: 20, height: 20)
         let output = NSImage(size: canvas)
         output.lockFocus()
         NSGraphicsContext.current?.imageInterpolation = .high
 
-        let visibleSize = CGFloat(11)
+        let visibleSize = CGFloat(20)
         let inset = (canvas.width - visibleSize) / 2
         brandIcon.draw(
             in: NSRect(x: inset, y: inset, width: visibleSize, height: visibleSize),
