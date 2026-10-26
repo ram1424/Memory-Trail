@@ -65,7 +65,7 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		CA89A484BCBA566AA1A41918 /* Memory Lane */ = {isa = PBXNativeTarget; buildConfigurationList = D1D76D6F8285D9D1F093ADC2; buildPhases = (BB1100020000000000000002, 3375EA04324642D337D927D6, 2A8C225853EEDD85673D1D85, A6F35E0A8AA2F4D01CD59A6F); buildRules = (); dependencies = (); name = "Memory Lane"; productName = "Memory Lane"; productReference = 418E31727DBBF22E398D3B71; productType = "com.apple.product-type.application"; };
+		CA89A484BCBA566AA1A41918 /* Memory Lane */ = {isa = PBXNativeTarget; buildConfigurationList = D1D76D6F8285D9D1F093ADC2; buildPhases = (3375EA04324642D337D927D6, 2A8C225853EEDD85673D1D85, A6F35E0A8AA2F4D01CD59A6F, BB1100020000000000000002); buildRules = (); dependencies = (); name = "Memory Lane"; productName = "Memory Lane"; productReference = 418E31727DBBF22E398D3B71; productType = "com.apple.product-type.application"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -88,9 +88,10 @@
 			outputPaths = (
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/MemoryLane.icns",
 			);
+			alwaysOutOfDate = 1;
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nrm -rf \"$SRCROOT/Recall/Resources/Assets.xcassets/AppIcon.appiconset\"\nmkdir -p \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nxcrun swift \"$SRCROOT/Recall/Resources/GenerateMemoryLaneIcon.swift\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/MemoryLane.icns\"\n";
+			shellScript = "set -e\nrm -rf \"$SRCROOT/Recall/Resources/Assets.xcassets/AppIcon.appiconset\"\nRESOURCE_DIR=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nmkdir -p \"$RESOURCE_DIR\"\nxcrun swift \"$SRCROOT/Recall/Resources/GenerateMemoryLaneIcon.swift\" \"$RESOURCE_DIR/MemoryLane.icns\"\ntest -s \"$RESOURCE_DIR/MemoryLane.icns\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -114,8 +115,8 @@
 /* Begin XCBuildConfiguration section */
 		D08DD63EED508AD30D0CB0B4 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; GCC_C_LANGUAGE_STANDARD = gnu17; ONLY_ACTIVE_ARCH = YES; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; }; name = Debug; };
 		811CB99F7A296F7846C18A7F = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; GCC_C_LANGUAGE_STANDARD = gnu17; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
-		FCEC940375E41513E5F12B9E = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.memorylane.macos; PRODUCT_NAME = "Memory Lane"; INFOPLIST_KEY_CFBundleDisplayName = "Memory Lane"; INFOPLIST_KEY_CFBundleName = "Memory Lane"; INFOPLIST_KEY_CFBundleIconFile = MemoryLane.icns; SDKROOT = macosx; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
-		1109CF6EAE1A139E1319B4A7 = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.memorylane.macos; PRODUCT_NAME = "Memory Lane"; INFOPLIST_KEY_CFBundleDisplayName = "Memory Lane"; INFOPLIST_KEY_CFBundleName = "Memory Lane"; INFOPLIST_KEY_CFBundleIconFile = MemoryLane.icns; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
+		FCEC940375E41513E5F12B9E = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.memorylane.macos; PRODUCT_NAME = "Memory Lane"; INFOPLIST_KEY_CFBundleDisplayName = "Memory Lane"; INFOPLIST_KEY_CFBundleName = "Memory Lane"; INFOPLIST_KEY_CFBundleIconFile = MemoryLane; SDKROOT = macosx; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+		1109CF6EAE1A139E1319B4A7 = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.memorylane.macos; PRODUCT_NAME = "Memory Lane"; INFOPLIST_KEY_CFBundleDisplayName = "Memory Lane"; INFOPLIST_KEY_CFBundleName = "Memory Lane"; INFOPLIST_KEY_CFBundleIconFile = MemoryLane; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */

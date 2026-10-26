@@ -79,6 +79,9 @@ struct MemoryLaneApp: App {
             MemoryLaneMenuBarView(preferences: preferences)
         } label: {
             Image(nsImage: memoryLaneMenuBarIcon)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 14, height: 14)
                 .accessibilityLabel("Memory Lane")
         }
     }
