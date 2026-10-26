@@ -107,9 +107,10 @@ final class MacCaptureCoordinator {
         guard let windowContext = focusedWindowContext(pid: app.processIdentifier) else { return }
 
         let appName = app.localizedName ?? "Application"
-        let rawContextTitle = preferredContextTitle(
+        let scriptedContext = appSpecificScriptContext(bundleID: bundleID)
+        let rawContextTitle = scriptedContext?.title ?? preferredContextTitle(
             windowTitle: windowContext.title,
-            focusedElementCandidates: windowContext.focusedElementCandidates,
+            focusedElementCandidates: windowContext.focusedElementCandidates + windowContext.windowCandidates,
             applicationName: appName,
             bundleID: bundleID
         )
@@ -139,7 +140,7 @@ final class MacCaptureCoordinator {
                     sourceApp: appName,
                     sourceBundleID: bundleID,
                     sourceKind: .appActivity,
-                    sourceURL: windowContext.sourceURL
+                    sourceURL: scriptedContext?.sourceURL ?? windowContext.sourceURL
                 )
             )
             try? context.save()
@@ -194,7 +195,8 @@ final class MacCaptureCoordinator {
         return FocusedWindowContext(
             title: title,
             sourceURL: normalizedSourceURL(document),
-            focusedElementCandidates: focusedElementCandidates(from: appElement)
+            focusedElementCandidates: focusedElementCandidates(from: appElement),
+            windowCandidates: accessibilityCandidates(in: windowElement)
         )
     }
 
@@ -213,6 +215,140 @@ final class MacCaptureCoordinator {
         let title: String
         let sourceURL: String?
         let focusedElementCandidates: [String]
+        let windowCandidates: [String]
+    }
+
+    private struct ScriptedContext {
+        let title: String
+        let sourceURL: String?
+    }
+
+    private func appSpecificScriptContext(bundleID: String) -> ScriptedContext? {
+        switch bundleID.lowercased() {
+        case "com.apple.mail":
+            return mailScriptContext()
+        case "com.microsoft.outlook":
+            return outlookScriptContext()
+        default:
+            return nil
+        }
+    }
+
+    private func mailScriptContext() -> ScriptedContext? {
+        let source = """
+        tell application "Mail"
+            try
+                set selectedMessages to selection
+                if (count of selectedMessages) is greater than 0 then
+                    set theMessage to item 1 of selectedMessages
+                    set theSubject to subject of theMessage as text
+                    set theMessageID to message id of theMessage as text
+                    return theSubject & "||RECALL||" & theMessageID
+                end if
+            end try
+        end tell
+        return ""
+        """
+
+        guard let result = runAppleScript(source), !result.isEmpty else { return nil }
+        let parts = result.components(separatedBy: "||RECALL||")
+        let subject = parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard isUsefulAccessibilityText(subject) else { return nil }
+
+        var sourceURL: String?
+        if parts.count > 1 {
+            let messageID = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+            if !messageID.isEmpty {
+                let encoded = messageID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? messageID
+                sourceURL = "message://\(encoded)"
+            }
+        }
+
+        return ScriptedContext(title: subject, sourceURL: sourceURL)
+    }
+
+    private func outlookScriptContext() -> ScriptedContext? {
+        let source = """
+        tell application "Microsoft Outlook"
+            try
+                set selectedItems to selected objects
+                if (count of selectedItems) is greater than 0 then
+                    set theItem to item 1 of selectedItems
+                    try
+                        return subject of theItem as text
+                    end try
+                end if
+            end try
+        end tell
+        return ""
+        """
+
+        guard let subject = runAppleScript(source)?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+              isUsefulAccessibilityText(subject)
+        else {
+            return nil
+        }
+
+        return ScriptedContext(title: subject, sourceURL: nil)
+    }
+
+    private func runAppleScript(_ source: String) -> String? {
+        guard let script = NSAppleScript(source: source) else { return nil }
+        var error: NSDictionary?
+        let result = script.executeAndReturnError(&error)
+        guard error == nil else { return nil }
+        return result.stringValue
+    }
+
+    private func accessibilityCandidates(in root: AXUIElement) -> [String] {
+        var queue: [(AXUIElement, Int)] = [(root, 0)]
+        var index = 0
+        var candidates: [String] = []
+        var seenText = Set<String>()
+
+        while index < queue.count, index < 350 {
+            let (element, depth) = queue[index]
+            index += 1
+
+            for attribute in [
+                kAXTitleAttribute as CFString,
+                kAXValueAttribute as CFString,
+                kAXDescriptionAttribute as CFString,
+                kAXHelpAttribute as CFString
+            ] {
+                var value: CFTypeRef?
+                if AXUIElementCopyAttributeValue(element, attribute, &value) == .success,
+                   let text = value as? String {
+                    let cleaned = text
+                        .replacingOccurrences(of: "\n", with: " ")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+                    if isUsefulAccessibilityText(cleaned) {
+                        let key = cleaned.lowercased()
+                        if seenText.insert(key).inserted {
+                            candidates.append(cleaned)
+                        }
+                    }
+                }
+            }
+
+            guard depth < 5 else { continue }
+
+            var childrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXChildrenAttribute as CFString,
+                &childrenValue
+            ) == .success,
+               let children = childrenValue as? [AXUIElement] {
+                for child in children.prefix(80) {
+                    queue.append((child, depth + 1))
+                }
+            }
+        }
+
+        return candidates
     }
 
     private func focusedElementCandidates(from appElement: AXUIElement) -> [String] {
