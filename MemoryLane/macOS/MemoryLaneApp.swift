@@ -17,6 +17,27 @@ struct MemoryLaneApp: App {
         return image
     }()
 
+    private static let dockIcon: NSImage = {
+        let canvas = NSSize(width: 64, height: 64)
+        let output = NSImage(size: canvas)
+        output.lockFocus()
+        NSGraphicsContext.current?.imageInterpolation = .high
+
+        // Standard macOS Dock icons leave visual breathing room inside the icon canvas.
+        let visibleSize = CGFloat(54)
+        let inset = (canvas.width - visibleSize) / 2
+        brandIcon.draw(
+            in: NSRect(x: inset, y: inset, width: visibleSize, height: visibleSize),
+            from: NSRect(origin: .zero, size: brandIcon.size),
+            operation: .sourceOver,
+            fraction: 1.0
+        )
+
+        output.unlockFocus()
+        output.isTemplate = false
+        return output
+    }()
+
     init() {
         do {
             container = try ModelContainer(for: MemoryItem.self)
@@ -24,7 +45,7 @@ struct MemoryLaneApp: App {
             fatalError("Unable to initialize Memory Lane database: \(error)")
         }
 
-        NSApplication.shared.applicationIconImage = Self.brandIcon
+        NSApplication.shared.applicationIconImage = Self.dockIcon
     }
 
     var body: some Scene {
@@ -53,7 +74,7 @@ struct MemoryLaneApp: App {
                 .renderingMode(.original)
                 .resizable()
                 .interpolation(.high)
-                .frame(width: 18, height: 18)
+                .frame(width: 13, height: 13)
         }
     }
 }
