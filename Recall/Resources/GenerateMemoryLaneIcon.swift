@@ -3,13 +3,13 @@ import Foundation
 
 let arguments = CommandLine.arguments
 guard arguments.count >= 2 else {
-    fputs("Usage: GenerateMemoryLaneIcon.swift <output.icns>\n", stderr)
+    fputs("Usage: GenerateMemoryLaneIcon.swift <AppIcon.appiconset directory>\n", stderr)
     exit(1)
 }
 
-let outputURL = URL(fileURLWithPath: arguments[1])
+let appIconSetURL = URL(fileURLWithPath: arguments[1], isDirectory: true)
 let fm = FileManager.default
-try fm.createDirectory(at: outputURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+try fm.createDirectory(at: appIconSetURL, withIntermediateDirectories: true)
 
 let canvas = CGFloat(1024)
 let master = NSImage(size: NSSize(width: canvas, height: canvas))
@@ -33,6 +33,12 @@ background.draw(in: iconPath, angle: -55)
 
 NSGraphicsContext.current?.saveGraphicsState()
 iconPath.addClip()
+
+let foregroundTransform = NSAffineTransform()
+foregroundTransform.translateX(by: canvas / 2, yBy: canvas / 2)
+foregroundTransform.scale(by: 1.20)
+foregroundTransform.translateX(by: -canvas / 2, yBy: -canvas / 2)
+foregroundTransform.concat()
 
 let glow = NSGradient(colors: [
     NSColor(calibratedRed: 0.0, green: 0.50, blue: 1.0, alpha: 0.30),
@@ -133,12 +139,6 @@ func pngData(from image: NSImage, size: Int) -> Data? {
     return bitmap.representation(using: .png, properties: [:])
 }
 
-let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory())
-    .appendingPathComponent("MemoryLaneIcon-\(UUID().uuidString)")
-let iconset = tempRoot.appendingPathExtension("iconset")
-try fm.createDirectory(at: iconset, withIntermediateDirectories: true)
-defer { try? fm.removeItem(at: iconset) }
-
 let outputs: [(String, Int)] = [
     ("icon_16x16.png", 16),
     ("icon_16x16@2x.png", 32),
@@ -157,15 +157,5 @@ for (name, size) in outputs {
         fputs("Unable to render \(name)\n", stderr)
         exit(2)
     }
-    try data.write(to: iconset.appendingPathComponent(name))
-}
-
-let process = Process()
-process.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
-process.arguments = ["-c", "icns", iconset.path, "-o", outputURL.path]
-try process.run()
-process.waitUntilExit()
-if process.terminationStatus != 0 {
-    fputs("iconutil failed with status \(process.terminationStatus)\n", stderr)
-    exit(process.terminationStatus)
+    try data.write(to: appIconSetURL.appendingPathComponent(name), options: .atomic)
 }
