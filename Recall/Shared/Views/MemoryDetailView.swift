@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 struct MemoryDetailView: View {
     @Environment(\.dismiss) private var dismiss
@@ -16,15 +19,33 @@ struct MemoryDetailView: View {
                 LabeledContent("Source", value: item.sourceApp)
                 LabeledContent("Type", value: item.sourceKind.rawValue)
                 LabeledContent("Captured", value: item.createdAt.formatted(date: .abbreviated, time: .shortened))
-                if let url = item.sourceURL, !url.isEmpty {
-                    LabeledContent("URL") {
-                        if let link = URL(string: url) {
-                            Link(url, destination: link)
-                        } else {
-                            Text(url)
+                if let url = item.sourceURL,
+                   !url.isEmpty,
+                   let link = URL(string: url) {
+                    LabeledContent("Source Link") {
+                        Link(destination: link) {
+                            Label("Open Source", systemImage: "arrow.up.right.square")
                         }
                     }
+
+                    Text(url)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                 }
+
+#if os(macOS)
+                if !item.sourceBundleID.isEmpty {
+                    LabeledContent("Application") {
+                        Button {
+                            openSourceApplication()
+                        } label: {
+                            Label("Open \(item.sourceApp)", systemImage: "macwindow")
+                        }
+                        .buttonStyle(.link)
+                    }
+                }
+#endif
             }
 
             Section {
@@ -46,4 +67,21 @@ struct MemoryDetailView: View {
         }
 #endif
     }
+
+#if os(macOS)
+    private func openSourceApplication() {
+        guard !item.sourceBundleID.isEmpty,
+              let applicationURL = NSWorkspace.shared.urlForApplication(
+                withBundleIdentifier: item.sourceBundleID
+              )
+        else {
+            return
+        }
+
+        NSWorkspace.shared.openApplication(
+            at: applicationURL,
+            configuration: NSWorkspace.OpenConfiguration()
+        )
+    }
+#endif
 }

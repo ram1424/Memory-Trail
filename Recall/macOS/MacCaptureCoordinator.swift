@@ -104,11 +104,11 @@ final class MacCaptureCoordinator {
         guard !prefs.isExcluded(bundleID: bundleID) else { return }
         guard bundleID != Bundle.main.bundleIdentifier else { return }
 
-        guard let rawTitle = focusedWindowTitle(pid: app.processIdentifier) else { return }
+        guard let windowContext = focusedWindowContext(pid: app.processIdentifier) else { return }
 
         let appName = app.localizedName ?? "Application"
         let title = normalizeWindowTitle(
-            rawTitle,
+            windowContext.title,
             applicationName: appName,
             bundleID: bundleID
         )
@@ -131,12 +131,13 @@ final class MacCaptureCoordinator {
                 body: detailedBody(for: title, applicationName: appName, bundleID: bundleID),
                 sourceApp: appName,
                 sourceBundleID: bundleID,
-                sourceKind: .appActivity
+                sourceKind: .appActivity,
+                sourceURL: windowContext.sourceURL
             )
         )
     }
 
-    private func focusedWindowTitle(pid: pid_t) -> String? {
+    private func focusedWindowContext(pid: pid_t) -> FocusedWindowContext? {
         let appElement = AXUIElementCreateApplication(pid)
 
         var focusedWindowValue: CFTypeRef?
@@ -155,32 +156,52 @@ final class MacCaptureCoordinator {
 
         let windowElement = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
 
+        var title = ""
         var titleValue: CFTypeRef?
-        let titleResult = AXUIElementCopyAttributeValue(
+        if AXUIElementCopyAttributeValue(
             windowElement,
             kAXTitleAttribute as CFString,
             &titleValue
-        )
-
-        if titleResult == .success, let title = titleValue as? String {
-            let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !cleaned.isEmpty {
-                return cleaned
-            }
+        ) == .success, let value = titleValue as? String {
+            title = value.trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
+        var document = ""
         var documentValue: CFTypeRef?
-        let documentResult = AXUIElementCopyAttributeValue(
+        if AXUIElementCopyAttributeValue(
             windowElement,
             kAXDocumentAttribute as CFString,
             &documentValue
-        )
-
-        if documentResult == .success, let document = documentValue as? String {
-            return document.trimmingCharacters(in: .whitespacesAndNewlines)
+        ) == .success, let value = documentValue as? String {
+            document = value.trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        return nil
+        if title.isEmpty {
+            title = document
+        }
+
+        guard !title.isEmpty else { return nil }
+
+        return FocusedWindowContext(
+            title: title,
+            sourceURL: normalizedSourceURL(document)
+        )
+    }
+
+    private func normalizedSourceURL(_ value: String) -> String? {
+        guard !value.isEmpty, let url = URL(string: value) else { return nil }
+
+        switch url.scheme?.lowercased() {
+        case "http", "https", "file", "mailto", "message", "msteams", "ms-outlook", "outlook":
+            return url.absoluteString
+        default:
+            return nil
+        }
+    }
+
+    private struct FocusedWindowContext {
+        let title: String
+        let sourceURL: String?
     }
 
     private func normalizeWindowTitle(
