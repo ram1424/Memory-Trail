@@ -9,6 +9,46 @@ final class MemoryLaneAppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+private let memoryLaneMenuBarIcon: NSImage = {
+    let size = NSSize(width: 36, height: 36)
+    let image = NSImage(size: size, flipped: false) { rect in
+        NSColor.black.setStroke()
+
+        let brain = NSBezierPath()
+        brain.move(to: NSPoint(x: 18, y: 31))
+        brain.curve(to: NSPoint(x: 10, y: 29), controlPoint1: NSPoint(x: 15, y: 34), controlPoint2: NSPoint(x: 11, y: 33))
+        brain.curve(to: NSPoint(x: 5, y: 23), controlPoint1: NSPoint(x: 6, y: 29), controlPoint2: NSPoint(x: 4, y: 26))
+        brain.curve(to: NSPoint(x: 6, y: 15), controlPoint1: NSPoint(x: 3, y: 20), controlPoint2: NSPoint(x: 3, y: 17))
+        brain.curve(to: NSPoint(x: 12, y: 10), controlPoint1: NSPoint(x: 6, y: 12), controlPoint2: NSPoint(x: 9, y: 10))
+        brain.curve(to: NSPoint(x: 18, y: 12), controlPoint1: NSPoint(x: 14, y: 8), controlPoint2: NSPoint(x: 17, y: 9))
+        brain.move(to: NSPoint(x: 18, y: 31))
+        brain.curve(to: NSPoint(x: 26, y: 29), controlPoint1: NSPoint(x: 21, y: 34), controlPoint2: NSPoint(x: 25, y: 33))
+        brain.curve(to: NSPoint(x: 31, y: 23), controlPoint1: NSPoint(x: 30, y: 29), controlPoint2: NSPoint(x: 32, y: 26))
+        brain.curve(to: NSPoint(x: 30, y: 15), controlPoint1: NSPoint(x: 33, y: 20), controlPoint2: NSPoint(x: 33, y: 17))
+        brain.curve(to: NSPoint(x: 24, y: 10), controlPoint1: NSPoint(x: 30, y: 12), controlPoint2: NSPoint(x: 27, y: 10))
+        brain.curve(to: NSPoint(x: 18, y: 12), controlPoint1: NSPoint(x: 22, y: 8), controlPoint2: NSPoint(x: 19, y: 9))
+        brain.lineWidth = 2.8
+        brain.lineCapStyle = .round
+        brain.lineJoinStyle = .round
+        brain.stroke()
+
+        let road = NSBezierPath()
+        road.move(to: NSPoint(x: 15, y: 28))
+        road.curve(to: NSPoint(x: 22, y: 24), controlPoint1: NSPoint(x: 18, y: 27), controlPoint2: NSPoint(x: 23, y: 27))
+        road.curve(to: NSPoint(x: 15, y: 19), controlPoint1: NSPoint(x: 21, y: 21), controlPoint2: NSPoint(x: 16, y: 22))
+        road.curve(to: NSPoint(x: 21, y: 14), controlPoint1: NSPoint(x: 14, y: 16), controlPoint2: NSPoint(x: 20, y: 17))
+        road.curve(to: NSPoint(x: 13, y: 5), controlPoint1: NSPoint(x: 22, y: 10), controlPoint2: NSPoint(x: 17, y: 8))
+        road.lineWidth = 3.4
+        road.lineCapStyle = .round
+        road.lineJoinStyle = .round
+        road.stroke()
+
+        return true
+    }
+    image.isTemplate = true
+    return image
+}()
+
 @main
 struct MemoryLaneApp: App {
     @NSApplicationDelegateAdaptor(MemoryLaneAppDelegate.self) private var appDelegate
@@ -38,10 +78,7 @@ struct MemoryLaneApp: App {
         MenuBarExtra {
             MemoryLaneMenuBarView(preferences: preferences)
         } label: {
-            Image(nsImage: NSApplication.shared.applicationIconImage)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 18, height: 18)
+            Image(nsImage: memoryLaneMenuBarIcon)
                 .accessibilityLabel("Memory Lane")
         }
     }

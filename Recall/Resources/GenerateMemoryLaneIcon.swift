@@ -162,14 +162,32 @@ func pngData(_ image: NSImage, size: Int) -> Data? {
     return rep.representation(using: .png, properties: [:])
 }
 
+let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory())
+    .appendingPathComponent("MemoryLaneIcon-\(UUID().uuidString)")
+let iconset = tempRoot.appendingPathExtension("iconset")
+try fileManager.createDirectory(at: iconset, withIntermediateDirectories: true)
+defer { try? fileManager.removeItem(at: iconset) }
+
 let files: [(String, Int)] = [
-    ("AppIcon_16x16.png",16), ("AppIcon_16x16@2x.png",32),
-    ("AppIcon_32x32.png",32), ("AppIcon_32x32@2x.png",64),
-    ("AppIcon_128x128.png",128), ("AppIcon_128x128@2x.png",256),
-    ("AppIcon_256x256.png",256), ("AppIcon_256x256@2x.png",512),
-    ("AppIcon_512x512.png",512), ("AppIcon_512x512@2x.png",1024)
+    ("icon_16x16.png",16), ("icon_16x16@2x.png",32),
+    ("icon_32x32.png",32), ("icon_32x32@2x.png",64),
+    ("icon_128x128.png",128), ("icon_128x128@2x.png",256),
+    ("icon_256x256.png",256), ("icon_256x256@2x.png",512),
+    ("icon_512x512.png",512), ("icon_512x512@2x.png",1024)
 ]
+
 for (name, size) in files {
     guard let data = pngData(master, size: size) else { exit(3) }
-    try data.write(to: outputDirectory.appendingPathComponent(name), options: .atomic)
+    try data.write(to: iconset.appendingPathComponent(name), options: .atomic)
+}
+
+let iconutil = Process()
+iconutil.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
+iconutil.arguments = ["-c", "icns", iconset.path, "-o", outputURL.path]
+try iconutil.run()
+iconutil.waitUntilExit()
+
+guard iconutil.terminationStatus == 0 else {
+    fputs("iconutil failed with status \(iconutil.terminationStatus)\\n", stderr)
+    exit(iconutil.terminationStatus)
 }
