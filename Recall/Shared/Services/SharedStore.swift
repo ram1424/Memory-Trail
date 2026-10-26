@@ -3,7 +3,7 @@ import Foundation
 import SwiftData
 
 enum RecallSharedStore {
-    static let appGroupID = "group.com.example.recall"
+    static let appGroupID = "group.com.ram1424.recall"
     private static let storeName = "Recall.store"
 
     static func makeContainer() throws -> ModelContainer {

@@ -171,7 +171,7 @@ private extension NSItemProvider {
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
-                    continuation.resume(returning: item as? NSSecureCoding)
+                    continuation.resume(returning: item)
                 }
             }
         }
