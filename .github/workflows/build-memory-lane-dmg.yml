@@ -1,0 +1,71 @@
+name: Build Memory Lane DMG
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-memory-lane-dmg.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-dmg:
+    runs-on: macos-15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build Memory Lane
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project "Memory Lane.xcodeproj" \
+            -scheme "Memory Lane" \
+            -configuration Release \
+            -derivedDataPath "$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            clean build
+
+      - name: Create DMG
+        run: |
+          set -euo pipefail
+          APP="$PWD/build/Build/Products/Release/Memory Lane.app"
+          test -d "$APP"
+
+          rm -rf "$PWD/dmg-root"
+          mkdir -p "$PWD/dmg-root"
+          ditto "$APP" "$PWD/dmg-root/Memory Lane.app"
+          ln -s /Applications "$PWD/dmg-root/Applications"
+
+          hdiutil create \
+            -volname "Memory Lane" \
+            -srcfolder "$PWD/dmg-root" \
+            -ov \
+            -format UDZO \
+            "$PWD/MemoryLane-1.0.0.dmg"
+
+          shasum -a 256 "$PWD/MemoryLane-1.0.0.dmg"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="v1.0.0"
+          DMG="MemoryLane-1.0.0.dmg"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$DMG" --clobber
+          else
+            gh release create "$TAG" "$DMG" \
+              --title "Memory Lane 1.0.0" \
+              --notes "Memory Lane 1.0.0 macOS DMG. This automated build is currently unsigned and not notarized."
+          fi
