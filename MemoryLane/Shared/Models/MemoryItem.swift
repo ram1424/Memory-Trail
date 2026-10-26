@@ -18,7 +18,7 @@ final class MemoryItem {
         createdAt: Date = .now,
         title: String,
         body: String = "",
-        sourceApp: String = "Recall",
+        sourceApp: String = "Memory Lane",
         sourceBundleID: String = "",
         sourceKind: SourceKind = .note,
         sourceURL: String? = nil,

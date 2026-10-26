@@ -24,6 +24,36 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Prepare app icon assets
+        run: |
+          set -euo pipefail
+          ICON_DIR="$PWD/MemoryLane/Resources/Assets.xcassets/AppIcon.appiconset"
+          SWIFT_FILE="$PWD/MemoryLane/macOS/MemoryLaneApp.swift"
+          mkdir -p "$ICON_DIR"
+
+          python3 - "$SWIFT_FILE" "$PWD/memory-lane-icon-source.png" <<'PY'
+          import base64
+          import re
+          import sys
+
+          source = open(sys.argv[1], "r", encoding="utf-8").read()
+          match = re.search(r'Data\(base64Encoded: "([A-Za-z0-9+/=]+)"\)', source)
+          if not match:
+              raise SystemExit("Unable to locate embedded Memory Lane icon data.")
+          open(sys.argv[2], "wb").write(base64.b64decode(match.group(1)))
+          PY
+
+          sips -z 16 16 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_16x16.png" >/dev/null
+          sips -z 32 32 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_16x16@2x.png" >/dev/null
+          sips -z 32 32 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_32x32.png" >/dev/null
+          sips -z 64 64 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_32x32@2x.png" >/dev/null
+          sips -z 128 128 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_128x128.png" >/dev/null
+          sips -z 256 256 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_128x128@2x.png" >/dev/null
+          sips -z 256 256 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_256x256.png" >/dev/null
+          sips -z 512 512 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_256x256@2x.png" >/dev/null
+          sips -z 512 512 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_512x512.png" >/dev/null
+          sips -z 1024 1024 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_512x512@2x.png" >/dev/null
+
       - name: Build Memory Lane
         run: |
           set -euo pipefail

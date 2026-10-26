@@ -14,7 +14,7 @@ struct SettingsView: View {
                 Toggle("Remember copied text", isOn: $preferences.captureClipboard)
 
                 if MacCaptureCoordinator.shared.hasAccessibilityPermission {
-                    Label("Accessibility access enabled. Recall can capture focused window titles for richer Timeline entries.", systemImage: "checkmark.shield")
+                    Label("Accessibility access enabled. Memory Lane can capture focused window titles for richer Timeline entries.", systemImage: "checkmark.shield")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else {
@@ -24,7 +24,7 @@ struct SettingsView: View {
                         Label("Enable Accessibility Access", systemImage: "hand.raised")
                     }
 
-                    Text("Required for granular macOS activity such as Safari page titles, Mail subjects, Outlook items, and Teams windows. macOS will ask you to allow Recall in System Settings → Privacy & Security → Accessibility.")
+                    Text("Required for granular macOS activity such as Safari page titles, Mail subjects, Outlook items, and Teams windows. macOS will ask you to allow Memory Lane in System Settings → Privacy & Security → Accessibility.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -67,13 +67,13 @@ struct SettingsView: View {
                     .buttonStyle(.borderless)
                 }
 
-                Label("Wallet and Passwords are excluded by default and cannot be enabled for capture. Recall will not intentionally log activity or clipboard content while either app is active.", systemImage: "lock.shield.fill")
+                Label("Wallet and Passwords are excluded by default and cannot be enabled for capture. Memory Lane will not intentionally log activity or clipboard content while either app is active.", systemImage: "lock.shield.fill")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
 
             Section("Data") {
-                Text("Recall stores your activity timeline locally using SwiftData. No cloud account or analytics SDK is included.")
+                Text("Memory Lane stores your activity timeline locally using SwiftData. No cloud account or analytics SDK is included.")
                     .foregroundStyle(.secondary)
             }
         }

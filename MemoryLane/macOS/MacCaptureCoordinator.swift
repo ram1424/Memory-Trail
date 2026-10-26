@@ -15,9 +15,11 @@ final class MacCaptureCoordinator {
     private var lastWindowSignature = ""
     private var lastWindowLoggedAt = Date.distantPast
     private weak var context: ModelContext?
+    private var didRequestAccessibilityThisLaunch = false
 
     func start(context: ModelContext) {
         self.context = context
+        requestAccessibilityPermissionIfNeeded()
         startAppActivityCapture()
         startFocusedWindowCapture()
         startClipboardCapture()
@@ -41,6 +43,14 @@ final class MacCaptureCoordinator {
             kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
         ] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
+    }
+
+    private func requestAccessibilityPermissionIfNeeded() {
+        guard !didRequestAccessibilityThisLaunch else { return }
+        didRequestAccessibilityThisLaunch = true
+
+        guard !AXIsProcessTrusted() else { return }
+        requestAccessibilityPermission()
     }
 
     var hasAccessibilityPermission: Bool {
