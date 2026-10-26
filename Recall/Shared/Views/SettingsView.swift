@@ -1,10 +1,7 @@
 import SwiftUI
-import SwiftData
 
 struct SettingsView: View {
     @Environment(RecallPreferences.self) private var preferences
-    @Environment(\.modelContext) private var modelContext
-    @State private var testCaptureSaved = false
     @State private var customExclusions = ""
 
     var body: some View {
@@ -13,7 +10,6 @@ struct SettingsView: View {
         Form {
             Section("Capture") {
                 Toggle("Pause all capture", isOn: $preferences.capturePaused)
-#if os(macOS)
                 Toggle("Remember app switches and focused windows", isOn: $preferences.captureAppActivity)
                 Toggle("Remember copied text", isOn: $preferences.captureClipboard)
 
@@ -32,17 +28,6 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-#elseif os(iOS)
-                Label("Use the iPhone Share Sheet to save activity to Recall. In Safari, Files, Photos, Mail, Teams, or another supported app, tap Share → Save to Recall. iOS does not allow Recall to silently monitor every app you open.", systemImage: "square.and.arrow.up")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-
-                Button {
-                    saveTestCapture()
-                } label: {
-                    Label(testCaptureSaved ? "Test Capture Saved" : "Create Test Capture", systemImage: testCaptureSaved ? "checkmark.circle.fill" : "waveform.path.ecg")
-                }
-#endif
             }
 
             Section("Excluded Apps & Services") {
@@ -88,7 +73,7 @@ struct SettingsView: View {
             }
 
             Section("Data") {
-                Text("This MVP stores your Recall timeline locally using SwiftData. No cloud account or analytics SDK is included.")
+                Text("Recall stores your activity timeline locally using SwiftData. No cloud account or analytics SDK is included.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -108,23 +93,4 @@ struct SettingsView: View {
             set: { preferences.setExcluded($0, option: option) }
         )
     }
-
-#if os(iOS)
-    private func saveTestCapture() {
-        let item = MemoryItem(
-            title: "iPhone test capture",
-            body: "This test entry was created from Recall Settings to verify that the iOS SwiftData store and Timeline are functioning.",
-            sourceApp: "Recall",
-            sourceBundleID: Bundle.main.bundleIdentifier ?? "",
-            sourceKind: .note
-        )
-        modelContext.insert(item)
-        do {
-            try modelContext.save()
-            testCaptureSaved = true
-        } catch {
-            assertionFailure("Unable to save test capture: \(error)")
-        }
-    }
-#endif
 }
