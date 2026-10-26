@@ -10,8 +10,14 @@ final class MemoryLaneAppDelegate: NSObject, NSApplicationDelegate {
 }
 
 private let memoryLaneMenuBarIcon: NSImage = {
-    let size = NSSize(width: 36, height: 36)
-    let image = NSImage(size: size, flipped: false) { rect in
+    let targetSize = NSSize(width: 14, height: 14)
+    let image = NSImage(size: targetSize, flipped: false) { rect in
+        NSGraphicsContext.saveGraphicsState()
+
+        let transform = NSAffineTransform()
+        transform.scale(by: 14.0 / 36.0)
+        transform.concat()
+
         NSColor.black.setStroke()
 
         let brain = NSBezierPath()
@@ -43,9 +49,11 @@ private let memoryLaneMenuBarIcon: NSImage = {
         road.lineJoinStyle = .round
         road.stroke()
 
+        NSGraphicsContext.restoreGraphicsState()
         return true
     }
     image.isTemplate = true
+    image.size = targetSize
     return image
 }()
 
@@ -79,9 +87,6 @@ struct MemoryLaneApp: App {
             MemoryLaneMenuBarView(preferences: preferences)
         } label: {
             Image(nsImage: memoryLaneMenuBarIcon)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 14, height: 14)
                 .accessibilityLabel("Memory Lane")
         }
     }
