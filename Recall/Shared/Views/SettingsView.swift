@@ -14,8 +14,24 @@ struct SettingsView: View {
             Section("Capture") {
                 Toggle("Pause all capture", isOn: $preferences.capturePaused)
 #if os(macOS)
-                Toggle("Remember app switches", isOn: $preferences.captureAppActivity)
+                Toggle("Remember app switches and focused windows", isOn: $preferences.captureAppActivity)
                 Toggle("Remember copied text", isOn: $preferences.captureClipboard)
+
+                if MacCaptureCoordinator.shared.hasAccessibilityPermission {
+                    Label("Accessibility access enabled. Recall can capture focused window titles for richer Timeline entries.", systemImage: "checkmark.shield")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Button {
+                        MacCaptureCoordinator.shared.requestAccessibilityPermission()
+                    } label: {
+                        Label("Enable Accessibility Access", systemImage: "hand.raised")
+                    }
+
+                    Text("Required for granular macOS activity such as Safari page titles, Mail subjects, Outlook items, and Teams windows. macOS will ask you to allow Recall in System Settings → Privacy & Security → Accessibility.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
 #elseif os(iOS)
                 Label("Use the iPhone Share Sheet to save activity to Recall. In Safari, Files, Photos, Mail, Teams, or another supported app, tap Share → Save to Recall. iOS does not allow Recall to silently monitor every app you open.", systemImage: "square.and.arrow.up")
                     .font(.footnote)
