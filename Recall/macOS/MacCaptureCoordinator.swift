@@ -107,8 +107,14 @@ final class MacCaptureCoordinator {
         guard let windowContext = focusedWindowContext(pid: app.processIdentifier) else { return }
 
         let appName = app.localizedName ?? "Application"
+        let rawContextTitle = preferredContextTitle(
+            windowTitle: windowContext.title,
+            focusedElementCandidates: windowContext.focusedElementCandidates,
+            applicationName: appName,
+            bundleID: bundleID
+        )
         let title = normalizeWindowTitle(
-            windowContext.title,
+            rawContextTitle,
             applicationName: appName,
             bundleID: bundleID
         )
@@ -125,16 +131,19 @@ final class MacCaptureCoordinator {
         lastWindowSignature = signature
         lastWindowLoggedAt = now
 
-        context?.insert(
-            MemoryItem(
-                title: title,
-                body: detailedBody(for: title, applicationName: appName, bundleID: bundleID),
-                sourceApp: appName,
-                sourceBundleID: bundleID,
-                sourceKind: .appActivity,
-                sourceURL: windowContext.sourceURL
+        if let context {
+            context.insert(
+                MemoryItem(
+                    title: title,
+                    body: detailedBody(for: title, applicationName: appName, bundleID: bundleID),
+                    sourceApp: appName,
+                    sourceBundleID: bundleID,
+                    sourceKind: .appActivity,
+                    sourceURL: windowContext.sourceURL
+                )
             )
-        )
+            try? context.save()
+        }
     }
 
     private func focusedWindowContext(pid: pid_t) -> FocusedWindowContext? {
@@ -184,7 +193,8 @@ final class MacCaptureCoordinator {
 
         return FocusedWindowContext(
             title: title,
-            sourceURL: normalizedSourceURL(document)
+            sourceURL: normalizedSourceURL(document),
+            focusedElementCandidates: focusedElementCandidates(from: appElement)
         )
     }
 
@@ -202,6 +212,116 @@ final class MacCaptureCoordinator {
     private struct FocusedWindowContext {
         let title: String
         let sourceURL: String?
+        let focusedElementCandidates: [String]
+    }
+
+    private func focusedElementCandidates(from appElement: AXUIElement) -> [String] {
+        var focusedValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedValue
+        ) == .success,
+        let focusedValue,
+        CFGetTypeID(focusedValue) == AXUIElementGetTypeID()
+        else {
+            return []
+        }
+
+        var element = unsafeBitCast(focusedValue, to: AXUIElement.self)
+        var candidates: [String] = []
+        var visited = Set<String>()
+
+        for _ in 0..<6 {
+            for attribute in [
+                kAXTitleAttribute as CFString,
+                kAXValueAttribute as CFString,
+                kAXDescriptionAttribute as CFString,
+                kAXHelpAttribute as CFString
+            ] {
+                var value: CFTypeRef?
+                if AXUIElementCopyAttributeValue(element, attribute, &value) == .success,
+                   let text = value as? String {
+                    let cleaned = text
+                        .replacingOccurrences(of: "\n", with: " ")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+                    guard isUsefulAccessibilityText(cleaned) else { continue }
+                    let key = cleaned.lowercased()
+                    if visited.insert(key).inserted {
+                        candidates.append(cleaned)
+                    }
+                }
+            }
+
+            var parentValue: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(
+                element,
+                kAXParentAttribute as CFString,
+                &parentValue
+            ) == .success,
+            let parentValue,
+            CFGetTypeID(parentValue) == AXUIElementGetTypeID()
+            else {
+                break
+            }
+
+            element = unsafeBitCast(parentValue, to: AXUIElement.self)
+        }
+
+        return candidates
+    }
+
+    private func isUsefulAccessibilityText(_ text: String) -> Bool {
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard value.count >= 3, value.count <= 300 else { return false }
+
+        let generic = Set([
+            "button", "group", "scroll area", "split group", "toolbar",
+            "table", "list", "web area", "text field", "static text",
+            "mail", "microsoft outlook", "microsoft teams", "safari",
+            "google chrome", "window"
+        ])
+
+        return !generic.contains(value.lowercased())
+    }
+
+    private func preferredContextTitle(
+        windowTitle: String,
+        focusedElementCandidates: [String],
+        applicationName: String,
+        bundleID: String
+    ) -> String {
+        let normalizedWindow = normalizeWindowTitle(
+            windowTitle,
+            applicationName: applicationName,
+            bundleID: bundleID
+        )
+
+        let appSpecificGenericTerms: [String]
+        switch bundleID.lowercased() {
+        case "com.apple.mail":
+            appSpecificGenericTerms = ["inbox", "all inboxes", "mail"]
+        case "com.microsoft.outlook":
+            appSpecificGenericTerms = ["mail", "inbox", "calendar", "microsoft outlook"]
+        case "com.microsoft.teams2":
+            appSpecificGenericTerms = ["chat", "activity", "teams", "microsoft teams"]
+        default:
+            appSpecificGenericTerms = []
+        }
+
+        for candidate in focusedElementCandidates {
+            let cleaned = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+            let lower = cleaned.lowercased()
+
+            if cleaned == normalizedWindow { continue }
+            if cleaned == applicationName { continue }
+            if appSpecificGenericTerms.contains(lower) { continue }
+
+            return cleaned
+        }
+
+        return normalizedWindow.isEmpty ? windowTitle : normalizedWindow
     }
 
     private func normalizeWindowTitle(
