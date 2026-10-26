@@ -38,6 +38,27 @@ struct MemoryLaneApp: App {
         return output
     }()
 
+
+    private static let menuBarIcon: NSImage = {
+        let canvas = NSSize(width: 16, height: 16)
+        let output = NSImage(size: canvas)
+        output.lockFocus()
+        NSGraphicsContext.current?.imageInterpolation = .high
+
+        let visibleSize = CGFloat(11)
+        let inset = (canvas.width - visibleSize) / 2
+        brandIcon.draw(
+            in: NSRect(x: inset, y: inset, width: visibleSize, height: visibleSize),
+            from: NSRect(origin: .zero, size: brandIcon.size),
+            operation: .sourceOver,
+            fraction: 1.0
+        )
+
+        output.unlockFocus()
+        output.isTemplate = false
+        return output
+    }()
+
     init() {
         do {
             container = try ModelContainer(for: MemoryItem.self)
@@ -70,11 +91,8 @@ struct MemoryLaneApp: App {
                 NSApplication.shared.terminate(nil)
             }
         } label: {
-            Image(nsImage: Self.brandIcon)
+            Image(nsImage: Self.menuBarIcon)
                 .renderingMode(.original)
-                .resizable()
-                .interpolation(.high)
-                .frame(width: 13, height: 13)
         }
     }
 }
