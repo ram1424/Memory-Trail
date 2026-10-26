@@ -110,14 +110,8 @@ final class MacCaptureCoordinator {
         guard let windowContext = focusedWindowContext(pid: app.processIdentifier) else { return }
 
         let appName = app.localizedName ?? "Application"
-        let rawTitle = preferredActivityTitle(
-            windowTitle: windowContext.title,
-            selectedContent: windowContext.selectedContent,
-            focusedContent: windowContext.focusedContent,
-            bundleID: bundleID
-        )
         let title = normalizeWindowTitle(
-            rawTitle,
+            windowContext.title,
             applicationName: appName,
             bundleID: bundleID
         )
@@ -196,9 +190,7 @@ final class MacCaptureCoordinator {
 
         return FocusedWindowContext(
             title: title,
-            sourceURL: normalizedSourceURL(document),
-            selectedContent: selectedContentTitle(in: windowElement),
-            focusedContent: focusedElementTitle(in: appElement)
+            sourceURL: normalizedSourceURL(document)
         )
     }
 
@@ -216,173 +208,6 @@ final class MacCaptureCoordinator {
     private struct FocusedWindowContext {
         let title: String
         let sourceURL: String?
-        let selectedContent: String?
-        let focusedContent: String?
-    }
-
-    private func preferredActivityTitle(
-        windowTitle: String,
-        selectedContent: String?,
-        focusedContent: String?,
-        bundleID: String
-    ) -> String {
-        let lowerBundleID = bundleID.lowercased()
-
-        if lowerBundleID == "com.microsoft.outlook" {
-            if let selectedContent, isMeaningfulInnerWindowTitle(selectedContent) {
-                return selectedContent
-            }
-            if let focusedContent, isMeaningfulInnerWindowTitle(focusedContent) {
-                return focusedContent
-            }
-        }
-
-        if let selectedContent, isMeaningfulInnerWindowTitle(selectedContent) {
-            return selectedContent
-        }
-
-        if let focusedContent, isMeaningfulInnerWindowTitle(focusedContent) {
-            return focusedContent
-        }
-
-        return windowTitle
-    }
-
-    private func selectedContentTitle(in root: AXUIElement) -> String? {
-        var queue: [AXUIElement] = [root]
-        var index = 0
-        var inspected = 0
-
-        while index < queue.count, inspected < 300 {
-            let element = queue[index]
-            index += 1
-            inspected += 1
-
-            var selectedChildrenValue: CFTypeRef?
-            if AXUIElementCopyAttributeValue(
-                element,
-                kAXSelectedChildrenAttribute as CFString,
-                &selectedChildrenValue
-            ) == .success,
-               let selectedChildren = selectedChildrenValue as? [AXUIElement],
-               let selected = selectedChildren.first,
-               let title = bestText(in: selected) {
-                return title
-            }
-
-            var selectedValue: CFTypeRef?
-            if AXUIElementCopyAttributeValue(
-                element,
-                kAXSelectedAttribute as CFString,
-                &selectedValue
-            ) == .success,
-               let isSelected = selectedValue as? Bool,
-               isSelected,
-               let title = bestText(in: element) {
-                return title
-            }
-
-            var childrenValue: CFTypeRef?
-            if AXUIElementCopyAttributeValue(
-                element,
-                kAXChildrenAttribute as CFString,
-                &childrenValue
-            ) == .success,
-               let children = childrenValue as? [AXUIElement] {
-                queue.append(contentsOf: children.prefix(80))
-            }
-        }
-
-        return nil
-    }
-
-    private func focusedElementTitle(in appElement: AXUIElement) -> String? {
-        var focusedValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(
-            appElement,
-            kAXFocusedUIElementAttribute as CFString,
-            &focusedValue
-        ) == .success,
-        let focusedValue,
-        CFGetTypeID(focusedValue) == AXUIElementGetTypeID()
-        else {
-            return nil
-        }
-
-        let focused = unsafeBitCast(focusedValue, to: AXUIElement.self)
-        return bestText(in: focused)
-    }
-
-    private func bestText(in root: AXUIElement) -> String? {
-        var queue: [AXUIElement] = [root]
-        var index = 0
-        var candidates: [String] = []
-
-        while index < queue.count, index < 120 {
-            let element = queue[index]
-            index += 1
-
-            for attribute in [
-                kAXTitleAttribute as CFString,
-                kAXValueAttribute as CFString,
-                kAXDescriptionAttribute as CFString
-            ] {
-                var value: CFTypeRef?
-                if AXUIElementCopyAttributeValue(element, attribute, &value) == .success,
-                   let text = value as? String {
-                    let cleaned = text
-                        .replacingOccurrences(of: "\n", with: " ")
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
-
-                    if isMeaningfulInnerWindowTitle(cleaned) {
-                        candidates.append(cleaned)
-                    }
-                }
-            }
-
-            var childrenValue: CFTypeRef?
-            if AXUIElementCopyAttributeValue(
-                element,
-                kAXChildrenAttribute as CFString,
-                &childrenValue
-            ) == .success,
-               let children = childrenValue as? [AXUIElement] {
-                queue.append(contentsOf: children.prefix(50))
-            }
-        }
-
-        return candidates
-            .filter { !$0.contains("@") || $0.contains(" ") }
-            .sorted { lhs, rhs in
-                scoreContextText(lhs) > scoreContextText(rhs)
-            }
-            .first
-    }
-
-    private func scoreContextText(_ text: String) -> Int {
-        let lower = text.lowercased()
-        var score = min(text.count, 120)
-
-        if text.contains(" ") { score += 30 }
-        if text.count >= 8 && text.count <= 140 { score += 30 }
-        if lower.contains("re:") || lower.contains("fw:") || lower.contains("fwd:") { score += 40 }
-        if lower.contains("today") || lower.contains("yesterday") { score -= 20 }
-        if lower == "inbox" || lower == "mail" || lower == "focused" || lower == "other" { score -= 100 }
-
-        return score
-    }
-
-    private func isMeaningfulInnerWindowTitle(_ text: String) -> Bool {
-        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard value.count >= 3, value.count <= 250 else { return false }
-
-        let generic = Set([
-            "button", "group", "table", "list", "row", "scroll area",
-            "split group", "toolbar", "mail", "inbox", "focused", "other",
-            "microsoft outlook", "microsoft teams", "safari", "window"
-        ])
-
-        return !generic.contains(value.lowercased())
     }
 
     private func normalizeWindowTitle(
