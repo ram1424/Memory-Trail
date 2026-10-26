@@ -3,7 +3,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct RecallMacApp: App {
+struct MemoryLaneApp: App {
     private let container: ModelContainer
     @State private var preferences = RecallPreferences.shared
 
@@ -11,7 +11,7 @@ struct RecallMacApp: App {
         do {
             container = try ModelContainer(for: MemoryItem.self)
         } catch {
-            fatalError("Unable to initialize Recall database: \(error)")
+            fatalError("Unable to initialize Memory Lane database: \(error)")
         }
     }
 
@@ -26,14 +26,14 @@ struct RecallMacApp: App {
         }
         .defaultSize(width: 1000, height: 700)
 
-        MenuBarExtra("Recall", systemImage: preferences.capturePaused ? "pause.circle" : "brain.head.profile") {
+        MenuBarExtra("Memory Lane", systemImage: preferences.capturePaused ? "pause.circle" : "brain.head.profile") {
             Button(preferences.capturePaused ? "Resume Capture" : "Pause Capture") {
                 preferences.capturePaused.toggle()
             }
             Divider()
-            Text("Recall is local-first")
+            Text("Memory Lane is local-first")
                 .foregroundStyle(.secondary)
-            Button("Quit Recall") {
+            Button("Quit Memory Lane") {
                 NSApplication.shared.terminate(nil)
             }
         }

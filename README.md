@@ -1,6 +1,6 @@
-# Recall
+# Memory Lane
 
-Recall is a privacy-first personal activity timeline for macOS. This repository contains a native SwiftUI macOS app.
+Memory Lane is a privacy-first personal activity timeline for macOS. This repository contains a native SwiftUI macOS app.
 
 ## Included
 
@@ -24,17 +24,17 @@ Recall is a privacy-first personal activity timeline for macOS. This repository 
 
 ## Open
 
-Open `Recall.xcodeproj` in Xcode and select the `Recall macOS` scheme.
+Open `Recall.xcodeproj` in Xcode and select the `Memory Lane` scheme.
 
-Recall is a macOS-only project with a single application target.
+Memory Lane is a macOS-only project with a single application target.
 
 ## Permissions
 
-For granular window activity, enable Recall under:
+For granular window activity, enable Memory Lane under:
 
 System Settings → Privacy & Security → Accessibility
 
-Recall can request this permission from Settings using **Enable Accessibility Access**.
+Memory Lane can request this permission from Settings using **Enable Accessibility Access**.
 
 ## Privacy model
 
