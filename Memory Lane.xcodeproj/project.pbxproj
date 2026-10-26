@@ -36,7 +36,6 @@
 		93B173E22FB694D1026018A7 /* MemoryLaneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/MemoryLaneApp.swift"; sourceTree = "<group>"; };
 		86BE5228102BBE430BCEEA46 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
 		418E31727DBBF22E398D3B71 /* Memory Lane.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Memory Lane.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BB1100010000000000000001 /* GenerateMemoryLaneIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Resources/GenerateMemoryLaneIcon.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,13 +58,12 @@
 			9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */,
 			93B173E22FB694D1026018A7 /* MemoryLaneApp.swift */,
 			86BE5228102BBE430BCEEA46 /* Assets.xcassets */,
-			BB1100010000000000000001 /* GenerateMemoryLaneIcon.swift */,
 		); };
 		FBDC4F23F93125BBEEAE800C /* Products */ = {isa = PBXGroup; name = Products; sourceTree = "<group>"; children = (418E31727DBBF22E398D3B71 /* Memory Lane.app */); };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		CA89A484BCBA566AA1A41918 /* Memory Lane */ = {isa = PBXNativeTarget; buildConfigurationList = D1D76D6F8285D9D1F093ADC2; buildPhases = (BB1100020000000000000002, 3375EA04324642D337D927D6, 2A8C225853EEDD85673D1D85, A6F35E0A8AA2F4D01CD59A6F); buildRules = (); dependencies = (); name = "Memory Lane"; productName = "Memory Lane"; productReference = 418E31727DBBF22E398D3B71; productType = "com.apple.product-type.application"; };
+		CA89A484BCBA566AA1A41918 /* Memory Lane */ = {isa = PBXNativeTarget; buildConfigurationList = D1D76D6F8285D9D1F093ADC2; buildPhases = (3375EA04324642D337D927D6, 2A8C225853EEDD85673D1D85, A6F35E0A8AA2F4D01CD59A6F); buildRules = (); dependencies = (); name = "Memory Lane"; productName = "Memory Lane"; productReference = 418E31727DBBF22E398D3B71; productType = "com.apple.product-type.application"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -76,21 +74,6 @@
 		A6F35E0A8AA2F4D01CD59A6F = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (3235F8AE2EA774A50A4DC1A3); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		BB1100020000000000000002 /* Generate Memory Lane Icon */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = ();
-			inputPaths = (
-				"$(SRCROOT)/MemoryLane/Resources/GenerateMemoryLaneIcon.swift",
-			);
-			name = "Generate Memory Lane Icon";
-			outputPaths = ();
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e\nxcrun swift \"$SRCROOT/Recall/Resources/GenerateMemoryLaneIcon.swift\" \"$SRCROOT/Recall/Resources/Assets.xcassets/AppIcon.appiconset\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		3375EA04324642D337D927D6 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
