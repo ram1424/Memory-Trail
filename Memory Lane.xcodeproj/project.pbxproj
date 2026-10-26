@@ -44,8 +44,8 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		E50290A24C49A459B43487C5 = {isa = PBXGroup; children = (51A0769EA9AB48E8CDE6D811 /* Recall */, FBDC4F23F93125BBEEAE800C /* Products */); sourceTree = "<group>"; };
-		51A0769EA9AB48E8CDE6D811 /* Recall */ = {isa = PBXGroup; path = Recall; sourceTree = "<group>"; children = (
+		E50290A24C49A459B43487C5 = {isa = PBXGroup; children = (51A0769EA9AB48E8CDE6D811 /* Memory Lane */, FBDC4F23F93125BBEEAE800C /* Products */); sourceTree = "<group>"; };
+		51A0769EA9AB48E8CDE6D811 /* Memory Lane */ = {isa = PBXGroup; name = "Memory Lane"; path = Recall; sourceTree = "<group>"; children = (
 			12D466FC931781ED9924C60B /* MemoryItem.swift */,
 			DEA0A219568FE30787F0A21C /* RecallPreferences.swift */,
 			12A48F812D58BC8404510A48 /* SearchService.swift */,
