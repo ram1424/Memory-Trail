@@ -7,6 +7,8 @@ on:
       - main
     paths:
       - ".github/workflows/build-memory-lane-dmg.yml"
+      - "Memory Lane.xcodeproj/**"
+      - "MemoryLane/**"
 
 permissions:
   contents: write
