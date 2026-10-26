@@ -17,7 +17,7 @@ struct SettingsView: View {
                 Toggle("Remember app switches", isOn: $preferences.captureAppActivity)
                 Toggle("Remember copied text", isOn: $preferences.captureClipboard)
 #elseif os(iOS)
-                Text("iOS automatically records Recall app sessions. Apple does not allow apps to continuously inspect activity inside other iPhone apps. External items can only be captured through explicit actions such as Add Memory or a Share extension.")
+                Label("Use the iPhone Share Sheet to save activity to Recall. In Safari, Files, Photos, Mail, Teams, or another supported app, tap Share → Save to Recall. iOS does not allow Recall to silently monitor every app you open.", systemImage: "square.and.arrow.up")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 

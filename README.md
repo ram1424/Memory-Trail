@@ -21,7 +21,7 @@ Recall is a privacy-first personal activity timeline for macOS and iOS. This rep
 Recall can automatically remember when you switch into an application. Clipboard capture is available but OFF by default. Both features can be paused globally and excluded by bundle ID.
 
 ### iOS
-Apple's sandbox does not allow an app to continuously inspect what happens in other apps. This build automatically logs Recall app sessions so the iOS timeline and local data store can be verified, and it supports manual capture. Settings also includes a Create Test Capture button for Simulator/device validation. A Share Extension is the logical next addition for sending URLs/text/files into Recall from Safari and other apps.
+Apple's sandbox does not allow an app to continuously inspect what happens in other apps. Recall now includes a **Save to Recall** Share Extension for URLs, text, files and images. The iOS app and extension use the same App Group-backed SwiftData store, so items saved from Safari, Files, Photos and other Share Sheet-capable apps appear in the Recall Timeline. Settings still includes a Create Test Capture button for Simulator/device validation.
 
 ## Requirements
 
@@ -47,7 +47,7 @@ No network code, analytics SDK, account system, or cloud service is included. Da
 
 ## Recommended next milestones
 
-1. iOS/macOS Share Extension for links, text and files.
+1. Store full shared file/image payloads instead of metadata-only entries.
 2. Browser extension for richer URL/page-title capture.
 3. File-open capture on macOS using explicit user-granted folders.
 4. On-device embeddings for semantic search.
