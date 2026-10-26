@@ -35,11 +35,14 @@ struct MemoryLaneApp: App {
         }
         .defaultSize(width: 1000, height: 700)
 
-        MenuBarExtra(
-            "Memory Lane",
-            systemImage: preferences.capturePaused ? "pause.circle" : "brain.head.profile"
-        ) {
+        MenuBarExtra {
             MemoryLaneMenuBarView(preferences: preferences)
+        } label: {
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 18, height: 18)
+                .accessibilityLabel("Memory Lane")
         }
     }
 }
@@ -62,7 +65,7 @@ private struct MemoryLaneMenuBarView: View {
 
         Divider()
 
-        Text("Memory Lane is local-first")
+        Text(preferences.capturePaused ? "Capture paused" : "Capture active")
             .foregroundStyle(.secondary)
 
         Button("Quit Memory Lane") {
