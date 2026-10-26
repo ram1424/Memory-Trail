@@ -90,7 +90,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nmkdir -p \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nxcrun swift \"$SRCROOT/Recall/Resources/GenerateMemoryLaneIcon.swift\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/MemoryLane.icns\"\n";
+			shellScript = "set -e\nrm -rf \"$SRCROOT/Recall/Resources/Assets.xcassets/AppIcon.appiconset\"\nmkdir -p \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nxcrun swift \"$SRCROOT/Recall/Resources/GenerateMemoryLaneIcon.swift\" \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/MemoryLane.icns\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

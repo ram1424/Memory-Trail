@@ -3,12 +3,16 @@ import Foundation
 
 let args = CommandLine.arguments
 guard args.count >= 2 else {
-    fputs("Usage: GenerateMemoryLaneIcon.swift <AppIcon.appiconset path>\n", stderr)
+    fputs("Usage: GenerateMemoryLaneIcon.swift <output.icns>\n", stderr)
     exit(1)
 }
 
-let outputDirectory = URL(fileURLWithPath: args[1], isDirectory: true)
-try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+let outputURL = URL(fileURLWithPath: args[1])
+let fileManager = FileManager.default
+try fileManager.createDirectory(
+    at: outputURL.deletingLastPathComponent(),
+    withIntermediateDirectories: true
+)
 
 let canvas: CGFloat = 1024
 let master = NSImage(size: NSSize(width: canvas, height: canvas))
@@ -150,16 +154,40 @@ NSGraphicsContext.restoreGraphicsState()
 master.unlockFocus()
 
 func pngData(_ image: NSImage, size: Int) -> Data? {
-    let output = NSImage(size: NSSize(width: size, height: size))
-    output.lockFocus()
-    NSGraphicsContext.current?.imageInterpolation = .high
-    image.draw(in: NSRect(x: 0, y: 0, width: size, height: size),
-               from: NSRect(x: 0, y: 0, width: 1024, height: 1024),
-               operation: .copy, fraction: 1)
-    output.unlockFocus()
-    guard let tiff = output.tiffRepresentation,
-          let rep = NSBitmapImageRep(data: tiff) else { return nil }
-    return rep.representation(using: .png, properties: [:])
+    guard let bitmap = NSBitmapImageRep(
+        bitmapDataPlanes: nil,
+        pixelsWide: size,
+        pixelsHigh: size,
+        bitsPerSample: 8,
+        samplesPerPixel: 4,
+        hasAlpha: true,
+        isPlanar: false,
+        colorSpaceName: .deviceRGB,
+        bytesPerRow: 0,
+        bitsPerPixel: 0
+    ) else { return nil }
+
+    bitmap.size = NSSize(width: size, height: size)
+
+    guard let graphicsContext = NSGraphicsContext(bitmapImageRep: bitmap) else {
+        return nil
+    }
+
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = graphicsContext
+    graphicsContext.imageInterpolation = .high
+
+    image.draw(
+        in: NSRect(x: 0, y: 0, width: size, height: size),
+        from: NSRect(x: 0, y: 0, width: 1024, height: 1024),
+        operation: .copy,
+        fraction: 1
+    )
+
+    graphicsContext.flushGraphics()
+    NSGraphicsContext.restoreGraphicsState()
+
+    return bitmap.representation(using: .png, properties: [:])
 }
 
 let tempRoot = URL(fileURLWithPath: NSTemporaryDirectory())
