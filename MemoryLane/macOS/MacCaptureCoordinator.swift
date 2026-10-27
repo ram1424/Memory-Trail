@@ -89,6 +89,8 @@ final class MacCaptureCoordinator {
 
         let name = application.localizedName ?? "Application"
 
+        enableDetailedAccessibilityIfNeeded(for: application)
+
         if let context {
             context.insert(
                 MemoryItem(
@@ -103,6 +105,36 @@ final class MacCaptureCoordinator {
         }
 
         lastWindowSignature = ""
+    }
+
+    private func enableDetailedAccessibilityIfNeeded(for application: NSRunningApplication) {
+        let bundleID = (application.bundleIdentifier ?? "").lowercased()
+
+        let shouldEnable =
+            bundleID == "com.microsoft.outlook" ||
+            bundleID == "com.microsoft.teams2" ||
+            bundleID.contains("msteams") ||
+            bundleID.contains("teams") ||
+            bundleID.contains("electron")
+
+        guard shouldEnable else { return }
+
+        let appElement = AXUIElementCreateApplication(application.processIdentifier)
+
+        // Electron-based apps can keep their detailed accessibility tree disabled
+        // until assistive technology explicitly opts in.
+        _ = AXUIElementSetAttributeValue(
+            appElement,
+            "AXManualAccessibility" as CFString,
+            kCFBooleanTrue
+        )
+
+        // Some Chromium/Electron surfaces expose richer descendants with enhanced UI enabled.
+        _ = AXUIElementSetAttributeValue(
+            appElement,
+            "AXEnhancedUserInterface" as CFString,
+            kCFBooleanTrue
+        )
     }
 
     private func startFocusedWindowCapture() {
@@ -136,9 +168,13 @@ final class MacCaptureCoordinator {
 
         let bundleID = app.bundleIdentifier ?? ""
         guard !prefs.isExcluded(bundleID: bundleID) else { return }
+
+        enableDetailedAccessibilityIfNeeded(for: app)
         guard bundleID != Bundle.main.bundleIdentifier else { return }
 
         let lowerBundleID = bundleID.lowercased()
+
+        enableDetailedAccessibilityIfNeeded(for: app)
 
         // Safari is more reliable when we re-read the selected tab/page after a click.
         if lowerBundleID == "com.apple.safari" {
