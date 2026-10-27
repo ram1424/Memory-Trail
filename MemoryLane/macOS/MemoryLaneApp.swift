@@ -85,15 +85,7 @@ struct MemoryLaneApp: App {
             }
             .animation(.easeOut(duration: 0.28), value: isLaunching)
             .task {
-                let coordinator = MacCaptureCoordinator.shared
-
-                coordinator.refreshAccessibilityStatus()
-
-                if !coordinator.hasAccessibilityPermission {
-                    coordinator.requestAccessibilityPermission()
-                }
-
-                coordinator.start(context: container.mainContext)
+                MacCaptureCoordinator.shared.start(context: container.mainContext)
 
                 try? await Task.sleep(nanoseconds: 900_000_000)
                 isLaunching = false
