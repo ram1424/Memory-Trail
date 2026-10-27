@@ -154,7 +154,11 @@ final class MacCaptureCoordinator {
             guard let point = event.cgEvent?.location else { return }
 
             Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 180_000_000)
+                if let app = NSWorkspace.shared.frontmostApplication {
+                    self?.enableDetailedAccessibilityIfNeeded(for: app)
+                }
+
+                try? await Task.sleep(nanoseconds: 220_000_000)
                 self?.captureClickedContext(at: point)
             }
         }
@@ -173,8 +177,6 @@ final class MacCaptureCoordinator {
         guard bundleID != Bundle.main.bundleIdentifier else { return }
 
         let lowerBundleID = bundleID.lowercased()
-
-        enableDetailedAccessibilityIfNeeded(for: app)
 
         // Safari is more reliable when we re-read the selected tab/page after a click.
         if lowerBundleID == "com.apple.safari" {
@@ -294,6 +296,8 @@ final class MacCaptureCoordinator {
         let bundleID = app.bundleIdentifier ?? ""
         guard !prefs.isExcluded(bundleID: bundleID) else { return }
         guard bundleID != Bundle.main.bundleIdentifier else { return }
+
+        enableDetailedAccessibilityIfNeeded(for: app)
 
         guard let windowContext = focusedWindowContext(pid: app.processIdentifier) else { return }
 
