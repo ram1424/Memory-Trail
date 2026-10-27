@@ -120,8 +120,13 @@ final class MacCaptureCoordinator {
         guard let windowContext = focusedWindowContext(pid: app.processIdentifier) else { return }
 
         let appName = app.localizedName ?? "Application"
+        let activity = preferredActivityContext(
+            windowContext: windowContext,
+            bundleID: bundleID
+        )
+
         let title = normalizeWindowTitle(
-            windowContext.title,
+            activity.title,
             applicationName: appName,
             bundleID: bundleID
         )
@@ -129,11 +134,15 @@ final class MacCaptureCoordinator {
         guard !title.isEmpty else { return }
         guard !isGenericWindowTitle(title, applicationName: appName) else { return }
 
-        let signature = "\(bundleID)|\(title.lowercased())"
-        let now = Date()
+        let signature = [
+            bundleID.lowercased(),
+            title.lowercased(),
+            activity.sourceURL?.lowercased() ?? ""
+        ].joined(separator: "|")
 
+        let now = Date()
         guard signature != lastWindowSignature else { return }
-        guard now.timeIntervalSince(lastWindowLoggedAt) >= 1.0 else { return }
+        guard now.timeIntervalSince(lastWindowLoggedAt) >= 0.75 else { return }
 
         lastWindowSignature = signature
         lastWindowLoggedAt = now
@@ -142,11 +151,16 @@ final class MacCaptureCoordinator {
             context.insert(
                 MemoryItem(
                     title: title,
-                    body: detailedBody(for: title, applicationName: appName, bundleID: bundleID),
+                    body: detailedBody(
+                        for: title,
+                        applicationName: appName,
+                        bundleID: bundleID,
+                        sourceURL: activity.sourceURL
+                    ),
                     sourceApp: appName,
                     sourceBundleID: bundleID,
                     sourceKind: .appActivity,
-                    sourceURL: windowContext.sourceURL
+                    sourceURL: activity.sourceURL
                 )
             )
             try? context.save()
@@ -172,36 +186,290 @@ final class MacCaptureCoordinator {
 
         let windowElement = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
 
-        var title = ""
-        var titleValue: CFTypeRef?
-        if AXUIElementCopyAttributeValue(
-            windowElement,
-            kAXTitleAttribute as CFString,
-            &titleValue
-        ) == .success, let value = titleValue as? String {
-            title = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        let windowTitle = attributeString(windowElement, kAXTitleAttribute as CFString) ?? ""
+        let document = attributeString(windowElement, kAXDocumentAttribute as CFString) ?? ""
+        let windowURL = normalizedSourceURL(document) ?? attributeURL(windowElement)
 
-        var document = ""
-        var documentValue: CFTypeRef?
-        if AXUIElementCopyAttributeValue(
-            windowElement,
-            kAXDocumentAttribute as CFString,
-            &documentValue
-        ) == .success, let value = documentValue as? String {
-            document = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        let selected = selectedContentContext(in: windowElement)
+        let focused = focusedContentContext(in: appElement)
+        let selectedTab = selectedTabContext(in: windowElement)
 
-        if title.isEmpty {
-            title = document
+        let fallbackTitle = windowTitle.isEmpty ? document : windowTitle
+        guard !fallbackTitle.isEmpty || selected != nil || focused != nil || selectedTab != nil else {
+            return nil
         }
-
-        guard !title.isEmpty else { return nil }
 
         return FocusedWindowContext(
-            title: title,
-            sourceURL: normalizedSourceURL(document)
+            title: fallbackTitle,
+            sourceURL: windowURL,
+            selectedContent: selected,
+            focusedContent: focused,
+            selectedTab: selectedTab
         )
+    }
+
+    private struct ActivityContext {
+        let title: String
+        let sourceURL: String?
+    }
+
+    private struct FocusedWindowContext {
+        let title: String
+        let sourceURL: String?
+        let selectedContent: ActivityContext?
+        let focusedContent: ActivityContext?
+        let selectedTab: ActivityContext?
+    }
+
+    private func preferredActivityContext(
+        windowContext: FocusedWindowContext,
+        bundleID: String
+    ) -> ActivityContext {
+        let lowerBundleID = bundleID.lowercased()
+
+        if lowerBundleID == "com.apple.safari" {
+            if let tab = windowContext.selectedTab,
+               isMeaningfulInnerWindowTitle(tab.title) {
+                return ActivityContext(
+                    title: tab.title,
+                    sourceURL: tab.sourceURL ?? windowContext.sourceURL
+                )
+            }
+
+            return ActivityContext(
+                title: windowContext.title,
+                sourceURL: windowContext.sourceURL
+            )
+        }
+
+        if lowerBundleID == "com.microsoft.outlook" ||
+            lowerBundleID == "com.microsoft.teams2" ||
+            lowerBundleID.contains("msteams") ||
+            lowerBundleID.contains("teams") {
+            if let selected = windowContext.selectedContent,
+               isMeaningfulInnerWindowTitle(selected.title) {
+                return selected
+            }
+
+            if let focused = windowContext.focusedContent,
+               isMeaningfulInnerWindowTitle(focused.title) {
+                return focused
+            }
+        }
+
+        if let selected = windowContext.selectedContent,
+           isMeaningfulInnerWindowTitle(selected.title),
+           selected.title != windowContext.title {
+            return selected
+        }
+
+        return ActivityContext(
+            title: windowContext.title,
+            sourceURL: windowContext.sourceURL
+        )
+    }
+
+    private func selectedTabContext(in root: AXUIElement) -> ActivityContext? {
+        var queue: [AXUIElement] = [root]
+        var index = 0
+        var inspected = 0
+
+        while index < queue.count, inspected < 250 {
+            let element = queue[index]
+            index += 1
+            inspected += 1
+
+            var tabsValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXTabsAttribute as CFString,
+                &tabsValue
+            ) == .success,
+               let tabs = tabsValue as? [AXUIElement] {
+                for tab in tabs {
+                    if attributeBool(tab, kAXSelectedAttribute as CFString) == true,
+                       let context = bestContext(in: tab) {
+                        return context
+                    }
+                }
+            }
+
+            appendChildren(of: element, to: &queue, limit: 60)
+        }
+
+        return selectedContentContext(in: root)
+    }
+
+    private func selectedContentContext(in root: AXUIElement) -> ActivityContext? {
+        var queue: [AXUIElement] = [root]
+        var index = 0
+        var inspected = 0
+
+        while index < queue.count, inspected < 350 {
+            let element = queue[index]
+            index += 1
+            inspected += 1
+
+            var selectedChildrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXSelectedChildrenAttribute as CFString,
+                &selectedChildrenValue
+            ) == .success,
+               let selectedChildren = selectedChildrenValue as? [AXUIElement] {
+                for selected in selectedChildren.prefix(5) {
+                    if let context = bestContext(in: selected) {
+                        return context
+                    }
+                }
+            }
+
+            if attributeBool(element, kAXSelectedAttribute as CFString) == true,
+               let context = bestContext(in: element) {
+                return context
+            }
+
+            appendChildren(of: element, to: &queue, limit: 80)
+        }
+
+        return nil
+    }
+
+    private func focusedContentContext(in appElement: AXUIElement) -> ActivityContext? {
+        var focusedValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedValue
+        ) == .success,
+        let focusedValue,
+        CFGetTypeID(focusedValue) == AXUIElementGetTypeID()
+        else {
+            return nil
+        }
+
+        let focused = unsafeBitCast(focusedValue, to: AXUIElement.self)
+        let role = attributeString(focused, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+
+        // Avoid logging text the user is actively composing.
+        if role.contains("textfield") || role.contains("textarea") || role.contains("combobox") {
+            return nil
+        }
+
+        return bestContext(in: focused)
+    }
+
+    private func bestContext(in root: AXUIElement) -> ActivityContext? {
+        var queue: [AXUIElement] = [root]
+        var index = 0
+        var candidates: [(text: String, score: Int, url: String?)] = []
+
+        while index < queue.count, index < 140 {
+            let element = queue[index]
+            index += 1
+
+            let url = attributeURL(element)
+
+            for attribute in [
+                kAXTitleAttribute as CFString,
+                kAXValueAttribute as CFString,
+                kAXDescriptionAttribute as CFString
+            ] {
+                guard let text = attributeString(element, attribute) else { continue }
+
+                let cleaned = text
+                    .replacingOccurrences(of: "\n", with: " ")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+
+                if isMeaningfulInnerWindowTitle(cleaned) {
+                    candidates.append((
+                        text: cleaned,
+                        score: scoreContextText(cleaned, sourceURL: url),
+                        url: url
+                    ))
+                }
+            }
+
+            appendChildren(of: element, to: &queue, limit: 50)
+        }
+
+        guard let best = candidates.max(by: { $0.score < $1.score }) else {
+            if let url = attributeURL(root) {
+                return ActivityContext(title: urlDisplayTitle(url), sourceURL: url)
+            }
+            return nil
+        }
+
+        return ActivityContext(title: best.text, sourceURL: best.url)
+    }
+
+    private func appendChildren(
+        of element: AXUIElement,
+        to queue: inout [AXUIElement],
+        limit: Int
+    ) {
+        var childrenValue: CFTypeRef?
+        if AXUIElementCopyAttributeValue(
+            element,
+            kAXChildrenAttribute as CFString,
+            &childrenValue
+        ) == .success,
+           let children = childrenValue as? [AXUIElement] {
+            queue.append(contentsOf: children.prefix(limit))
+        }
+    }
+
+    private func attributeString(_ element: AXUIElement, _ attribute: CFString) -> String? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, attribute, &value) == .success,
+              let value
+        else {
+            return nil
+        }
+
+        if let string = value as? String {
+            let cleaned = string.trimmingCharacters(in: .whitespacesAndNewlines)
+            return cleaned.isEmpty ? nil : cleaned
+        }
+
+        if let url = value as? URL {
+            return url.absoluteString
+        }
+
+        return nil
+    }
+
+    private func attributeBool(_ element: AXUIElement, _ attribute: CFString) -> Bool? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, attribute, &value) == .success,
+              let value
+        else {
+            return nil
+        }
+        return value as? Bool
+    }
+
+    private func attributeURL(_ element: AXUIElement) -> String? {
+        var value: CFTypeRef?
+        if AXUIElementCopyAttributeValue(
+            element,
+            kAXURLAttribute as CFString,
+            &value
+        ) == .success,
+           let value {
+            if let url = value as? URL {
+                return normalizedSourceURL(url.absoluteString)
+            }
+            if let string = value as? String {
+                return normalizedSourceURL(string)
+            }
+        }
+
+        if let document = attributeString(element, kAXDocumentAttribute as CFString) {
+            return normalizedSourceURL(document)
+        }
+
+        return nil
     }
 
     private func normalizedSourceURL(_ value: String) -> String? {
@@ -215,9 +483,37 @@ final class MacCaptureCoordinator {
         }
     }
 
-    private struct FocusedWindowContext {
-        let title: String
-        let sourceURL: String?
+    private func urlDisplayTitle(_ value: String) -> String {
+        guard let url = URL(string: value) else { return value }
+        return url.host(percentEncoded: false) ?? value
+    }
+
+    private func scoreContextText(_ text: String, sourceURL: String?) -> Int {
+        let lower = text.lowercased()
+        var score = min(text.count, 120)
+
+        if text.contains(" ") { score += 30 }
+        if text.count >= 8 && text.count <= 140 { score += 30 }
+        if sourceURL != nil { score += 60 }
+        if lower.contains("re:") || lower.contains("fw:") || lower.contains("fwd:") { score += 50 }
+        if lower.contains("today") || lower.contains("yesterday") { score -= 20 }
+        if lower == "inbox" || lower == "mail" || lower == "focused" || lower == "other" { score -= 120 }
+
+        return score
+    }
+
+    private func isMeaningfulInnerWindowTitle(_ text: String) -> Bool {
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard value.count >= 3, value.count <= 250 else { return false }
+
+        let generic = Set([
+            "button", "group", "table", "list", "row", "scroll area",
+            "split group", "toolbar", "mail", "inbox", "focused", "other",
+            "microsoft outlook", "microsoft teams", "teams", "safari", "window",
+            "tab group", "web area", "main"
+        ])
+
+        return !generic.contains(value.lowercased())
     }
 
     private func normalizeWindowTitle(
@@ -262,18 +558,25 @@ final class MacCaptureCoordinator {
     private func detailedBody(
         for title: String,
         applicationName: String,
-        bundleID: String
+        bundleID: String,
+        sourceURL: String?
     ) -> String {
-        switch bundleID {
+        switch bundleID.lowercased() {
         case "com.apple.mail":
             return "Mail item viewed: \(title)"
-        case "com.microsoft.Outlook", "com.microsoft.outlook":
+        case "com.microsoft.outlook":
             return "Outlook item viewed: \(title)"
         case "com.microsoft.teams2":
-            return "Teams window viewed: \(title)"
-        case "com.apple.Safari":
+            return "Teams conversation viewed: \(title)"
+        case "com.apple.safari":
+            if let sourceURL {
+                return "Safari page viewed: \(title) — \(sourceURL)"
+            }
             return "Safari page viewed: \(title)"
-        case "com.google.Chrome":
+        case "com.google.chrome":
+            if let sourceURL {
+                return "Chrome page viewed: \(title) — \(sourceURL)"
+            }
             return "Chrome page viewed: \(title)"
         default:
             return "Focused window in \(applicationName): \(title)"
