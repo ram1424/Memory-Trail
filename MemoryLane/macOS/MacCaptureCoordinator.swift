@@ -11,6 +11,7 @@ final class MacCaptureCoordinator {
     private var appObserver: NSObjectProtocol?
     private var clipboardTimer: Timer?
     private var windowTimer: Timer?
+    private var mouseMonitor: Any?
     private var lastClipboardChangeCount = NSPasteboard.general.changeCount
     private var lastWindowSignature = ""
     private var lastWindowLoggedAt = Date.distantPast
@@ -22,6 +23,7 @@ final class MacCaptureCoordinator {
         requestAccessibilityPermissionIfNeeded()
         startAppActivityCapture()
         startFocusedWindowCapture()
+        startClickTargetCapture()
         startClipboardCapture()
     }
 
@@ -36,6 +38,11 @@ final class MacCaptureCoordinator {
 
         windowTimer?.invalidate()
         windowTimer = nil
+
+        if let mouseMonitor {
+            NSEvent.removeMonitor(mouseMonitor)
+            self.mouseMonitor = nil
+        }
     }
 
     func requestAccessibilityPermission() {
@@ -107,6 +114,141 @@ final class MacCaptureCoordinator {
         }
     }
 
+    private func startClickTargetCapture() {
+        guard mouseMonitor == nil else { return }
+
+        mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] event in
+            guard AXIsProcessTrusted() else { return }
+            guard let point = event.cgEvent?.location else { return }
+
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 180_000_000)
+                self?.captureClickedContext(at: point)
+            }
+        }
+    }
+
+    private func captureClickedContext(at point: CGPoint) {
+        let prefs = RecallPreferences.shared
+        guard !prefs.capturePaused, prefs.captureAppActivity else { return }
+        guard AXIsProcessTrusted() else { return }
+        guard let app = NSWorkspace.shared.frontmostApplication else { return }
+
+        let bundleID = app.bundleIdentifier ?? ""
+        guard !prefs.isExcluded(bundleID: bundleID) else { return }
+        guard bundleID != Bundle.main.bundleIdentifier else { return }
+
+        let lowerBundleID = bundleID.lowercased()
+
+        // Safari is more reliable when we re-read the selected tab/page after a click.
+        if lowerBundleID == "com.apple.safari" {
+            pollFocusedWindow()
+            return
+        }
+
+        var hitElement: AXUIElement?
+        let systemWide = AXUIElementCreateSystemWide()
+        let result = AXUIElementCopyElementAtPosition(
+            systemWide,
+            Float(point.x),
+            Float(point.y),
+            &hitElement
+        )
+
+        guard result == .success, let hitElement else { return }
+
+        let activity: ActivityContext?
+        if lowerBundleID == "com.microsoft.outlook" ||
+            lowerBundleID == "com.microsoft.teams2" ||
+            lowerBundleID.contains("msteams") ||
+            lowerBundleID.contains("teams") {
+            activity = nearestRowOrSelectionContext(from: hitElement)
+                ?? contextFromElementHierarchy(hitElement)
+        } else {
+            activity = contextFromElementHierarchy(hitElement)
+        }
+
+        guard let activity else { return }
+
+        let appName = app.localizedName ?? "Application"
+        let title = normalizeWindowTitle(
+            activity.title,
+            applicationName: appName,
+            bundleID: bundleID
+        )
+
+        guard !title.isEmpty else { return }
+        guard !isGenericWindowTitle(title, applicationName: appName) else { return }
+
+        logActivity(
+            title: title,
+            sourceURL: activity.sourceURL,
+            applicationName: appName,
+            bundleID: bundleID
+        )
+    }
+
+    private func nearestRowOrSelectionContext(from element: AXUIElement) -> ActivityContext? {
+        var current: AXUIElement? = element
+        var depth = 0
+
+        while let element = current, depth < 10 {
+            let role = attributeString(element, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+            let selected = attributeBool(element, kAXSelectedAttribute as CFString) == true
+
+            if selected ||
+                role.contains("row") ||
+                role.contains("cell") ||
+                role.contains("outline") ||
+                role.contains("list") {
+                if let context = bestContext(in: element) {
+                    return context
+                }
+            }
+
+            current = parentElement(of: element)
+            depth += 1
+        }
+
+        return nil
+    }
+
+    private func contextFromElementHierarchy(_ element: AXUIElement) -> ActivityContext? {
+        var current: AXUIElement? = element
+        var depth = 0
+        var best: (context: ActivityContext, score: Int)?
+
+        while let element = current, depth < 8 {
+            if let context = bestContext(in: element) {
+                let score = scoreContextText(context.title, sourceURL: context.sourceURL) - (depth * 12)
+                if best == nil || score > best!.score {
+                    best = (context, score)
+                }
+            }
+
+            current = parentElement(of: element)
+            depth += 1
+        }
+
+        return best?.context
+    }
+
+    private func parentElement(of element: AXUIElement) -> AXUIElement? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            element,
+            kAXParentAttribute as CFString,
+            &value
+        ) == .success,
+        let value,
+        CFGetTypeID(value) == AXUIElementGetTypeID()
+        else {
+            return nil
+        }
+
+        return unsafeBitCast(value, to: AXUIElement.self)
+    }
+
     private func pollFocusedWindow() {
         let prefs = RecallPreferences.shared
         guard !prefs.capturePaused, prefs.captureAppActivity else { return }
@@ -134,37 +276,51 @@ final class MacCaptureCoordinator {
         guard !title.isEmpty else { return }
         guard !isGenericWindowTitle(title, applicationName: appName) else { return }
 
+        logActivity(
+            title: title,
+            sourceURL: activity.sourceURL,
+            applicationName: appName,
+            bundleID: bundleID
+        )
+    }
+
+    private func logActivity(
+        title: String,
+        sourceURL: String?,
+        applicationName: String,
+        bundleID: String
+    ) {
         let signature = [
             bundleID.lowercased(),
             title.lowercased(),
-            activity.sourceURL?.lowercased() ?? ""
+            sourceURL?.lowercased() ?? ""
         ].joined(separator: "|")
 
         let now = Date()
         guard signature != lastWindowSignature else { return }
-        guard now.timeIntervalSince(lastWindowLoggedAt) >= 0.75 else { return }
+        guard now.timeIntervalSince(lastWindowLoggedAt) >= 0.5 else { return }
 
         lastWindowSignature = signature
         lastWindowLoggedAt = now
 
-        if let context {
-            context.insert(
-                MemoryItem(
-                    title: title,
-                    body: detailedBody(
-                        for: title,
-                        applicationName: appName,
-                        bundleID: bundleID,
-                        sourceURL: activity.sourceURL
-                    ),
-                    sourceApp: appName,
-                    sourceBundleID: bundleID,
-                    sourceKind: .appActivity,
-                    sourceURL: activity.sourceURL
-                )
+        guard let context else { return }
+
+        context.insert(
+            MemoryItem(
+                title: title,
+                body: detailedBody(
+                    for: title,
+                    applicationName: applicationName,
+                    bundleID: bundleID,
+                    sourceURL: sourceURL
+                ),
+                sourceApp: applicationName,
+                sourceBundleID: bundleID,
+                sourceKind: .appActivity,
+                sourceURL: sourceURL
             )
-            try? context.save()
-        }
+        )
+        try? context.save()
     }
 
     private func focusedWindowContext(pid: pid_t) -> FocusedWindowContext? {
