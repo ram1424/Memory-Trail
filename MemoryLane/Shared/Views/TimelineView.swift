@@ -9,7 +9,7 @@ struct TimelineView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            LazyVStack(alignment: .leading, spacing: 18) {
                 header
 
                 if memories.isEmpty {
@@ -28,7 +28,7 @@ struct TimelineView: View {
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 4)
 
-                            VStack(spacing: 8) {
+                            LazyVStack(spacing: 8) {
                                 ForEach(group.items) { item in
                                     NavigationLink {
                                         MemoryDetailView(item: item)
@@ -172,7 +172,7 @@ struct MemoryRow: View {
     @ViewBuilder
     private var sourceIcon: some View {
         if item.sourceKind == .appActivity,
-           let icon = appIcon(bundleID: item.sourceBundleID) {
+           let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
             Image(nsImage: icon)
                 .resizable()
                 .interpolation(.high)
@@ -190,29 +190,6 @@ struct MemoryRow: View {
         }
     }
 
-    private func appIcon(bundleID: String) -> NSImage? {
-        let normalized = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalized.isEmpty else { return nil }
-
-        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: normalized) {
-            return NSWorkspace.shared.icon(forFile: appURL.path)
-        }
-
-        if let runningApp = NSWorkspace.shared.runningApplications.first(where: {
-            $0.bundleIdentifier?.caseInsensitiveCompare(normalized) == .orderedSame
-        }) {
-            if let icon = runningApp.icon {
-                return icon
-            }
-
-            if let bundleURL = runningApp.bundleURL {
-                return NSWorkspace.shared.icon(forFile: bundleURL.path)
-            }
-        }
-
-        return nil
-    }
-
     private var primaryTitle: String {
         item.sourceKind == .appActivity ? item.sourceApp : item.title
     }
@@ -220,5 +197,50 @@ struct MemoryRow: View {
     private var secondaryTitle: String {
         guard item.sourceKind == .appActivity else { return "" }
         return item.title.hasPrefix("Opened ") ? "" : item.title
+    }
+}
+
+@MainActor
+private final class AppIconCache {
+    static let shared = AppIconCache()
+
+    private let cache = NSCache<NSString, NSImage>()
+    private var unresolved = Set<String>()
+
+    func icon(for bundleID: String) -> NSImage? {
+        let normalized = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return nil }
+
+        let key = normalized.lowercased() as NSString
+
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
+
+        if unresolved.contains(key as String) {
+            return nil
+        }
+
+        let icon: NSImage?
+
+        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: normalized) {
+            icon = NSWorkspace.shared.icon(forFile: appURL.path)
+        } else if let runningApp = NSWorkspace.shared.runningApplications.first(where: {
+            $0.bundleIdentifier?.caseInsensitiveCompare(normalized) == .orderedSame
+        }) {
+            icon = runningApp.icon ?? runningApp.bundleURL.map {
+                NSWorkspace.shared.icon(forFile: $0.path)
+            }
+        } else {
+            icon = nil
+        }
+
+        if let icon {
+            cache.setObject(icon, forKey: key)
+            return icon
+        }
+
+        unresolved.insert(key as String)
+        return nil
     }
 }
