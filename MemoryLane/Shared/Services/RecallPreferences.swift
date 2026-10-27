@@ -57,7 +57,7 @@ final class RecallPreferences {
     private init() {
         capturePaused = defaults.object(forKey: Key.capturePaused) as? Bool ?? false
         captureAppActivity = defaults.object(forKey: Key.captureAppActivity) as? Bool ?? true
-        captureClipboard = defaults.object(forKey: Key.captureClipboard) as? Bool ?? false
+        captureClipboard = defaults.object(forKey: Key.captureClipboard) as? Bool ?? true
 
         let saved = defaults.string(forKey: Key.excludedBundleIDs)
         let savedSet = Self.parseBundleIDs(saved ?? "")
