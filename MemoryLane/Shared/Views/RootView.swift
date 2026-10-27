@@ -9,7 +9,7 @@ struct RootView: View {
     var body: some View {
         NavigationSplitView {
             List(selection: $selection) {
-                Section("Recall") {
+                Section("Memory Lane") {
                     Label("Timeline", systemImage: "clock.arrow.circlepath")
                         .tag(SidebarItem.timeline)
                     Label("Search", systemImage: "magnifyingglass")
@@ -24,7 +24,7 @@ struct RootView: View {
                     } label: {
                         Label(
                             preferences.capturePaused ? "Resume Capture" : "Pause Capture",
-                            systemImage: preferences.capturePaused ? "play.circle" : "pause.circle"
+                            systemImage: preferences.capturePaused ? "play.circle.fill" : "pause.circle.fill"
                         )
                     }
                     .buttonStyle(.plain)
@@ -33,18 +33,45 @@ struct RootView: View {
                         .tag(SidebarItem.settings)
                 }
             }
-            .navigationTitle("Recall")
+            .listStyle(.sidebar)
+            .navigationTitle("Memory Lane")
+            .safeAreaInset(edge: .bottom) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(preferences.capturePaused ? .orange : .green)
+                        .frame(width: 8, height: 8)
+                    Text(preferences.capturePaused ? "Capture paused" : "Capture active")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
+            }
         } detail: {
-            Group {
-                switch selection ?? .timeline {
-                case .timeline:
-                    TimelineView()
-                case .search:
-                    SearchView()
-                case .favorites:
-                    FavoritesView()
-                case .settings:
-                    SettingsView()
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(nsColor: .windowBackgroundColor),
+                        Color(nsColor: .controlBackgroundColor).opacity(0.35)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
+                Group {
+                    switch selection ?? .timeline {
+                    case .timeline:
+                        TimelineView()
+                    case .search:
+                        SearchView()
+                    case .favorites:
+                        FavoritesView()
+                    case .settings:
+                        SettingsView()
+                    }
                 }
             }
             .toolbar {
@@ -54,6 +81,7 @@ struct RootView: View {
                     } label: {
                         Label("Add Memory", systemImage: "plus")
                     }
+                    .buttonStyle(.borderedProminent)
                 }
             }
         }

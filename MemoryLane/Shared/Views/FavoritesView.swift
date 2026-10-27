@@ -6,18 +6,46 @@ struct FavoritesView: View {
     private var favorites: [MemoryItem]
 
     var body: some View {
-        Group {
-            if favorites.isEmpty {
-                ContentUnavailableView("No Favorites", systemImage: "star", description: Text("Favorite an important memory to keep it close."))
-            } else {
-                List(favorites) { item in
-                    NavigationLink {
-                        MemoryDetailView(item: item)
-                    } label: {
-                        MemoryRow(item: item)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Favorites")
+                            .font(.title2.weight(.semibold))
+                        Text("Keep important memories close.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 26))
+                        .foregroundStyle(.yellow)
+                        .padding(12)
+                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                }
+
+                if favorites.isEmpty {
+                    ContentUnavailableView(
+                        "No Favorites",
+                        systemImage: "star",
+                        description: Text("Favorite an important memory to keep it close.")
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 420)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
+                } else {
+                    VStack(spacing: 8) {
+                        ForEach(favorites) { item in
+                            NavigationLink {
+                                MemoryDetailView(item: item)
+                            } label: {
+                                MemoryRow(item: item)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
             }
+            .padding(24)
         }
         .navigationTitle("Favorites")
     }

@@ -7,33 +7,41 @@ struct TimelineView: View {
     @State private var showingClearTimelineConfirmation = false
 
     var body: some View {
-        Group {
-            if memories.isEmpty {
-                ContentUnavailableView(
-                    "Your timeline is empty",
-                    systemImage: "sparkles",
-                    description: Text("Add a memory or enable capture to start building your searchable work history.")
-                )
-            } else {
-                List {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                header
+
+                if memories.isEmpty {
+                    ContentUnavailableView(
+                        "Your timeline is empty",
+                        systemImage: "sparkles",
+                        description: Text("Open a few apps or add a memory to start building your searchable work history.")
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 420)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
+                } else {
                     ForEach(groupedDays, id: \.day) { group in
-                        Section(group.day.formatted(date: .abbreviated, time: .omitted)) {
-                            ForEach(group.items) { item in
-                                NavigationLink {
-                                    MemoryDetailView(item: item)
-                                } label: {
-                                    MemoryRow(item: item)
-                                }
-                            }
-                            .onDelete { offsets in
-                                for index in offsets {
-                                    modelContext.delete(group.items[index])
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(group.day.formatted(date: .abbreviated, time: .omitted))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 4)
+
+                            VStack(spacing: 8) {
+                                ForEach(group.items) { item in
+                                    NavigationLink {
+                                        MemoryDetailView(item: item)
+                                    } label: {
+                                        MemoryRow(item: item)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                         }
                     }
                 }
             }
+            .padding(24)
         }
         .navigationTitle("Timeline")
         .toolbar {
@@ -58,6 +66,26 @@ struct TimelineView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This permanently deletes all \(memories.count) timeline items from Memory Lane. This action cannot be undone.")
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Your recent activity")
+                    .font(.title2.weight(.semibold))
+                Text(memories.isEmpty ? "Nothing captured yet" : "\(memories.count) memories captured")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.system(size: 28, weight: .medium))
+                .foregroundStyle(.tint)
+                .padding(12)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
         }
     }
 
@@ -88,79 +116,68 @@ struct MemoryRow: View {
     let item: MemoryItem
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 14) {
             Image(systemName: item.sourceKind.symbol)
-                .font(.title3)
-                .frame(width: 28)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 38, height: 38)
+                .foregroundStyle(.tint)
+                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
 
-            VStack(alignment: .leading, spacing: 4) {
-                if item.sourceKind == .appActivity {
-                    HStack {
-                        Text(item.sourceApp)
-                            .font(.headline)
-                            .lineLimit(1)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 8) {
+                    Text(primaryTitle)
+                        .font(.headline)
+                        .lineLimit(1)
 
-                        if item.isFavorite {
-                            Image(systemName: "star.fill")
-                                .font(.caption)
-                        }
+                    if item.isFavorite {
+                        Image(systemName: "star.fill")
+                            .font(.caption)
+                            .foregroundStyle(.yellow)
                     }
 
-                    if isFocusedWindowEntry {
-                        Text(item.title)
-                            .font(.subheadline.weight(.medium))
-                            .lineLimit(2)
-
-                        if !item.body.isEmpty {
-                            Text(item.body)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
-                        }
-                    } else {
-                        Text(item.title)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
+                    Spacer()
 
                     Text(item.createdAt.formatted(date: .omitted, time: .shortened))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
-                } else {
-                    HStack {
-                        Text(item.title)
-                            .font(.headline)
-                            .lineLimit(1)
-
-                        if item.isFavorite {
-                            Image(systemName: "star.fill")
-                                .font(.caption)
-                        }
-                    }
-
-                    if !item.body.isEmpty {
-                        Text(item.body)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-
-                    HStack(spacing: 8) {
-                        Text(item.sourceApp)
-                        Text("•")
-                        Text(item.createdAt.formatted(date: .omitted, time: .shortened))
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
                 }
+
+                if !secondaryTitle.isEmpty {
+                    Text(secondaryTitle)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(2)
+                }
+
+                if !item.body.isEmpty && item.body != secondaryTitle {
+                    Text(item.body)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                HStack(spacing: 6) {
+                    Text(item.sourceApp)
+                    Text("•")
+                    Text(item.sourceKind.rawValue)
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
             }
         }
-        .padding(.vertical, 4)
+        .padding(14)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.quaternary, lineWidth: 1)
+        }
     }
 
-    private var isFocusedWindowEntry: Bool {
-        item.sourceKind == .appActivity &&
-        !item.title.hasPrefix("Opened ")
+    private var primaryTitle: String {
+        item.sourceKind == .appActivity ? item.sourceApp : item.title
+    }
+
+    private var secondaryTitle: String {
+        guard item.sourceKind == .appActivity else { return "" }
+        return item.title.hasPrefix("Opened ") ? "" : item.title
     }
 }

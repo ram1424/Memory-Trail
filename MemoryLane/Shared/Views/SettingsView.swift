@@ -7,79 +7,112 @@ struct SettingsView: View {
     var body: some View {
         @Bindable var preferences = preferences
 
-        Form {
-            Section("Capture") {
-                Toggle("Pause all capture", isOn: $preferences.capturePaused)
-                Toggle("Remember app switches and focused windows", isOn: $preferences.captureAppActivity)
-                Toggle("Remember copied text", isOn: $preferences.captureClipboard)
-
-                if MacCaptureCoordinator.shared.hasAccessibilityPermission {
-                    Label("Accessibility access enabled. Memory Lane can capture focused window titles for richer Timeline entries.", systemImage: "checkmark.shield")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Button {
-                        MacCaptureCoordinator.shared.requestAccessibilityPermission()
-                    } label: {
-                        Label("Enable Accessibility Access", systemImage: "hand.raised")
-                    }
-
-                    Text("Required for granular macOS activity such as Safari page titles, Mail subjects, Outlook items, and Teams windows. macOS will ask you to allow Memory Lane in System Settings → Privacy & Security → Accessibility.")
-                        .font(.footnote)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Settings")
+                        .font(.title2.weight(.semibold))
+                    Text("Control what Memory Lane remembers and how it behaves.")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
-            }
 
-            Section("Excluded Apps & Services") {
-                Menu {
-                    ForEach(RecallExclusionOption.catalog) { option in
-                        Toggle(isOn: exclusionBinding(for: option)) {
-                            Label(option.name, systemImage: option.systemImage)
+                settingsCard("Capture", systemImage: "record.circle") {
+                    Toggle("Pause all capture", isOn: $preferences.capturePaused)
+                    Toggle("Remember app switches and focused windows", isOn: $preferences.captureAppActivity)
+                    Toggle("Remember copied text", isOn: $preferences.captureClipboard)
+
+                    Divider()
+
+                    if MacCaptureCoordinator.shared.hasAccessibilityPermission {
+                        Label("Accessibility access enabled. Memory Lane can capture focused window titles for richer Timeline entries.", systemImage: "checkmark.shield.fill")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Button {
+                            MacCaptureCoordinator.shared.requestAccessibilityPermission()
+                        } label: {
+                            Label("Enable Accessibility Access", systemImage: "hand.raised.fill")
                         }
-                        .disabled(option.isAlwaysExcluded)
-                    }
-                } label: {
-                    Label("Choose Apps & Services", systemImage: "hand.raised")
-                }
+                        .buttonStyle(.borderedProminent)
 
-                ForEach(selectedOptions) { option in
-                    HStack {
-                        Label(option.name, systemImage: option.systemImage)
-                        Spacer()
-                        Text(option.isAlwaysExcluded ? "Always excluded" : "Excluded")
-                            .font(.caption)
+                        Text("Required for granular macOS activity such as Safari page titles, Mail subjects, Outlook items, and Teams windows. macOS will ask you to allow Memory Lane in System Settings → Privacy & Security → Accessibility.")
+                            .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                 }
 
-                DisclosureGroup("Advanced: Custom bundle IDs") {
-                    TextField("com.example.app,com.example.other", text: $customExclusions, axis: .vertical)
-                        .lineLimit(2...5)
-                        .onSubmit {
+                settingsCard("Excluded Apps & Services", systemImage: "hand.raised.slash") {
+                    Menu {
+                        ForEach(RecallExclusionOption.catalog) { option in
+                            Toggle(isOn: exclusionBinding(for: option)) {
+                                Label(option.name, systemImage: option.systemImage)
+                            }
+                            .disabled(option.isAlwaysExcluded)
+                        }
+                    } label: {
+                        Label("Choose Apps & Services", systemImage: "plus.circle")
+                    }
+
+                    ForEach(selectedOptions) { option in
+                        HStack {
+                            Label(option.name, systemImage: option.systemImage)
+                            Spacer()
+                            Text(option.isAlwaysExcluded ? "Always excluded" : "Excluded")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    DisclosureGroup("Advanced: Custom bundle IDs") {
+                        TextField("com.example.app,com.example.other", text: $customExclusions, axis: .vertical)
+                            .lineLimit(2...5)
+                            .onSubmit {
+                                preferences.updateCustomExclusions(from: customExclusions)
+                                customExclusions = preferences.customExcludedBundleIDs
+                            }
+
+                        Button("Apply Custom Exclusions") {
                             preferences.updateCustomExclusions(from: customExclusions)
                             customExclusions = preferences.customExcludedBundleIDs
                         }
-
-                    Button("Apply Custom Exclusions") {
-                        preferences.updateCustomExclusions(from: customExclusions)
-                        customExclusions = preferences.customExcludedBundleIDs
+                        .buttonStyle(.borderless)
                     }
-                    .buttonStyle(.borderless)
+
+                    Label("Wallet and Passwords are always excluded. Memory Lane will not intentionally log activity or clipboard content while either app is active.", systemImage: "lock.shield.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
-                Label("Wallet and Passwords are excluded by default and cannot be enabled for capture. Memory Lane will not intentionally log activity or clipboard content while either app is active.", systemImage: "lock.shield.fill")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                settingsCard("Data & Privacy", systemImage: "externaldrive.fill") {
+                    Text("Memory Lane stores your activity timeline locally using SwiftData. No cloud account or analytics SDK is included.")
+                        .foregroundStyle(.secondary)
+                }
             }
-
-            Section("Data") {
-                Text("Memory Lane stores your activity timeline locally using SwiftData. No cloud account or analytics SDK is included.")
-                    .foregroundStyle(.secondary)
-            }
+            .padding(24)
         }
         .navigationTitle("Settings")
         .onAppear {
             customExclusions = preferences.customExcludedBundleIDs
+        }
+    }
+
+    @ViewBuilder
+    private func settingsCard<Content: View>(
+        _ title: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+
+            content()
+        }
+        .padding(18)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(.quaternary, lineWidth: 1)
         }
     }
 
