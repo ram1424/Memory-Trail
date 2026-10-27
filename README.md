@@ -1,50 +1,53 @@
 # Memory Lane
 
-Memory Lane is a privacy-first personal activity timeline for macOS. This repository contains a native SwiftUI macOS app.
+**Memory Lane** is a private, local-first activity timeline for macOS. It helps you retrace your digital day by remembering the apps, focused windows, pages, conversations, links, notes, and copied text that make up your workflow.
 
-## Included
+Instead of asking, _“Where did I see that?”_ or _“What was I doing before that meeting?”_, open Memory Lane and search what you remember.
 
-- Local SwiftData timeline
-- Full-text/token search across captured memories
-- Favorites
-- Manual memory capture
-- URL/context fields with Open Source / Open App actions
-- Menu-bar Pause/Resume control
-- Automatic app-switch capture
-- Focused-window title capture through macOS Accessibility
-- Optional clipboard-text capture
-- Per-bundle-ID exclusion list with privacy-focused defaults
-- Granular Safari, Mail, Outlook, Teams, Chrome, and other window activity where apps expose Accessibility metadata
+## What it does
+
+- Builds a chronological timeline of app activity.
+- Watches meaningful focused-window title changes through macOS Accessibility APIs.
+- Captures supported context from Safari, Mail, Outlook, Teams, Chrome, and other apps when that metadata is exposed by macOS.
+- Searches across captured memories.
+- Lets you favorite important moments and create manual memories.
+- Stores available source links for quick return to prior work.
+- Provides menu-bar Pause/Resume controls.
+- Supports clipboard-text capture, enabled by default and configurable in Settings.
+- Supports per-app exclusions, with Wallet and Passwords always excluded.
+
+## Privacy
+
+Memory Lane is designed to be local-first.
+
+- Timeline data is stored locally using SwiftData.
+- No account system is required.
+- No advertising SDK is included.
+- No analytics SDK is included.
+- Capture can be paused at any time.
+- Clipboard capture can be disabled.
+- App exclusions let you control what Memory Lane intentionally remembers.
 
 ## Requirements
 
-- Xcode 16 or newer
 - macOS 14+
-- Swift 5.9+
+- Xcode 16+ for development
+- Accessibility permission for granular focused-window context
 
-## Open
+## Download
 
-Open `Memory Lane.xcodeproj` in Xcode and select the `Memory Lane` scheme.
+The latest DMG is available from the GitHub release:
 
-Memory Lane is a macOS-only project with a single application target.
+https://github.com/ram1424/iPhone/releases/tag/v1.0.0
 
-## Permissions
+## Website
 
-For granular window activity, enable Memory Lane under:
+The product site is published from the `docs/` directory through GitHub Pages.
 
-System Settings → Privacy & Security → Accessibility
+## Development
 
-Memory Lane can request this permission from Settings using **Enable Accessibility Access**.
+Open `Memory Lane.xcodeproj` in Xcode and select the **Memory Lane** scheme.
 
-## Privacy model
+Bundle identifier:
 
-No network code, analytics SDK, account system, or cloud service is included. Data is stored locally in SwiftData. Clipboard capture is disabled by default. Wallet and Passwords remain excluded from capture.
-
-## Recommended next milestones
-
-1. App-specific metadata adapters for Mail, Outlook, Teams, and browsers.
-2. File-open capture using explicit user-granted folders.
-3. On-device embeddings for semantic search.
-4. Encrypted iCloud sync.
-5. “What was I doing?” session summaries and Resume Work bundles.
-6. Retention controls and export/delete tools.
+`com.ram1424.memorylane`
