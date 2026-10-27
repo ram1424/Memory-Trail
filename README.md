@@ -38,11 +38,13 @@ Memory Lane is designed to be local-first.
 
 The latest DMG is available from the GitHub release:
 
-https://github.com/ram1424/iPhone/releases/tag/v1.0.0
+https://github.com/ram1424/Memory-Lane/releases/tag/v1.0.0
 
 ## Website
 
-The product site is published from the `docs/` directory through GitHub Pages.
+The product site is published from the `docs/` directory through GitHub Pages at:
+
+https://ram1424.github.io/Memory-Lane/
 
 ## Development
 
