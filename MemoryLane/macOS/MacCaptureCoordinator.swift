@@ -2,9 +2,11 @@
 import AppKit
 import ApplicationServices
 import Foundation
+import Observation
 import SwiftData
 
 @MainActor
+@Observable
 final class MacCaptureCoordinator {
     static let shared = MacCaptureCoordinator()
 
@@ -16,6 +18,7 @@ final class MacCaptureCoordinator {
     private var lastWindowLoggedAt = Date.distantPast
     private weak var context: ModelContext?
     private var didRequestAccessibilityThisLaunch = false
+    private(set) var accessibilityTrusted = AXIsProcessTrusted()
 
     func start(context: ModelContext) {
         self.context = context
@@ -54,7 +57,21 @@ final class MacCaptureCoordinator {
     }
 
     var hasAccessibilityPermission: Bool {
-        AXIsProcessTrusted()
+        accessibilityTrusted
+    }
+
+    func refreshAccessibilityStatus() {
+        let trusted = AXIsProcessTrusted()
+        if trusted && !accessibilityTrusted {
+            lastWindowSignature = ""
+            lastWindowLoggedAt = .distantPast
+        }
+        accessibilityTrusted = trusted
+    }
+
+    func openAccessibilitySettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
+        NSWorkspace.shared.open(url)
     }
 
     func clearRuntimeCache() {
@@ -62,8 +79,9 @@ final class MacCaptureCoordinator {
         lastWindowLoggedAt = .distantPast
         lastClipboardChangeCount = NSPasteboard.general.changeCount
         didRequestAccessibilityThisLaunch = false
+        accessibilityTrusted = AXIsProcessTrusted()
 
-        if !AXIsProcessTrusted() {
+        if !accessibilityTrusted {
             requestAccessibilityPermissionIfNeeded()
         }
     }
@@ -121,7 +139,21 @@ final class MacCaptureCoordinator {
     private func pollFocusedWindow() {
         let prefs = RecallPreferences.shared
         guard !prefs.capturePaused, prefs.captureAppActivity else { return }
-        guard AXIsProcessTrusted() else { return }
+
+        let trusted = AXIsProcessTrusted()
+        if trusted != accessibilityTrusted {
+            if trusted {
+                lastWindowSignature = ""
+                lastWindowLoggedAt = .distantPast
+            }
+            accessibilityTrusted = trusted
+        }
+
+        guard trusted else {
+            requestAccessibilityPermissionIfNeeded()
+            return
+        }
+
         guard let app = NSWorkspace.shared.frontmostApplication else { return }
 
         let bundleID = app.bundleIdentifier ?? ""

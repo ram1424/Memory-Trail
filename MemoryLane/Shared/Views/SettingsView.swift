@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(RecallPreferences.self) private var preferences
+    @State private var captureCoordinator = MacCaptureCoordinator.shared
     @State private var customExclusions = ""
     @State private var showingClearCacheConfirmation = false
     @State private var cacheClearedMessage = false
@@ -26,18 +27,31 @@ struct SettingsView: View {
 
                     Divider()
 
-                    if MacCaptureCoordinator.shared.hasAccessibilityPermission {
-                        Label("Accessibility access enabled. Memory Lane can capture focused window titles for richer Timeline entries.", systemImage: "checkmark.shield.fill")
+                    if captureCoordinator.hasAccessibilityPermission {
+                        Label("Accessibility access enabled. Focused-window title capture is active.", systemImage: "checkmark.shield.fill")
                             .foregroundStyle(.secondary)
                     } else {
-                        Button {
-                            MacCaptureCoordinator.shared.requestAccessibilityPermission()
-                        } label: {
-                            Label("Enable Accessibility Access", systemImage: "hand.raised.fill")
-                        }
-                        .buttonStyle(.borderedProminent)
+                        Label("Accessibility access is not active. App switches can still be logged, but Safari/Outlook/Mail/Teams window titles cannot be captured.", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
 
-                        Text("Required for granular macOS activity such as Safari page titles, Mail subjects, Outlook items, and Teams windows. macOS will ask you to allow Memory Lane in System Settings → Privacy & Security → Accessibility.")
+                        HStack {
+                            Button {
+                                captureCoordinator.requestAccessibilityPermission()
+                            } label: {
+                                Label("Request Access", systemImage: "hand.raised.fill")
+                            }
+                            .buttonStyle(.borderedProminent)
+
+                            Button("Open Accessibility Settings") {
+                                captureCoordinator.openAccessibilitySettings()
+                            }
+
+                            Button("Recheck") {
+                                captureCoordinator.refreshAccessibilityStatus()
+                            }
+                        }
+
+                        Text("After replacing or updating an unsigned/test build, macOS may require Memory Lane to be re-enabled in System Settings → Privacy & Security → Accessibility.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -113,6 +127,10 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .onAppear {
             customExclusions = preferences.customExcludedBundleIDs
+            captureCoordinator.refreshAccessibilityStatus()
+        }
+        .onReceive(Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()) { _ in
+            captureCoordinator.refreshAccessibilityStatus()
         }
         .confirmationDialog(
             "Clear App Cache?",
