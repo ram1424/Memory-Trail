@@ -51,7 +51,7 @@ struct SettingsView: View {
                             }
                         }
 
-                        Text("After replacing or updating an unsigned/test build, macOS may require Memory Lane to be re-enabled in System Settings → Privacy & Security → Accessibility.")
+                        Text("Memory Lane checks Accessibility permission automatically. Production DMGs are required to use one stable Developer ID identity so macOS can preserve this approval across updates.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }

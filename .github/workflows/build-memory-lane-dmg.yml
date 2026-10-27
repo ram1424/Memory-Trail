@@ -75,8 +75,9 @@ jobs:
           set -euo pipefail
 
           if [ -z "$MACOS_CERTIFICATE_P12" ]; then
-            echo "No Developer ID certificate configured; continuing with ad-hoc signing."
-            exit 0
+            echo "::error::A stable Developer ID Application certificate is required for Memory Lane releases."
+            echo "::error::Without it, macOS Accessibility permission can break between updates."
+            exit 1
           fi
 
           CERT_PATH="$RUNNER_TEMP/memorylane-cert.p12"
@@ -90,21 +91,21 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
       - name: Sign Memory Lane
-        env:
-          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
         run: |
           set -euo pipefail
           APP="$PWD/build/Build/Products/Release/Memory Lane.app"
 
-          if [ -n "$MACOS_CERTIFICATE_P12" ]; then
-            IDENTITY="$(security find-identity -v -p codesigning | awk -F '"' '/Developer ID Application/ {print $2; exit}')"
-            test -n "$IDENTITY"
-            codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" "$APP"
-          else
-            codesign --force --deep --sign - "$APP"
-          fi
+          IDENTITY="$(security find-identity -v -p codesigning | awk -F '"' '/Developer ID Application/ {print $2; exit}')"
+          test -n "$IDENTITY"
 
+          codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
+
+          echo "Signing identity:"
+          codesign -dv --verbose=4 "$APP" 2>&1 | grep -E 'Authority=|TeamIdentifier=|Identifier='
+
+          echo "Designated requirement:"
+          codesign -d -r- "$APP" 2>&1
 
       - name: Create DMG
         run: |
@@ -139,5 +140,5 @@ jobs:
           else
             gh release create "$TAG" "$DMG" \
               --title "Memory Lane 1.0.0" \
-              --notes "Memory Lane 1.0.0 macOS DMG. This automated build is currently unsigned and not notarized."
+              --notes "Memory Lane 1.0.0 macOS DMG. Release builds require a stable Developer ID Application signature so macOS can preserve Accessibility trust across updates."
           fi
