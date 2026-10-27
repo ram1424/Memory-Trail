@@ -103,6 +103,18 @@ final class RecallPreferences {
         return custom.sorted().joined(separator: ",")
     }
 
+    func resetToDefaults() {
+        defaults.removeObject(forKey: Key.capturePaused)
+        defaults.removeObject(forKey: Key.captureAppActivity)
+        defaults.removeObject(forKey: Key.captureClipboard)
+        defaults.removeObject(forKey: Key.excludedBundleIDs)
+
+        capturePaused = false
+        captureAppActivity = true
+        captureClipboard = true
+        excludedBundleIDs = Self.serializeBundleIDs(RecallExclusionOption.mandatoryBundleIDs)
+    }
+
     private static func parseBundleIDs(_ value: String) -> Set<String> {
         Set(value
             .split(separator: ",")

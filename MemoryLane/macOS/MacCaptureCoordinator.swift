@@ -57,6 +57,17 @@ final class MacCaptureCoordinator {
         AXIsProcessTrusted()
     }
 
+    func clearRuntimeCache() {
+        lastWindowSignature = ""
+        lastWindowLoggedAt = .distantPast
+        lastClipboardChangeCount = NSPasteboard.general.changeCount
+        didRequestAccessibilityThisLaunch = false
+
+        if !AXIsProcessTrusted() {
+            requestAccessibilityPermissionIfNeeded()
+        }
+    }
+
     private func startAppActivityCapture() {
         guard appObserver == nil else { return }
 

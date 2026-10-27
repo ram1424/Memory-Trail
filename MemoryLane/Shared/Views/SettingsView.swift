@@ -3,6 +3,8 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(RecallPreferences.self) private var preferences
     @State private var customExclusions = ""
+    @State private var showingClearCacheConfirmation = false
+    @State private var cacheClearedMessage = false
 
     var body: some View {
         @Bindable var preferences = preferences
@@ -86,6 +88,24 @@ struct SettingsView: View {
                 settingsCard("Data & Privacy", systemImage: "externaldrive.fill") {
                     Text("Memory Lane stores your activity timeline locally using SwiftData. No cloud account or analytics SDK is included.")
                         .foregroundStyle(.secondary)
+
+                    Divider()
+
+                    Button(role: .destructive) {
+                        showingClearCacheConfirmation = true
+                    } label: {
+                        Label("Clear App Cache", systemImage: "trash.slash")
+                    }
+
+                    Text("Resets cached capture state and Memory Lane preferences without deleting your Timeline history.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    if cacheClearedMessage {
+                        Label("App cache cleared.", systemImage: "checkmark.circle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .padding(24)
@@ -93,6 +113,21 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .onAppear {
             customExclusions = preferences.customExcludedBundleIDs
+        }
+        .confirmationDialog(
+            "Clear App Cache?",
+            isPresented: $showingClearCacheConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear App Cache", role: .destructive) {
+                preferences.resetToDefaults()
+                MacCaptureCoordinator.shared.clearRuntimeCache()
+                customExclusions = preferences.customExcludedBundleIDs
+                cacheClearedMessage = true
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This resets capture state and preferences to defaults. Your Timeline entries will not be deleted.")
         }
     }
 
