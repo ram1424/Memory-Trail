@@ -22,7 +22,12 @@ final class MacCaptureCoordinator {
 
     func start(context: ModelContext) {
         self.context = context
-        requestAccessibilityPermissionIfNeeded()
+        refreshAccessibilityStatus()
+
+        if !accessibilityTrusted {
+            requestAccessibilityPermissionIfNeeded()
+        }
+
         startAppActivityCapture()
         startFocusedWindowCapture()
         startClipboardCapture()
