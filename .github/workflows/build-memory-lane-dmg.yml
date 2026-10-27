@@ -66,46 +66,12 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             clean build
 
-      - name: Import Developer ID certificate
-        env:
-          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
-          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          set -euo pipefail
-
-          if [ -z "$MACOS_CERTIFICATE_P12" ]; then
-            echo "::error::A stable Developer ID Application certificate is required for Memory Lane releases."
-            echo "::error::Without it, macOS Accessibility permission can break between updates."
-            exit 1
-          fi
-
-          CERT_PATH="$RUNNER_TEMP/memorylane-cert.p12"
-          KEYCHAIN_PATH="$RUNNER_TEMP/memorylane-signing.keychain-db"
-          echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security import "$CERT_PATH" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-      - name: Sign Memory Lane
+      - name: Ad-hoc sign Memory Lane
         run: |
           set -euo pipefail
           APP="$PWD/build/Build/Products/Release/Memory Lane.app"
-
-          IDENTITY="$(security find-identity -v -p codesigning | awk -F '"' '/Developer ID Application/ {print $2; exit}')"
-          test -n "$IDENTITY"
-
-          codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" "$APP"
+          codesign --force --deep --sign - "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
-
-          echo "Signing identity:"
-          codesign -dv --verbose=4 "$APP" 2>&1 | grep -E 'Authority=|TeamIdentifier=|Identifier='
-
-          echo "Designated requirement:"
-          codesign -d -r- "$APP" 2>&1
 
       - name: Create DMG
         run: |
@@ -140,5 +106,5 @@ jobs:
           else
             gh release create "$TAG" "$DMG" \
               --title "Memory Lane 1.0.0" \
-              --notes "Memory Lane 1.0.0 macOS DMG. Release builds require a stable Developer ID Application signature so macOS can preserve Accessibility trust across updates."
+              --notes "Memory Lane 1.0.0 macOS DMG. This automated build uses ad-hoc signing and is not notarized."
           fi
