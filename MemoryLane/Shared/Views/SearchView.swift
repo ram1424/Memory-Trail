@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import SwiftData
 
@@ -36,11 +37,24 @@ struct SearchView: View {
                 }
 
                 if query.isEmpty {
-                    ContentUnavailableView(
-                        "Search your memory",
-                        systemImage: "brain.head.profile",
-                        description: Text("Try a project name, app, person, URL, phrase, or something you copied.")
-                    )
+                    VStack(spacing: 18) {
+                        Image(nsImage: NSApplication.shared.applicationIconImage)
+                            .resizable()
+                            .interpolation(.high)
+                            .frame(width: 72, height: 72)
+                            .shadow(radius: 10, y: 5)
+
+                        VStack(spacing: 8) {
+                            Text("Go down Memory Lane")
+                                .font(.system(size: 28, weight: .semibold, design: .rounded))
+
+                            Text("Search for a project, person, page, message, or moment you want to revisit.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: 420)
+                        }
+                    }
                     .frame(maxWidth: .infinity, minHeight: 360)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
                 } else if results.isEmpty {
