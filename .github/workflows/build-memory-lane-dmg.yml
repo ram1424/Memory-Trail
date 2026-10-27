@@ -67,13 +67,18 @@ jobs:
             clean build
 
       - name: Import Developer ID certificate
-        if: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           set -euo pipefail
+
+          if [ -z "$MACOS_CERTIFICATE_P12" ]; then
+            echo "No Developer ID certificate configured; continuing with ad-hoc signing."
+            exit 0
+          fi
+
           CERT_PATH="$RUNNER_TEMP/memorylane-cert.p12"
           KEYCHAIN_PATH="$RUNNER_TEMP/memorylane-signing.keychain-db"
           echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
@@ -86,12 +91,12 @@ jobs:
 
       - name: Sign Memory Lane
         env:
-          HAS_DEVELOPER_ID: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
         run: |
           set -euo pipefail
           APP="$PWD/build/Build/Products/Release/Memory Lane.app"
 
-          if [ "$HAS_DEVELOPER_ID" = "true" ]; then
+          if [ -n "$MACOS_CERTIFICATE_P12" ]; then
             IDENTITY="$(security find-identity -v -p codesigning | awk -F '"' '/Developer ID Application/ {print $2; exit}')"
             test -n "$IDENTITY"
             codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" "$APP"
