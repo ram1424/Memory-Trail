@@ -43,16 +43,16 @@ jobs:
           open(sys.argv[2], "wb").write(base64.b64decode(match.group(1)))
           PY
 
-          sips -z 16 16 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_16x16.png" >/dev/null
-          sips -z 32 32 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_16x16@2x.png" >/dev/null
-          sips -z 32 32 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_32x32.png" >/dev/null
-          sips -z 64 64 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_32x32@2x.png" >/dev/null
-          sips -z 128 128 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_128x128.png" >/dev/null
-          sips -z 256 256 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_128x128@2x.png" >/dev/null
-          sips -z 256 256 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_256x256.png" >/dev/null
-          sips -z 512 512 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_256x256@2x.png" >/dev/null
-          sips -z 512 512 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_512x512.png" >/dev/null
-          sips -z 1024 1024 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_512x512@2x.png" >/dev/null
+          sips -z 16 16 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_16x16.png" >/dev/null
+          sips -z 32 32 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_16x16@2x.png" >/dev/null
+          sips -z 32 32 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_32x32.png" >/dev/null
+          sips -z 64 64 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_32x32@2x.png" >/dev/null
+          sips -z 128 128 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_128x128.png" >/dev/null
+          sips -z 256 256 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_128x128@2x.png" >/dev/null
+          sips -z 256 256 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_256x256.png" >/dev/null
+          sips -z 512 512 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_256x256@2x.png" >/dev/null
+          sips -z 512 512 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_512x512.png" >/dev/null
+          sips -z 1024 1024 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_512x512@2x.png" >/dev/null
 
           ONBOARDING_DIR="$PWD/MemoryLane/Resources/Assets.xcassets/OnboardingIcon.imageset"
           mkdir -p "$ONBOARDING_DIR"
