@@ -69,22 +69,22 @@ jobs:
             -srcfolder "$PWD/dmg-root" \
             -ov \
             -format UDZO \
-            "$PWD/MemoryLane-1.0.0.dmg"
+            "$PWD/MemoryLane-1.0.1.dmg"
 
-          shasum -a 256 "$PWD/MemoryLane-1.0.0.dmg"
+          shasum -a 256 "$PWD/MemoryLane-1.0.1.dmg"
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="v1.0.0"
-          DMG="MemoryLane-1.0.0.dmg"
+          TAG="v1.0.1"
+          DMG="MemoryLane-1.0.1.dmg"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$DMG" --clobber
           else
             gh release create "$TAG" "$DMG" \
-              --title "Memory Lane 1.0.0" \
-              --notes "Memory Lane 1.0.0 macOS DMG. This automated build uses ad-hoc signing and is not notarized."
+              --title "Memory Lane 1.0.1" \
+              --notes "Memory Lane 1.0.1 macOS DMG. This automated build uses ad-hoc signing and is not notarized."
           fi
