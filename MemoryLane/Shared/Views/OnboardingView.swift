@@ -241,7 +241,7 @@ struct OnboardingView: View {
                         "Safari page and tab titles",
                         "Supported browser context",
                         "Page URLs when available"
-                    ],
+                    ]
                 )
 
                 featureCard(
@@ -252,7 +252,7 @@ struct OnboardingView: View {
                         "Outlook email subject lines",
                         "Mail item subjects",
                         "Teams conversations and windows"
-                    ],
+                    ]
                 )
 
                 featureCard(
@@ -263,7 +263,7 @@ struct OnboardingView: View {
                         "Finder locations and filenames",
                         "Word, Excel, PowerPoint, Preview",
                         "OneNote pages and local paths when macOS exposes them"
-                    ],
+                    ]
                 )
             }
             .frame(maxWidth: 710)
