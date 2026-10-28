@@ -880,7 +880,7 @@ private struct WorkSession {
     }()
 }
 
-private enum TimelineFilter: String, CaseIterable, Identifiable {
+private enum TimelineFilter: String, CaseIterable, Identifiable, Hashable {
     case all
     case web
     case email
@@ -951,7 +951,7 @@ private enum TimelineFilter: String, CaseIterable, Identifiable {
     }
 }
 
-private enum TimelineDensity: String, CaseIterable, Identifiable {
+private enum TimelineDensity: String, CaseIterable, Identifiable, Hashable {
     case compact
     case comfortable
 
