@@ -8,11 +8,6 @@ struct OnboardingView: View {
 
     private let pageCount = 4
 
-    private static let onboardingIcon: NSImage = {
-        let image = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
-        image.size = NSSize(width: 512, height: 512)
-        return image
-    }()
 
     private let primaryText = Color.white
     private let secondaryText = Color.white.opacity(0.72)
@@ -82,11 +77,9 @@ struct OnboardingView: View {
     private var welcomePage: some View {
         HStack(spacing: 54) {
             VStack(spacing: 18) {
-                Image(nsImage: Self.onboardingIcon)
-                    .resizable()
-                    .interpolation(.high)
+                MemoryLaneBrandMark()
                     .frame(width: 150, height: 150)
-                    .shadow(radius: 18, y: 8)
+                    .shadow(color: .black.opacity(0.35), radius: 18, y: 8)
 
                 Text("Welcome to\nMemory Lane")
                     .font(.system(size: 34, weight: .bold))
@@ -191,9 +184,7 @@ struct OnboardingView: View {
                         )
                         .frame(width: 285, height: 230)
 
-                    Image(nsImage: Self.onboardingIcon)
-                        .resizable()
-                        .interpolation(.high)
+                    MemoryLaneBrandMark()
                         .frame(width: 112, height: 112)
 
                     Image(systemName: "lock.shield.fill")
@@ -239,8 +230,7 @@ struct OnboardingView: View {
 
             VStack(spacing: 16) {
                 HStack(spacing: 16) {
-                    Image(nsImage: Self.onboardingIcon)
-                        .resizable()
+                    MemoryLaneBrandMark()
                         .frame(width: 54, height: 54)
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -403,5 +393,103 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 13)
+    }
+}
+
+
+private struct MemoryLaneBrandMark: View {
+    var body: some View {
+        GeometryReader { proxy in
+            let size = min(proxy.size.width, proxy.size.height)
+            let scale = size / 160
+
+            ZStack {
+                RoundedRectangle(cornerRadius: 34 * scale, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.015, green: 0.055, blue: 0.16),
+                                Color(red: 0.03, green: 0.12, blue: 0.34),
+                                Color(red: 0.12, green: 0.06, blue: 0.28)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 34 * scale, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [.white.opacity(0.34), .cyan.opacity(0.18), .purple.opacity(0.22)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: max(1, 1.8 * scale)
+                            )
+                    }
+
+                Circle()
+                    .fill(.cyan.opacity(0.18))
+                    .frame(width: 116 * scale, height: 116 * scale)
+                    .blur(radius: 24 * scale)
+                    .offset(x: -22 * scale, y: -24 * scale)
+
+                Circle()
+                    .fill(.purple.opacity(0.20))
+                    .frame(width: 104 * scale, height: 104 * scale)
+                    .blur(radius: 26 * scale)
+                    .offset(x: 28 * scale, y: 22 * scale)
+
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 80 * scale, weight: .semibold))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.cyan, .blue, .purple, .pink],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        .white.opacity(0.16)
+                    )
+                    .offset(y: -10 * scale)
+
+                Path { path in
+                    path.move(to: CGPoint(x: 80 * scale, y: 76 * scale))
+                    path.addCurve(
+                        to: CGPoint(x: 60 * scale, y: 154 * scale),
+                        control1: CGPoint(x: 102 * scale, y: 96 * scale),
+                        control2: CGPoint(x: 88 * scale, y: 126 * scale)
+                    )
+                }
+                .stroke(
+                    LinearGradient(
+                        colors: [.white, .cyan, .blue, .purple],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    style: StrokeStyle(lineWidth: 12 * scale, lineCap: .round)
+                )
+                .shadow(color: .cyan.opacity(0.7), radius: 5 * scale)
+
+                Path { path in
+                    path.move(to: CGPoint(x: 79 * scale, y: 79 * scale))
+                    path.addCurve(
+                        to: CGPoint(x: 61 * scale, y: 151 * scale),
+                        control1: CGPoint(x: 97 * scale, y: 99 * scale),
+                        control2: CGPoint(x: 85 * scale, y: 124 * scale)
+                    )
+                }
+                .stroke(
+                    .white.opacity(0.95),
+                    style: StrokeStyle(
+                        lineWidth: 2.2 * scale,
+                        lineCap: .round,
+                        dash: [6 * scale, 7 * scale]
+                    )
+                )
+            }
+            .frame(width: size, height: size)
+        }
+        .aspectRatio(1, contentMode: .fit)
     }
 }
