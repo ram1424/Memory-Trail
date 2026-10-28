@@ -4,46 +4,42 @@ import SwiftData
 
 struct TimelineView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(RecallPreferences.self) private var preferences
     @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
+
     @State private var showingClearTimelineConfirmation = false
+    @State private var selectedMemoryID: UUID?
+    @State private var searchText = ""
+    @State private var filter: TimelineFilter = .all
+    @State private var density: TimelineDensity = .comfortable
+    @State private var dayOffset = 0
+    @State private var now = Date()
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 18) {
-                header
+        VStack(spacing: 0) {
+            timelineToolbar
+            filterBar
+            Divider()
 
-                if memories.isEmpty {
-                    ContentUnavailableView(
-                        "Your timeline is empty",
-                        systemImage: "sparkles",
-                        description: Text("Open a few apps or add a memory to start building your searchable work history.")
+            HStack(spacing: 0) {
+                timelineContent
+                    .frame(minWidth: 560, maxWidth: .infinity)
+
+                if let item = selectedItem {
+                    Divider()
+                    TimelineInspector(
+                        item: item,
+                        previousItem: adjacentItem(to: item, direction: .older),
+                        nextItem: adjacentItem(to: item, direction: .newer),
+                        duration: duration(for: item),
+                        isActive: isActive(item)
                     )
-                    .frame(maxWidth: .infinity, minHeight: 420)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
-                } else {
-                    ForEach(groupedDays, id: \.day) { group in
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(group.day.formatted(date: .abbreviated, time: .omitted))
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 4)
-
-                            LazyVStack(spacing: 8) {
-                                ForEach(group.items) { item in
-                                    NavigationLink {
-                                        MemoryDetailView(item: item)
-                                    } label: {
-                                        MemoryRow(item: item)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-                    }
+                    .frame(width: 350)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
             }
-            .padding(24)
         }
+        .background(Color(nsColor: .windowBackgroundColor))
         .navigationTitle("Timeline")
         .toolbar {
             ToolbarItem {
@@ -68,29 +64,304 @@ struct TimelineView: View {
         } message: {
             Text("This permanently deletes all \(memories.count) timeline items from Memory Lane. This action cannot be undone.")
         }
+        .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { value in
+            now = value
+        }
     }
 
-    private var header: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Your recent activity")
-                    .font(.title2.weight(.semibold))
-                Text(memories.isEmpty ? "Nothing captured yet" : "\(memories.count) memories captured")
-                    .font(.subheadline)
+    private var timelineToolbar: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 0) {
+                Button {
+                    dayOffset -= 1
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .frame(width: 30, height: 28)
+                }
+
+                Divider()
+                    .frame(height: 18)
+
+                Button {
+                    if dayOffset < 0 {
+                        dayOffset += 1
+                    }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .frame(width: 30, height: 28)
+                }
+                .disabled(dayOffset >= 0)
+            }
+            .buttonStyle(.plain)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 9))
+            .overlay {
+                RoundedRectangle(cornerRadius: 9)
+                    .stroke(.quaternary, lineWidth: 1)
+            }
+
+            Button {
+                dayOffset = 0
+            } label: {
+                Label(dayOffset == 0 ? "Today" : selectedDay.formatted(date: .abbreviated, time: .omitted), systemImage: "calendar")
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 10)
+                    .frame(height: 30)
+            }
+            .buttonStyle(.plain)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 9))
+            .overlay {
+                RoundedRectangle(cornerRadius: 9)
+                    .stroke(.quaternary, lineWidth: 1)
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
+                TextField("Search your work…", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .frame(minWidth: 180)
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 11)
+            .frame(height: 32)
+            .background(Color(nsColor: .textBackgroundColor).opacity(0.72), in: RoundedRectangle(cornerRadius: 10))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(.quaternary, lineWidth: 1)
+            }
+
+            Menu {
+                Picker("Activity", selection: $filter) {
+                    ForEach(TimelineFilter.allCases) { option in
+                        Label(option.title, systemImage: option.symbol)
+                            .tag(option)
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(filter == .all ? "All Activity" : filter.title)
+                    Image(systemName: "chevron.down")
+                        .font(.caption2)
+                }
+                .font(.subheadline)
+                .padding(.horizontal, 10)
+                .frame(height: 30)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(preferences.capturePaused ? .orange : .green)
+                    .frame(width: 8, height: 8)
+                Text(preferences.capturePaused ? "Paused" : "Capturing")
+                    .font(.caption.weight(.medium))
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .background(.thinMaterial, in: Capsule())
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+    }
+
+    private var filterBar: some View {
+        HStack(spacing: 8) {
+            ForEach(TimelineFilter.quickFilters) { option in
+                Button {
+                    filter = option
+                } label: {
+                    Text(option.title)
+                        .font(.caption.weight(filter == option ? .semibold : .medium))
+                        .foregroundStyle(filter == option ? Color.white : Color.primary)
+                        .padding(.horizontal, 13)
+                        .frame(height: 28)
+                        .background(
+                            filter == option ? Color.accentColor : Color(nsColor: .controlBackgroundColor),
+                            in: RoundedRectangle(cornerRadius: 8)
+                        )
+                }
+                .buttonStyle(.plain)
             }
 
             Spacer()
 
-            Image(systemName: "clock.arrow.circlepath")
-                .font(.system(size: 28, weight: .medium))
-                .foregroundStyle(.tint)
-                .padding(12)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+            Picker("Density", selection: $density) {
+                ForEach(TimelineDensity.allCases) { option in
+                    Text(option.title).tag(option)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 190)
+        }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 10)
+    }
+
+    private var timelineContent: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                if filteredItems.isEmpty {
+                    ContentUnavailableView(
+                        memories.isEmpty ? "Your timeline is empty" : "No matching activity",
+                        systemImage: memories.isEmpty ? "sparkles" : "magnifyingglass",
+                        description: Text(memories.isEmpty
+                            ? "Open a few apps or add a memory to start building your searchable work history."
+                            : "Try another day, filter, or search term.")
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 470)
+                } else {
+                    Section {
+                        VStack(spacing: density.rowSpacing) {
+                            ForEach(filteredItems) { item in
+                                TimelineActivityRow(
+                                    item: item,
+                                    duration: duration(for: item),
+                                    isActive: isActive(item),
+                                    isSelected: selectedMemoryID == item.id,
+                                    density: density
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.16)) {
+                                        selectedMemoryID = item.id
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.bottom, 12)
+
+                        if let session = primaryWorkSession {
+                            WorkSessionCard(session: session) {
+                                if let first = session.items.first {
+                                    withAnimation(.easeInOut(duration: 0.16)) {
+                                        selectedMemoryID = first.id
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.bottom, 18)
+                        }
+                    } header: {
+                        dayHeader
+                    }
+                }
+            }
         }
     }
 
+    private var dayHeader: some View {
+        HStack {
+            Text(dayHeaderTitle)
+                .font(.subheadline.weight(.bold))
+                .textCase(.uppercase)
+
+            Spacer()
+
+            if !filteredItems.isEmpty {
+                Text(totalVisibleDurationLabel)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 11)
+        .background(.ultraThinMaterial)
+    }
+
+    private var selectedDay: Date {
+        Calendar.current.date(byAdding: .day, value: dayOffset, to: Calendar.current.startOfDay(for: now)) ?? now
+    }
+
+    private var dayHeaderTitle: String {
+        if Calendar.current.isDateInToday(selectedDay) {
+            return "Today · \(selectedDay.formatted(.dateTime.month(.wide).day().year()))"
+        }
+        if Calendar.current.isDateInYesterday(selectedDay) {
+            return "Yesterday · \(selectedDay.formatted(.dateTime.month(.wide).day().year()))"
+        }
+        return selectedDay.formatted(.dateTime.weekday(.wide).month(.wide).day().year())
+    }
+
+    private var dayItems: [MemoryItem] {
+        memories.filter { Calendar.current.isDate($0.createdAt, inSameDayAs: selectedDay) }
+    }
+
+    private var filteredItems: [MemoryItem] {
+        dayItems.filter { item in
+            let matchesSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || item.searchableText.localizedCaseInsensitiveContains(searchText)
+            return matchesSearch && filter.matches(item)
+        }
+    }
+
+    private var selectedItem: MemoryItem? {
+        guard let selectedMemoryID else { return nil }
+        return memories.first { $0.id == selectedMemoryID }
+    }
+
+    private var totalVisibleDurationLabel: String {
+        let seconds = filteredItems.reduce(0.0) { partial, item in
+            partial + duration(for: item)
+        }
+        return Self.durationFormatter.string(from: seconds) ?? ""
+    }
+
+    private func duration(for item: MemoryItem) -> TimeInterval {
+        guard let index = memories.firstIndex(where: { $0.id == item.id }) else { return 0 }
+
+        if index == 0 {
+            let elapsed = max(0, now.timeIntervalSince(item.createdAt))
+            return min(elapsed, 60 * 30)
+        }
+
+        let newer = memories[index - 1]
+        let delta = max(0, newer.createdAt.timeIntervalSince(item.createdAt))
+        return min(delta, 60 * 90)
+    }
+
+    private func isActive(_ item: MemoryItem) -> Bool {
+        guard !preferences.capturePaused,
+              memories.first?.id == item.id,
+              item.sourceKind == .appActivity
+        else {
+            return false
+        }
+
+        return now.timeIntervalSince(item.createdAt) < 15 * 60
+    }
+
+    private func adjacentItem(to item: MemoryItem, direction: AdjacentDirection) -> MemoryItem? {
+        guard let index = memories.firstIndex(where: { $0.id == item.id }) else { return nil }
+
+        switch direction {
+        case .newer:
+            guard index > 0 else { return nil }
+            return memories[index - 1]
+        case .older:
+            guard index + 1 < memories.count else { return nil }
+            return memories[index + 1]
+        }
+    }
+
+    private var primaryWorkSession: WorkSession? {
+        let sessions = WorkSession.make(from: filteredItems)
+        return sessions.max(by: { $0.items.count < $1.items.count })
+    }
+
     private func clearTimeline() {
+        selectedMemoryID = nil
         for item in memories {
             modelContext.delete(item)
         }
@@ -102,70 +373,115 @@ struct TimelineView: View {
         }
     }
 
-    private var groupedDays: [(day: Date, items: [MemoryItem])] {
-        let calendar = Calendar.current
-        let grouped = Dictionary(grouping: memories) { item in
-            calendar.startOfDay(for: item.createdAt)
-        }
-        return grouped.keys.sorted(by: >).map { day in
-            (day, grouped[day] ?? [])
-        }
-    }
+    private static let durationFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        formatter.zeroFormattingBehavior = .dropAll
+        return formatter
+    }()
 }
 
-struct MemoryRow: View {
+private struct TimelineActivityRow: View {
     let item: MemoryItem
+    let duration: TimeInterval
+    let isActive: Bool
+    let isSelected: Bool
+    let density: TimelineDensity
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            sourceIcon
+        HStack(alignment: .center, spacing: 12) {
+            Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 68, alignment: .trailing)
 
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 8) {
-                    Text(primaryTitle)
-                        .font(.headline)
-                        .lineLimit(1)
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.22))
+                    .frame(width: 1)
+                Circle()
+                    .fill(isActive ? Color.green : Color.accentColor)
+                    .frame(width: isActive ? 12 : 9, height: isActive ? 12 : 9)
+                    .overlay {
+                        if isActive {
+                            Circle()
+                                .stroke(Color.green.opacity(0.25), lineWidth: 5)
+                        }
+                    }
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.22))
+                    .frame(width: 1)
+            }
+            .frame(width: 20, minHeight: density.rowHeight)
 
-                    if item.isFavorite {
-                        Image(systemName: "star.fill")
-                            .font(.caption)
-                            .foregroundStyle(.yellow)
+            HStack(spacing: 12) {
+                sourceIcon
+
+                VStack(alignment: .leading, spacing: density == .comfortable ? 4 : 2) {
+                    HStack(spacing: 7) {
+                        Text(primaryTitle)
+                            .font(.system(size: density == .comfortable ? 15 : 14, weight: .semibold))
+                            .lineLimit(1)
+
+                        if item.isFavorite {
+                            Image(systemName: "star.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.yellow)
+                        }
                     }
 
-                    Spacer()
+                    if !secondaryTitle.isEmpty {
+                        Text(secondaryTitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
 
-                    Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                    if density == .comfortable {
+                        HStack(spacing: 6) {
+                            Text(item.sourceApp)
+                            Text("·")
+                            Text(categoryLabel)
+                        }
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                    }
                 }
 
-                if !secondaryTitle.isEmpty {
-                    Text(secondaryTitle)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(2)
-                }
+                Spacer(minLength: 8)
 
-                if !item.body.isEmpty && item.body != secondaryTitle {
-                    Text(item.body)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
+                VStack(alignment: .trailing, spacing: 4) {
+                    if isActive {
+                        Label("Active now", systemImage: "circle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.green)
+                            .labelStyle(.titleAndIcon)
+                    } else if duration >= 60 {
+                        Text(Self.durationFormatter.string(from: duration) ?? "")
+                            .font(.subheadline.weight(.semibold))
+                    }
 
-                HStack(spacing: 6) {
-                    Text(item.sourceApp)
-                    Text("•")
-                    Text(item.sourceKind.rawValue)
+                    if density == .comfortable, duration >= 60 {
+                        let end = item.createdAt.addingTimeInterval(duration)
+                        Text("\(item.createdAt.formatted(date: .omitted, time: .shortened)) – \(end.formatted(date: .omitted, time: .shortened))")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
             }
-        }
-        .padding(14)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(.quaternary, lineWidth: 1)
+            .padding(.horizontal, density == .comfortable ? 14 : 12)
+            .padding(.vertical, density == .comfortable ? 12 : 8)
+            .background(
+                isSelected
+                    ? Color.accentColor.opacity(0.12)
+                    : Color(nsColor: .controlBackgroundColor).opacity(0.72),
+                in: RoundedRectangle(cornerRadius: 14)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(isSelected ? Color.accentColor.opacity(0.45) : Color.secondary.opacity(0.15), lineWidth: 1)
+            }
         }
     }
 
@@ -177,27 +493,467 @@ struct MemoryRow: View {
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
-                .frame(width: 30, height: 30)
-                .padding(4)
-                .frame(width: 38, height: 38)
-                .background(Color(nsColor: .controlBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 10))
+                .frame(width: 34, height: 34)
+                .padding(5)
+                .background(Color(nsColor: .textBackgroundColor).opacity(0.72), in: RoundedRectangle(cornerRadius: 11))
         } else {
             Image(systemName: item.sourceKind.symbol)
-                .font(.system(size: 16, weight: .semibold))
-                .frame(width: 38, height: 38)
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 44, height: 44)
                 .foregroundStyle(.tint)
-                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 11))
         }
     }
 
     private var primaryTitle: String {
-        item.sourceKind == .appActivity ? item.sourceApp : item.title
+        if item.sourceKind == .appActivity, !item.title.hasPrefix("Opened ") {
+            return item.title
+        }
+        return item.sourceKind == .appActivity ? item.sourceApp : item.title
     }
 
     private var secondaryTitle: String {
-        guard item.sourceKind == .appActivity else { return "" }
-        return item.title.hasPrefix("Opened ") ? "" : item.title
+        guard item.sourceKind == .appActivity else {
+            return item.body
+        }
+        return primaryTitle == item.sourceApp ? item.body : item.sourceApp
     }
+
+    private var categoryLabel: String {
+        TimelineFilter.category(for: item).title
+    }
+
+    private static let durationFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        formatter.zeroFormattingBehavior = .dropAll
+        return formatter
+    }()
+}
+
+private struct TimelineInspector: View {
+    @Bindable var item: MemoryItem
+    let previousItem: MemoryItem?
+    let nextItem: MemoryItem?
+    let duration: TimeInterval
+    let isActive: Bool
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                inspectorHeader
+
+                Divider()
+
+                metadataSection
+
+                if let previousItem {
+                    Divider()
+                    adjacentActivity(title: "Previous Activity", item: previousItem)
+                }
+
+                if let nextItem {
+                    adjacentActivity(title: "Next Activity", item: nextItem)
+                }
+
+                Divider()
+
+                actions
+            }
+            .padding(18)
+        }
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.36))
+    }
+
+    private var inspectorHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                inspectorIcon
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.title)
+                        .font(.title3.weight(.semibold))
+                        .lineLimit(2)
+                    Text(item.sourceApp)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button {
+                    item.isFavorite.toggle()
+                } label: {
+                    Image(systemName: item.isFavorite ? "star.fill" : "star")
+                        .foregroundStyle(item.isFavorite ? .yellow : .secondary)
+                }
+                .buttonStyle(.plain)
+                .help(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
+            }
+
+            if isActive {
+                Label("Active now", systemImage: "circle.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.green)
+            }
+        }
+    }
+
+    private var metadataSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            inspectorRow(symbol: "clock", label: "Time", value: timeValue)
+            inspectorRow(symbol: "hourglass", label: "Duration", value: durationLabel)
+            inspectorRow(symbol: "app", label: "Application", value: item.sourceApp)
+            inspectorRow(symbol: item.sourceKind.symbol, label: "Type", value: item.sourceKind.rawValue)
+
+            if !item.body.isEmpty {
+                inspectorRow(symbol: "text.alignleft", label: "Details", value: item.body)
+            }
+
+            if let sourceURL = item.sourceURL, !sourceURL.isEmpty {
+                inspectorRow(symbol: "link", label: "Source", value: sourceURL)
+            }
+        }
+    }
+
+    private var actions: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Actions")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            if !item.sourceBundleID.isEmpty {
+                Button {
+                    openSourceApplication()
+                } label: {
+                    Label("Open App", systemImage: "arrow.up.forward.app")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    copyDetails()
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+
+                Button {
+                    item.isFavorite.toggle()
+                } label: {
+                    Label(item.isFavorite ? "Favorited" : "Favorite", systemImage: item.isFavorite ? "star.fill" : "star")
+                }
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    @ViewBuilder
+    private var inspectorIcon: some View {
+        if item.sourceKind == .appActivity,
+           let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
+            Image(nsImage: icon)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 42, height: 42)
+                .padding(6)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 13))
+        } else {
+            Image(systemName: item.sourceKind.symbol)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(.tint)
+                .frame(width: 54, height: 54)
+                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 13))
+        }
+    }
+
+    private func inspectorRow(symbol: String, label: String, value: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: symbol)
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 72, alignment: .leading)
+
+            Text(value)
+                .font(.subheadline)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func adjacentActivity(title: String, item: MemoryItem) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 9) {
+                if item.sourceKind == .appActivity,
+                   let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                } else {
+                    Image(systemName: item.sourceKind.symbol)
+                        .frame(width: 24)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                    Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+    }
+
+    private var timeValue: String {
+        if isActive {
+            return "\(item.createdAt.formatted(date: .omitted, time: .shortened)) – Present"
+        }
+        let end = item.createdAt.addingTimeInterval(duration)
+        return "\(item.createdAt.formatted(date: .omitted, time: .shortened)) – \(end.formatted(date: .omitted, time: .shortened))"
+    }
+
+    private var durationLabel: String {
+        if duration < 60 {
+            return "Less than a minute"
+        }
+        return Self.durationFormatter.string(from: duration) ?? ""
+    }
+
+    private func openSourceApplication() {
+        guard !item.sourceBundleID.isEmpty,
+              let applicationURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: item.sourceBundleID)
+        else {
+            return
+        }
+
+        NSWorkspace.shared.openApplication(
+            at: applicationURL,
+            configuration: NSWorkspace.OpenConfiguration()
+        )
+    }
+
+    private func copyDetails() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(
+            [item.title, item.body, item.sourceApp, item.sourceURL ?? ""]
+                .filter { !$0.isEmpty }
+                .joined(separator: "\n"),
+            forType: .string
+        )
+    }
+
+    private static let durationFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .full
+        formatter.zeroFormattingBehavior = .dropAll
+        return formatter
+    }()
+}
+
+private struct WorkSessionCard: View {
+    let session: WorkSession
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 13) {
+                Image(systemName: "square.3.layers.3d")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.tint)
+                    .frame(width: 42, height: 42)
+                    .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 11))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Work Session")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(session.title)
+                        .font(.headline)
+                    Text("\(session.start.formatted(date: .omitted, time: .shortened)) – \(session.end.formatted(date: .omitted, time: .shortened)) · \(session.durationLabel)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Text("\(session.items.count) activities")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(14)
+            .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 15))
+            .overlay {
+                RoundedRectangle(cornerRadius: 15)
+                    .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct WorkSession {
+    let items: [MemoryItem]
+
+    var start: Date {
+        items.map(\.createdAt).min() ?? .now
+    }
+
+    var end: Date {
+        items.map(\.createdAt).max() ?? .now
+    }
+
+    var title: String {
+        let meaningfulTitles = items
+            .map(\.title)
+            .filter { !$0.hasPrefix("Opened ") && !$0.isEmpty }
+
+        if let mostCommon = Dictionary(grouping: meaningfulTitles, by: { $0 })
+            .max(by: { $0.value.count < $1.value.count })?.key {
+            return mostCommon
+        }
+
+        return items.first?.sourceApp ?? "Work Session"
+    }
+
+    var durationLabel: String {
+        let interval = max(0, end.timeIntervalSince(start))
+        return Self.durationFormatter.string(from: interval) ?? ""
+    }
+
+    static func make(from items: [MemoryItem]) -> [WorkSession] {
+        let ascending = items.sorted { $0.createdAt < $1.createdAt }
+        guard let first = ascending.first else { return [] }
+
+        var sessions: [[MemoryItem]] = [[first]]
+
+        for item in ascending.dropFirst() {
+            guard let last = sessions.last?.last else { continue }
+            if item.createdAt.timeIntervalSince(last.createdAt) <= 30 * 60 {
+                sessions[sessions.count - 1].append(item)
+            } else {
+                sessions.append([item])
+            }
+        }
+
+        return sessions
+            .filter { $0.count >= 2 }
+            .map { WorkSession(items: $0) }
+    }
+
+    private static let durationFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        formatter.zeroFormattingBehavior = .dropAll
+        return formatter
+    }()
+}
+
+private enum TimelineFilter: String, CaseIterable, Identifiable {
+    case all
+    case web
+    case email
+    case chat
+    case files
+    case clipboard
+    case favorites
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all: "All"
+        case .web: "Web"
+        case .email: "Email"
+        case .chat: "Chat"
+        case .files: "Files"
+        case .clipboard: "Clipboard"
+        case .favorites: "Favorites"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .all: "line.3.horizontal.decrease.circle"
+        case .web: "safari"
+        case .email: "envelope"
+        case .chat: "bubble.left.and.bubble.right"
+        case .files: "folder"
+        case .clipboard: "doc.on.clipboard"
+        case .favorites: "star"
+        }
+    }
+
+    static let quickFilters: [TimelineFilter] = [.all, .web, .email, .chat, .files, .clipboard, .favorites]
+
+    func matches(_ item: MemoryItem) -> Bool {
+        switch self {
+        case .all:
+            return true
+        case .favorites:
+            return item.isFavorite
+        default:
+            return Self.category(for: item) == self
+        }
+    }
+
+    static func category(for item: MemoryItem) -> TimelineFilter {
+        if item.sourceKind == .clipboard {
+            return .clipboard
+        }
+        if item.sourceKind == .file || item.sourceKind == .screenshot {
+            return .files
+        }
+
+        let haystack = "\(item.sourceApp) \(item.sourceBundleID)".lowercased()
+        if haystack.contains("safari") || haystack.contains("chrome") || haystack.contains("firefox") || haystack.contains("edge") || haystack.contains("arc") {
+            return .web
+        }
+        if haystack.contains("outlook") || haystack.contains("mail") {
+            return .email
+        }
+        if haystack.contains("teams") || haystack.contains("slack") || haystack.contains("messages") || haystack.contains("discord") {
+            return .chat
+        }
+
+        return .files
+    }
+}
+
+private enum TimelineDensity: String, CaseIterable, Identifiable {
+    case compact
+    case comfortable
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+    var rowHeight: CGFloat { self == .comfortable ? 78 : 58 }
+    var rowSpacing: CGFloat { self == .comfortable ? 8 : 5 }
+}
+
+private enum AdjacentDirection {
+    case newer
+    case older
 }
 
 @MainActor
