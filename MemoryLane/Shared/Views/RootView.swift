@@ -23,7 +23,7 @@ struct RootView: View {
                 Section("Memory Lane") {
                     Label("Timeline", systemImage: "clock.arrow.circlepath")
                         .tag(SidebarItem.timeline)
-                    Label("Search", systemImage: "magnifyingglass")
+                    Label("Ask Memory Lane", systemImage: "sparkles")
                         .tag(SidebarItem.search)
                     Label("Favorites", systemImage: "star")
                         .tag(SidebarItem.favorites)

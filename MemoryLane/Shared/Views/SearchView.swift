@@ -4,96 +4,262 @@ import SwiftData
 
 struct SearchView: View {
     @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
-    @State private var query = ""
-    @State private var debouncedQuery = ""
 
-    private var results: [MemoryItem] {
-        let tokens = SearchService.tokens(for: debouncedQuery)
-        guard !tokens.isEmpty else { return [] }
-        return memories.filter { SearchService.matches($0, tokens: tokens) }
-    }
+    @State private var query = ""
+    @State private var answer: MemoryLaneAnswer?
+    @FocusState private var searchFocused: Bool
+
+    private let examples = [
+        "What was I doing around 10:30 AM?",
+        "What did I view before opening Teams?",
+        "Find the Outlook email I viewed today",
+        "Find a file I worked on yesterday"
+    ]
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Search your history")
-                        .font(.title2.weight(.semibold))
-                    Text("Find apps, window titles, links, notes, and copied text.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 20) {
+                header
+                askBox
+
+                if let answer {
+                    answerCard(answer)
+
+                    if !answer.sessions.isEmpty {
+                        sessionResults(answer.sessions)
+                    }
+
+                    if !answer.items.isEmpty {
+                        activityResults(answer.items)
+                    }
+                } else {
+                    emptyState
+                }
+            }
+            .padding(24)
+        }
+        .navigationTitle("Ask Memory Lane")
+        .onAppear {
+            if query.isEmpty {
+                searchFocused = true
+            }
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundStyle(.tint)
+
+                Text("Ask Memory Lane")
+                    .font(.title2.weight(.semibold))
+            }
+
+            Text("Ask about a time, app, page, email, chat, file, or project. Answers are generated locally from your captured timeline.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var askBox: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+
+                TextField("What do you want to remember?", text: $query)
+                    .textFieldStyle(.plain)
+                    .font(.body)
+                    .focused($searchFocused)
+                    .onSubmit(runQuery)
+
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                        answer = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
                 }
 
-                HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-                    TextField("Search what you remember…", text: $query)
-                        .textFieldStyle(.plain)
-                        .font(.body)
+                Button(action: runQuery) {
+                    Label("Ask", systemImage: "arrow.up.circle.fill")
+                        .labelStyle(.titleAndIcon)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
+                .buttonStyle(.borderedProminent)
+                .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(.quaternary, lineWidth: 1)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(examples, id: \.self) { example in
+                        Button {
+                            query = example
+                            runQuery()
+                        } label: {
+                            Text(example)
+                                .font(.caption)
+                                .padding(.horizontal, 11)
+                                .frame(height: 28)
+                                .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 18) {
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 78, height: 78)
+                .shadow(radius: 10, y: 5)
+
+            VStack(spacing: 8) {
+                Text("Your workday is searchable")
+                    .font(.system(size: 27, weight: .semibold, design: .rounded))
+
+                Text("Memory Lane can reason over captured timestamps, application names, window titles, URLs, filenames, and local file paths without sending your history to a cloud service.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 560)
+            }
+
+            HStack(spacing: 14) {
+                feature("clock", "Time-aware")
+                feature("app.badge", "App-aware")
+                feature("doc.text.magnifyingglass", "File-aware")
+                feature("lock.shield", "Local")
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 360)
+        .padding(30)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
+    }
+
+    private func answerCard(_ answer: MemoryLaneAnswer) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.tint)
+                    .frame(width: 38, height: 38)
+                    .background(Color.accentColor.opacity(0.11), in: RoundedRectangle(cornerRadius: 10))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Memory Lane found")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    Text(answer.summary)
+                        .font(.system(size: 16, weight: .medium))
+                        .textSelection(.enabled)
+
+                    if !answer.interpretedQuery.isEmpty {
+                        Text(answer.interpretedQuery)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
+                Spacer()
+            }
+        }
+        .padding(16)
+        .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
+        }
+    }
+
+    private func sessionResults(_ sessions: [SmartWorkSession]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Related Work Sessions")
+                .font(.headline)
+
+            ForEach(sessions.prefix(4)) { session in
+                HStack(spacing: 12) {
+                    Image(systemName: "square.3.layers.3d")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.tint)
+                        .frame(width: 40, height: 40)
+                        .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(session.title)
+                            .font(.headline)
+                            .lineLimit(1)
+                        Text(session.summary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text(SearchService.compactDuration(session.duration))
+                            .font(.subheadline.weight(.semibold))
+                        Text("\(session.items.count) activities")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .padding(13)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
                 .overlay {
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(.quaternary, lineWidth: 1)
                 }
+            }
+        }
+    }
 
-                if query.isEmpty {
-                    VStack(spacing: 18) {
-                        Image(nsImage: NSApplication.shared.applicationIconImage)
-                            .resizable()
-                            .interpolation(.high)
-                            .frame(width: 72, height: 72)
-                            .shadow(radius: 10, y: 5)
+    private func activityResults(_ items: [MemoryItem]) -> some View {
+        LazyVStack(alignment: .leading, spacing: 10) {
+            Text("Supporting Activity")
+                .font(.headline)
 
-                        VStack(spacing: 8) {
-                            Text("Go down Memory Lane")
-                                .font(.system(size: 28, weight: .semibold, design: .rounded))
-
-                            Text("Search for a project, person, page, message, or moment you want to revisit.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: 420)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 360)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
-                } else if !debouncedQuery.isEmpty && results.isEmpty {
-                    ContentUnavailableView.search(text: query)
-                        .frame(maxWidth: .infinity, minHeight: 360)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
-                } else {
-                    LazyVStack(alignment: .leading, spacing: 10) {
-                        Text("\(results.count) result\(results.count == 1 ? "" : "s")")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
-                        ForEach(results) { item in
-                            NavigationLink {
-                                MemoryDetailView(item: item)
-                            } label: {
-                                MemoryRow(item: item)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+            ForEach(items) { item in
+                NavigationLink {
+                    MemoryDetailView(item: item)
+                } label: {
+                    MemoryRow(item: item)
                 }
+                .buttonStyle(.plain)
             }
-            .padding(24)
         }
-        .navigationTitle("Search")
-        .task(id: query) {
-            let current = query
-            if current.isEmpty {
-                debouncedQuery = ""
-                return
-            }
+    }
 
-            try? await Task.sleep(for: .milliseconds(180))
-            guard !Task.isCancelled else { return }
-            debouncedQuery = current
+    private func feature(_ symbol: String, _ title: String) -> some View {
+        Label(title, systemImage: symbol)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
+    }
+
+    private func runQuery() {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            answer = nil
+            return
         }
+
+        answer = SearchService.ask(trimmed, memories: memories)
     }
 }
