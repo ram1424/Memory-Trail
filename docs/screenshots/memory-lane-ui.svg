@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="855" viewBox="0 0 1440 855">
+<defs>
+  <linearGradient id="window" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#f5f6f8"/>
+    <stop offset="1" stop-color="#eceef1"/>
+  </linearGradient>
+  <filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="5" flood-opacity=".08"/></filter>
+</defs>
+<rect width="1440" height="855" rx="18" fill="url(#window)"/>
+<rect x="0" y="0" width="170" height="855" fill="#e5e7ea"/>
+<circle cx="24" cy="29" r="8" fill="#ff5f57"/><circle cx="49" cy="29" r="8" fill="#febc2e"/><circle cx="74" cy="29" r="8" fill="#28c840"/>
+<rect x="112" y="18" width="25" height="22" rx="4" fill="none" stroke="#676b71" stroke-width="2"/><line x1="120" y1="18" x2="120" y2="40" stroke="#676b71" stroke-width="2"/>
+<text x="9" y="79" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14" font-weight="600" fill="#8d9299">Memory Lane</text>
+<rect x="5" y="88" width="155" height="37" rx="7" fill="#4b91f7"/>
+<circle cx="23" cy="106" r="10" fill="none" stroke="#fff" stroke-width="2"/><path d="M23 99v7l-5 4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+<text x="42" y="112" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="17" font-weight="600" fill="#fff">Timeline</text>
+<text x="11" y="153" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="17" fill="#363a40">✦  Ask Memory…</text>
+<text x="11" y="193" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="17" fill="#363a40">☆  Favorites</text>
+<text x="9" y="238" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14" font-weight="600" fill="#8d9299">Control</text>
+<text x="12" y="276" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="17" fill="#363a40">◉  Pause Captu…</text>
+<text x="11" y="314" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="17" fill="#363a40">⚙  Settings</text>
+<circle cx="12" cy="828" r="5" fill="#23b95a"/><text x="25" y="833" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" fill="#646970">Capture active</text>
+<line x1="170" y1="0" x2="170" y2="855" stroke="#cfd2d7"/>
+
+<text x="188" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="24" font-weight="700" fill="#2b2e33">Timeline</text>
+<text x="1350" y="37" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="32" fill="#575b62">＋</text>
+<text x="1394" y="36" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="24" fill="#575b62">⌫</text>
+<line x1="170" y1="64" x2="1440" y2="64" stroke="#d2d5da"/>
+
+<rect x="194" y="82" width="77" height="38" rx="10" fill="#edf0f3" stroke="#d3d6da"/>
+<text x="211" y="106" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="20" fill="#60656c">‹  ›</text>
+<rect x="286" y="82" width="91" height="38" rx="10" fill="#edf0f3" stroke="#d3d6da"/>
+<text x="307" y="106" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" font-weight="600" fill="#4b5057">▣  Today</text>
+<rect x="392" y="82" width="750" height="38" rx="12" fill="#fff" stroke="#d1d4d9"/>
+<text x="414" y="106" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="16" fill="#a2a7ad">⌕  Search your work…</text>
+<text x="1162" y="106" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" fill="#292d32">⌄  All Activity⌄</text>
+<rect x="1312" y="83" width="105" height="36" rx="18" fill="#e8ebee"/>
+<circle cx="1329" cy="101" r="5" fill="#22b95d"/><text x="1341" y="106" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" font-weight="600" fill="#4e535a">Capturing</text>
+
+<g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14" font-weight="600">
+<rect x="194" y="136" width="48" height="36" rx="9" fill="#1677ff"/><text x="211" y="159" fill="#fff">All</text>
+<rect x="252" y="136" width="62" height="36" rx="9" fill="#fff"/><text x="271" y="159" fill="#33373d">Web</text>
+<rect x="324" y="136" width="66" height="36" rx="9" fill="#fff"/><text x="340" y="159" fill="#33373d">Email</text>
+<rect x="400" y="136" width="60" height="36" rx="9" fill="#fff"/><text x="417" y="159" fill="#33373d">Chat</text>
+<rect x="470" y="136" width="61" height="36" rx="9" fill="#fff"/><text x="487" y="159" fill="#33373d">Files</text>
+<rect x="541" y="136" width="94" height="36" rx="9" fill="#fff"/><text x="558" y="159" fill="#33373d">Clipboard</text>
+<rect x="645" y="136" width="84" height="36" rx="9" fill="#fff"/><text x="661" y="159" fill="#33373d">Favorites</text>
+</g>
+<rect x="1138" y="138" width="109" height="31" rx="8" fill="#e3e5e8"/><text x="1164" y="159" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14" fill="#34383e">Compact</text>
+<rect x="1253" y="138" width="126" height="31" rx="8" fill="#fff" stroke="#c9ccd1"/><text x="1272" y="159" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="14" fill="#34383e">Comfortable</text>
+<circle cx="1404" cy="154" r="13" fill="#e9f2ff"/><text x="1400" y="160" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="17" font-weight="700" fill="#1677ff">i</text>
+
+<rect x="170" y="185" width="1270" height="49" fill="#e7eeed"/>
+<text x="194" y="215" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" font-weight="800" fill="#42474d">TODAY · OCTOBER 28, 2026</text>
+<text x="1405" y="215" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" font-weight="700" fill="#5f646b">2h</text>
+
+<text x="194" y="261" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" font-weight="600" fill="#6d7279">⌁  Activity Overview</text>
+<text x="1398" y="261" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12" fill="#a0a4aa">12 AM   ·   12 PM   ·   11:59 PM</text>
+<g>
+<rect x="194" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="222" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="250" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="278" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="306" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="334" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="362" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="390" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="418" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="446" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="474" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="502" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="530" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="558" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="586" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="614" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="642" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="670" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="698" y="275" width="24" height="10" rx="3" fill="#8db7fa"/>
+<rect x="726" y="275" width="24" height="10" rx="3" fill="#418df6"/><rect x="754" y="275" width="24" height="10" rx="3" fill="#1677ff"/>
+<rect x="782" y="275" width="24" height="10" rx="3" fill="#5599f7"/><rect x="810" y="275" width="24" height="10" rx="3" fill="#8db7fa"/>
+<rect x="838" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="866" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="894" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="922" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="950" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="978" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="1006" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="1034" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="1062" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="1090" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="1118" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="1146" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="1174" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="1202" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="1230" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="1258" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="1286" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="1314" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/>
+<rect x="1342" y="275" width="24" height="10" rx="3" fill="#e0e2e5"/><rect x="1370" y="275" width="28" height="10" rx="3" fill="#e0e2e5"/>
+</g>
+
+<line x1="304" y1="305" x2="304" y2="825" stroke="#d7dade" stroke-width="2"/>
+
+<!-- Safari -->
+<text x="232" y="357" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" fill="#747980">2:32 PM</text>
+<circle cx="304" cy="352" r="8" fill="#23c45e"/>
+<rect x="332" y="308" width="1050" height="95" rx="18" fill="#fff" stroke="#dadde1" filter="url(#s)"/>
+<rect x="356" y="329" width="52" height="52" rx="14" fill="#e9f3ff"/><circle cx="382" cy="355" r="18" fill="#1685e8"/><path d="M382 339l5 14-5 18-5-14z" fill="#fff"/>
+<text x="430" y="340" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18" font-weight="700" fill="#292d32">Safari</text>
+<text x="430" y="365" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" fill="#6f747b">Exploring travel destinations in Japan</text>
+<text x="430" y="385" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12" fill="#a0a4aa">Safari · Web</text>
+<circle cx="1311" cy="355" r="6" fill="#23c45e"/><text x="1325" y="360" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" font-weight="700" fill="#23b85a">Active now</text>
+
+<!-- Outlook -->
+<text x="232" y="466" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" fill="#747980">2:18 PM</text>
+<circle cx="304" cy="461" r="6" fill="#1677ff"/>
+<rect x="332" y="417" width="1050" height="95" rx="18" fill="#fff" stroke="#dadde1" filter="url(#s)"/>
+<rect x="356" y="438" width="52" height="52" rx="14" fill="#eaf3ff"/><rect x="367" y="449" width="30" height="28" rx="5" fill="#1775d1"/><text x="382" y="470" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="17" font-weight="800" fill="#fff">O</text>
+<text x="430" y="449" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18" font-weight="700" fill="#292d32">Outlook</text>
+<text x="430" y="474" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" fill="#6f747b">Project Update – Q4 Planning</text>
+<text x="430" y="494" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12" fill="#a0a4aa">Outlook · Email</text>
+
+<!-- Teams -->
+<text x="232" y="575" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" fill="#747980">1:46 PM</text>
+<circle cx="304" cy="570" r="6" fill="#1677ff"/>
+<rect x="332" y="526" width="1050" height="95" rx="18" fill="#fff" stroke="#dadde1" filter="url(#s)"/>
+<rect x="356" y="547" width="52" height="52" rx="14" fill="#f0ecff"/><circle cx="381" cy="573" r="17" fill="#6c5ce7"/><text x="381" y="579" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="16" font-weight="800" fill="#fff">T</text>
+<text x="430" y="558" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18" font-weight="700" fill="#292d32">Teams</text>
+<text x="430" y="583" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" fill="#6f747b">Product Team Chat</text>
+<text x="430" y="603" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12" fill="#a0a4aa">Teams · Chat</text>
+
+<!-- Slack -->
+<text x="232" y="684" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" fill="#747980">1:22 PM</text>
+<circle cx="304" cy="679" r="6" fill="#1677ff"/>
+<rect x="332" y="635" width="1050" height="95" rx="18" fill="#fff" stroke="#dadde1" filter="url(#s)"/>
+<rect x="356" y="656" width="52" height="52" rx="14" fill="#fff3f8"/><rect x="369" y="667" width="7" height="25" rx="3" fill="#36c5f0"/><rect x="388" y="667" width="7" height="25" rx="3" fill="#2eb67d"/><rect x="368" y="676" width="27" height="7" rx="3" fill="#e01e5a"/><rect x="368" y="686" width="27" height="7" rx="3" fill="#ecb22e"/>
+<text x="430" y="667" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18" font-weight="700" fill="#292d32">Slack</text>
+<text x="430" y="692" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" fill="#6f747b">Design Review Discussion</text>
+<text x="430" y="712" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12" fill="#a0a4aa">Slack · Chat</text>
+
+<!-- Mail -->
+<text x="220" y="793" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="13" fill="#747980">12:58 PM</text>
+<circle cx="304" cy="788" r="6" fill="#1677ff"/>
+<rect x="332" y="744" width="1050" height="95" rx="18" fill="#fff" stroke="#dadde1" filter="url(#s)"/>
+<rect x="356" y="765" width="52" height="52" rx="14" fill="#eaf5ff"/><rect x="366" y="775" width="32" height="22" rx="4" fill="#2a95e8"/><path d="M366 775l16 12 16-12" fill="none" stroke="#fff" stroke-width="2"/>
+<text x="430" y="776" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18" font-weight="700" fill="#292d32">Mail</text>
+<text x="430" y="801" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="15" fill="#6f747b">Weekend Plans</text>
+<text x="430" y="821" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12" fill="#a0a4aa">Mail · Email</text>
+</svg>

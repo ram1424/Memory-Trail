@@ -128,6 +128,7 @@ final class MacCaptureCoordinator {
         guard !prefs.isExcluded(bundleID: bundleID) else { return }
         guard bundleID != Bundle.main.bundleIdentifier else { return }
 
+        enhancedAccessibilityPIDs.remove(application.processIdentifier)
         enableDetailedAccessibilityIfNeeded(for: application)
 
         let name = application.localizedName ?? "Application"
