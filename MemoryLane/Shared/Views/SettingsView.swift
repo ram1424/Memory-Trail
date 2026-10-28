@@ -100,24 +100,6 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                settingsCard("About Memory Lane", systemImage: "info.circle") {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text("\(appVersion) (Build \(buildNumber))")
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Divider()
-
-                    HStack {
-                        Text("Created By")
-                        Spacer()
-                        Text("Roman Zakharov")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
                 settingsCard("Help", systemImage: "questionmark.circle") {
                     Button {
                         hasCompletedOnboarding = false
@@ -152,6 +134,20 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Label("About Memory Lane", systemImage: "info.circle")
+                        .font(.caption.weight(.semibold))
+
+                    Text("Version \(appVersion) (Build \(buildNumber))")
+                        .font(.caption2)
+
+                    Text("Created By: Roman Zakharov")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+                .padding(.top, 2)
             }
             .padding(24)
         }
@@ -160,7 +156,7 @@ struct SettingsView: View {
             customExclusions = preferences.customExcludedBundleIDs
             captureCoordinator.refreshAccessibilityStatus()
         }
-        .onReceive(Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()) { _ in
+        .onReceive(Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()) { _ in
             captureCoordinator.refreshAccessibilityStatus()
         }
         .confirmationDialog(

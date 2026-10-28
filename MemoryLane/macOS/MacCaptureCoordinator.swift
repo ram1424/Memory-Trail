@@ -17,6 +17,7 @@ final class MacCaptureCoordinator {
     private var lastClipboardChangeCount = NSPasteboard.general.changeCount
     private var lastWindowSignature = ""
     private var lastWindowLoggedAt = Date.distantPast
+    private var enhancedAccessibilityPIDs: Set<pid_t> = []
     private weak var context: ModelContext?
     private var didRequestAccessibilityThisLaunch = false
     private(set) var accessibilityTrusted = AXIsProcessTrusted()
@@ -96,6 +97,7 @@ final class MacCaptureCoordinator {
         lastWindowLoggedAt = .distantPast
         lastClipboardChangeCount = NSPasteboard.general.changeCount
         didRequestAccessibilityThisLaunch = false
+        enhancedAccessibilityPIDs.removeAll(keepingCapacity: true)
         accessibilityTrusted = AXIsProcessTrusted()
 
         if !accessibilityTrusted {
@@ -157,7 +159,11 @@ final class MacCaptureCoordinator {
 
         guard shouldEnable else { return }
 
-        let appElement = AXUIElementCreateApplication(application.processIdentifier)
+        let pid = application.processIdentifier
+        guard !enhancedAccessibilityPIDs.contains(pid) else { return }
+        enhancedAccessibilityPIDs.insert(pid)
+
+        let appElement = AXUIElementCreateApplication(pid)
         _ = AXUIElementSetAttributeValue(
             appElement,
             "AXManualAccessibility" as CFString,
@@ -294,9 +300,25 @@ final class MacCaptureCoordinator {
 
         enableDetailedAccessibilityIfNeeded(for: app)
 
-        guard let windowContext = focusedWindowContext(pid: app.processIdentifier) else { return }
-
         let appName = app.localizedName ?? "Application"
+        let lowerBundleID = bundleID.lowercased()
+
+        if lowerBundleID == "com.microsoft.outlook" {
+            guard let subject = outlookSelectedSubject() else { return }
+            logActivity(
+                title: subject,
+                sourceURL: nil,
+                applicationName: appName,
+                bundleID: bundleID
+            )
+            return
+        }
+
+        guard let windowContext = focusedWindowContext(
+            pid: app.processIdentifier,
+            bundleID: bundleID
+        ) else { return }
+
         let activity = preferredActivityContext(windowContext: windowContext, bundleID: bundleID)
         let title = normalizedActivityTitle(
             activity.title,
@@ -359,7 +381,7 @@ final class MacCaptureCoordinator {
         try? context.save()
     }
 
-    private func focusedWindowContext(pid: pid_t) -> FocusedWindowContext? {
+    private func focusedWindowContext(pid: pid_t, bundleID: String) -> FocusedWindowContext? {
         let appElement = AXUIElementCreateApplication(pid)
 
         var focusedWindowValue: CFTypeRef?
@@ -379,9 +401,19 @@ final class MacCaptureCoordinator {
         let document = attributeString(windowElement, kAXDocumentAttribute as CFString) ?? ""
         let windowURL = normalizedSourceURL(document) ?? attributeURL(windowElement)
 
-        let selected = selectedContentContext(in: windowElement)
-        let focused = focusedContentContext(in: appElement)
-        let selectedTab = selectedTabContext(in: windowElement)
+        let lowerBundleID = bundleID.lowercased()
+        let needsSelectionContext =
+            lowerBundleID == "com.apple.mail" ||
+            lowerBundleID == "com.microsoft.teams2" ||
+            lowerBundleID.contains("msteams") ||
+            lowerBundleID.contains("teams") ||
+            lowerBundleID.contains("onenote")
+
+        let selected = needsSelectionContext ? selectedContentContext(in: windowElement) : nil
+        let focused = needsSelectionContext ? focusedContentContext(in: appElement) : nil
+        let selectedTab = lowerBundleID == "com.apple.safari"
+            ? selectedTabContext(in: windowElement)
+            : nil
 
         let fallbackTitle = windowTitle.isEmpty ? document : windowTitle
         guard !fallbackTitle.isEmpty || selected != nil || focused != nil || selectedTab != nil else {

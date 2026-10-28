@@ -1,15 +1,8 @@
 # Memory Lane
 
-**Memory Lane** is a private, local-first activity history for macOS that helps you retrace what you were working on throughout the day.
+**Memory Lane** is a private, local-first macOS companion that quietly remembers the digital trail of your workday — the apps you opened, pages you visited, messages you viewed, files you worked on, and text you copied.
 
-Instead of wondering:
-
-- “What was I doing around 10:30?”
-- “Which Outlook email was I reading before I opened Teams?”
-- “What file was I working on yesterday?”
-- “Where did I see that page?”
-
-Memory Lane gives you a searchable chronological record of your work across supported apps.
+When you need to pick up where you left off, Memory Lane gives you a chronological, searchable timeline of the context your Mac exposes. Instead of digging through browser history, inboxes, chats, and folders, you can return to the moment and quickly see what you were doing.
 
 > Memory Lane is designed to preserve the actual context it captures — such as an email subject, page title, filename, or window title — rather than rewriting or summarizing your timeline.
 

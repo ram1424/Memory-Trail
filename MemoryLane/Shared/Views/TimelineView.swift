@@ -228,9 +228,12 @@ struct TimelineView: View {
     }
 
     private var timelineContent: some View {
-        ScrollView {
+        let visibleItems = filteredItems
+        let durations = durationLookup
+
+        return ScrollView {
             LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                if filteredItems.isEmpty {
+                if visibleItems.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: memories.isEmpty ? "sparkles" : "magnifyingglass")
                             .font(.system(size: 34, weight: .medium))
@@ -258,10 +261,10 @@ struct TimelineView: View {
                         .padding(.bottom, 12)
 
                         VStack(spacing: density.rowSpacing) {
-                            ForEach(filteredItems) { item in
+                            ForEach(visibleItems) { item in
                                 TimelineActivityRow(
                                     item: item,
-                                    duration: duration(for: item),
+                                    duration: durations[item.id] ?? 0,
                                     isActive: isActive(item),
                                     isSelected: selectedMemoryID == item.id,
                                     density: density
@@ -324,17 +327,45 @@ struct TimelineView: View {
     }
 
     private var dayItems: [MemoryItem] {
-        memories.filter { Calendar.current.isDate($0.createdAt, inSameDayAs: selectedDay) }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: selectedDay)
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return [] }
+
+        return memories.filter { item in
+            item.createdAt >= start && item.createdAt < end
+        }
     }
 
     private var filteredItems: [MemoryItem] {
-        dayItems.filter { item in
+        let normalizedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return dayItems.filter { item in
             guard !item.isOutlookCaptureNoise else { return false }
 
-            let matchesSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                || item.searchableText.localizedCaseInsensitiveContains(searchText)
+            let matchesSearch = normalizedSearch.isEmpty
+                || item.searchableText.localizedCaseInsensitiveContains(normalizedSearch)
             return matchesSearch && filter.matches(item)
         }
+    }
+
+    private var durationLookup: [UUID: TimeInterval] {
+        var result: [UUID: TimeInterval] = [:]
+        result.reserveCapacity(memories.count)
+
+        for (index, item) in memories.enumerated() {
+            let duration: TimeInterval
+
+            if index == 0 {
+                duration = min(max(0, now.timeIntervalSince(item.createdAt)), 60 * 30)
+            } else {
+                let newer = memories[index - 1]
+                duration = min(max(0, newer.createdAt.timeIntervalSince(item.createdAt)), 60 * 90)
+            }
+
+            result[item.id] = duration
+        }
+
+        return result
     }
 
     private var selectedItem: MemoryItem? {
@@ -343,23 +374,15 @@ struct TimelineView: View {
     }
 
     private var totalVisibleDurationLabel: String {
+        let durations = durationLookup
         let seconds = filteredItems.reduce(0.0) { partial, item in
-            partial + duration(for: item)
+            partial + (durations[item.id] ?? 0)
         }
         return Self.durationFormatter.string(from: seconds) ?? ""
     }
 
     private func duration(for item: MemoryItem) -> TimeInterval {
-        guard let index = memories.firstIndex(where: { $0.id == item.id }) else { return 0 }
-
-        if index == 0 {
-            let elapsed = max(0, now.timeIntervalSince(item.createdAt))
-            return min(elapsed, 60 * 30)
-        }
-
-        let newer = memories[index - 1]
-        let delta = max(0, newer.createdAt.timeIntervalSince(item.createdAt))
-        return min(delta, 60 * 90)
+        durationLookup[item.id] ?? 0
     }
 
     private func isActive(_ item: MemoryItem) -> Bool {
