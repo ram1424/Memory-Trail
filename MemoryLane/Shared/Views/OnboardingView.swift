@@ -8,6 +8,16 @@ struct OnboardingView: View {
 
     private let pageCount = 4
 
+    private static let onboardingIcon: NSImage = {
+        let image = NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath)
+        image.size = NSSize(width: 512, height: 512)
+        return image
+    }()
+
+    private let primaryText = Color.white
+    private let secondaryText = Color.white.opacity(0.72)
+    private let tertiaryText = Color.white.opacity(0.52)
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -25,7 +35,7 @@ struct OnboardingView: View {
                 HStack {
                     Text("\(page + 1) of \(pageCount)")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(secondaryText)
                     Spacer()
                 }
                 .padding(.horizontal, 28)
@@ -51,7 +61,7 @@ struct OnboardingView: View {
                     .padding(.bottom, 24)
             }
             .frame(width: 760, height: 580)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
+            .background(Color.black.opacity(0.30), in: RoundedRectangle(cornerRadius: 24))
             .overlay {
                 RoundedRectangle(cornerRadius: 24)
                     .stroke(.white.opacity(0.18), lineWidth: 1)
@@ -72,7 +82,7 @@ struct OnboardingView: View {
     private var welcomePage: some View {
         HStack(spacing: 54) {
             VStack(spacing: 18) {
-                Image(nsImage: NSApplication.shared.applicationIconImage)
+                Image(nsImage: Self.onboardingIcon)
                     .resizable()
                     .interpolation(.high)
                     .frame(width: 150, height: 150)
@@ -80,11 +90,12 @@ struct OnboardingView: View {
 
                 Text("Welcome to\nMemory Lane")
                     .font(.system(size: 34, weight: .bold))
+                    .foregroundStyle(primaryText)
                     .multilineTextAlignment(.center)
 
-                Text("Memory Lane creates a private timeline of what you work on throughout the day, helping you remember where you were and quickly return to it.")
+                Text("Memory Lane quietly builds a private timeline of your work so you can see where you’ve been and quickly pick up where you left off.")
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(secondaryText)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 330)
             }
@@ -118,10 +129,11 @@ struct OnboardingView: View {
         VStack(spacing: 18) {
             Text("How Memory Lane Works")
                 .font(.system(size: 32, weight: .bold))
+                .foregroundStyle(primaryText)
 
-            Text("Memory Lane watches application changes and, with your permission, supported window titles to build useful context around your day.")
+            Text("As you move between apps, Memory Lane adds useful context to your timeline. With Accessibility permission, it can also remember supported window titles so you can retrace your work more easily.")
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(secondaryText)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 660)
 
@@ -155,7 +167,7 @@ struct OnboardingView: View {
                 )
             }
             .padding(.vertical, 4)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
+            .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 18))
             .overlay {
                 RoundedRectangle(cornerRadius: 18)
                     .stroke(.quaternary, lineWidth: 1)
@@ -179,7 +191,7 @@ struct OnboardingView: View {
                         )
                         .frame(width: 285, height: 230)
 
-                    Image(nsImage: NSApplication.shared.applicationIconImage)
+                    Image(nsImage: Self.onboardingIcon)
                         .resizable()
                         .interpolation(.high)
                         .frame(width: 112, height: 112)
@@ -190,8 +202,9 @@ struct OnboardingView: View {
                         .offset(x: 74, y: 72)
                 }
 
-                Text("Your activity history is stored locally on this Mac.")
+                Text("Your timeline stays on this Mac.")
                     .font(.headline)
+                    .foregroundStyle(primaryText)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 290)
             }
@@ -199,11 +212,12 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 20) {
                 Text("You’re in Control")
                     .font(.system(size: 32, weight: .bold))
+                    .foregroundStyle(primaryText)
 
-                privacyRow(icon: "externaldrive.fill", title: "Local Storage", text: "Timeline data stays on this Mac.", tint: .blue)
-                privacyRow(icon: "hand.raised.slash.fill", title: "Excluded Apps", text: "Passwords and Wallet are excluded automatically.", tint: .orange)
-                privacyRow(icon: "pause.circle.fill", title: "Pause Anytime", text: "Pause capture instantly from the Memory Lane menu bar icon.", tint: .green)
-                privacyRow(icon: "doc.on.clipboard.fill", title: "Clipboard", text: "Clipboard capture is optional and disabled by default.", tint: .purple)
+                privacyRow(icon: "externaldrive.fill", title: "Stored Locally", text: "Your Memory Lane timeline is kept on your Mac.", tint: .blue)
+                privacyRow(icon: "hand.raised.slash.fill", title: "Sensitive Apps Stay Private", text: "Passwords and Wallet are excluded from capture automatically.", tint: .orange)
+                privacyRow(icon: "pause.circle.fill", title: "Pause Whenever You Want", text: "Pause or resume activity capture at any time from the menu bar.", tint: .green)
+                privacyRow(icon: "doc.on.clipboard.fill", title: "Clipboard Is Optional", text: "Clipboard capture is off by default and only turns on if you choose it.", tint: .purple)
             }
             .frame(maxWidth: 350)
         }
@@ -214,17 +228,18 @@ struct OnboardingView: View {
         VStack(spacing: 18) {
             Text("Allow Memory Lane to See Window Context")
                 .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(primaryText)
                 .multilineTextAlignment(.center)
 
-            Text("Accessibility permission lets Memory Lane identify supported window titles, such as Safari pages, Outlook items, Mail subjects, and Teams windows.")
+            Text("Accessibility access lets Memory Lane add helpful window context—such as Safari page titles, Outlook items, Mail subjects, and Teams windows—to your timeline.")
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(secondaryText)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 650)
 
             VStack(spacing: 16) {
                 HStack(spacing: 16) {
-                    Image(nsImage: NSApplication.shared.applicationIconImage)
+                    Image(nsImage: Self.onboardingIcon)
                         .resizable()
                         .frame(width: 54, height: 54)
 
@@ -234,7 +249,7 @@ struct OnboardingView: View {
                         Text(captureCoordinator.hasAccessibilityPermission
                              ? "Accessibility access is enabled."
                              : "Accessibility access is required for window context.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(secondaryText)
                     }
 
                     Spacer()
@@ -267,7 +282,7 @@ struct OnboardingView: View {
 
                 Text("You can change this permission anytime in System Settings → Privacy & Security → Accessibility.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(secondaryText)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: 600)
@@ -332,9 +347,10 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
+                    .foregroundStyle(primaryText)
                 Text(text)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(secondaryText)
             }
         }
     }
@@ -350,9 +366,10 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.headline)
+                    .foregroundStyle(primaryText)
                 Text(text)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(secondaryText)
             }
         }
     }
@@ -361,7 +378,7 @@ struct OnboardingView: View {
         HStack(spacing: 14) {
             Text(time)
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(tertiaryText)
                 .frame(width: 70, alignment: .trailing)
 
             Image(systemName: icon)
@@ -372,16 +389,17 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(app)
                     .font(.headline)
+                    .foregroundStyle(primaryText)
                 Text(detail)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(secondaryText)
                     .lineLimit(1)
             }
 
             Spacer()
 
             Image(systemName: "chevron.right")
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(tertiaryText)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 13)
