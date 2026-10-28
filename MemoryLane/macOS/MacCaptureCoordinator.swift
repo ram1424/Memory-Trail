@@ -24,13 +24,27 @@ final class MacCaptureCoordinator {
         self.context = context
         refreshAccessibilityStatus()
 
-        if !accessibilityTrusted {
-            requestAccessibilityPermissionIfNeeded()
-        }
-
         startAppActivityCapture()
         startFocusedWindowCapture()
         startClipboardCapture()
+    }
+
+    func ensureAccessibilityAccessOnLaunch() async {
+        refreshAccessibilityStatus()
+        guard !accessibilityTrusted else { return }
+
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        requestAccessibilityPermissionIfNeeded()
+
+        try? await Task.sleep(nanoseconds: 900_000_000)
+        refreshAccessibilityStatus()
+
+        guard !accessibilityTrusted else { return }
+
+        // macOS owns the Privacy & Security authorization switch. If access was
+        // not granted from the system prompt, take the user directly to the
+        // Accessibility pane where Memory Lane can be enabled.
+        openAccessibilitySettings()
     }
 
     func stop() {
@@ -50,7 +64,10 @@ final class MacCaptureCoordinator {
         let options = [
             kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
         ] as CFDictionary
+
+        NSApplication.shared.activate(ignoringOtherApps: true)
         _ = AXIsProcessTrustedWithOptions(options)
+        refreshAccessibilityStatus()
     }
 
     private func requestAccessibilityPermissionIfNeeded() {
