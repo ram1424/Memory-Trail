@@ -212,13 +212,22 @@ struct TimelineView: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
                 if filteredItems.isEmpty {
-                    ContentUnavailableView(
-                        memories.isEmpty ? "Your timeline is empty" : "No matching activity",
-                        systemImage: memories.isEmpty ? "sparkles" : "magnifyingglass",
-                        description: Text(memories.isEmpty
+                    VStack(spacing: 12) {
+                        Image(systemName: memories.isEmpty ? "sparkles" : "magnifyingglass")
+                            .font(.system(size: 34, weight: .medium))
+                            .foregroundStyle(.secondary)
+
+                        Text(memories.isEmpty ? "Your timeline is empty" : "No matching activity")
+                            .font(.title3.weight(.semibold))
+
+                        Text(memories.isEmpty
                             ? "Open a few apps or add a memory to start building your searchable work history."
                             : "Try another day, filter, or search term.")
-                    )
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 420)
+                    }
                     .frame(maxWidth: .infinity, minHeight: 470)
                 } else {
                     Section {
