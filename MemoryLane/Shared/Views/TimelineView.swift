@@ -14,6 +14,7 @@ struct TimelineView: View {
     @State private var density: TimelineDensity = .comfortable
     @State private var dayOffset = 0
     @State private var now = Date()
+    @State private var expandedSessionIDs: Set<UUID> = []
     @AppStorage("timelineShowsInspector") private var showsInspector = true
 
     var body: some View {
@@ -250,31 +251,74 @@ struct TimelineView: View {
                     .frame(maxWidth: .infinity, minHeight: 470)
                 } else {
                     Section {
-                        VStack(spacing: density.rowSpacing) {
-                            ForEach(filteredItems) { item in
-                                TimelineActivityRow(
-                                    item: item,
-                                    duration: duration(for: item),
-                                    isActive: isActive(item),
-                                    isSelected: selectedMemoryID == item.id,
-                                    density: density
-                                )
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    withAnimation(.easeInOut(duration: 0.16)) {
-                                        selectedMemoryID = item.id
-                                    }
-                                }
-                            }
+                        VStack(spacing: 10) {
+                            DailyRecapCard(recap: dailyRecap)
+                            ActivityHeatmap(items: dayItems, selectedDay: selectedDay)
                         }
                         .padding(.horizontal, 18)
+                        .padding(.top, 12)
                         .padding(.bottom, 12)
 
-                        if let session = primaryWorkSession {
-                            WorkSessionCard(session: session) {
-                                if let first = session.items.first {
-                                    withAnimation(.easeInOut(duration: 0.16)) {
-                                        selectedMemoryID = first.id
+                        if !smartSessions.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Label("Smart Work Sessions", systemImage: "square.3.layers.3d")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Text("\(smartSessions.count)")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .padding(.horizontal, 4)
+
+                                ForEach(smartSessions) { session in
+                                    SmartSessionCard(
+                                        session: session,
+                                        isExpanded: expandedSessionIDs.contains(session.id),
+                                        selectedMemoryID: selectedMemoryID,
+                                        activeMemoryID: activeMemoryID,
+                                        onToggle: {
+                                            withAnimation(.easeInOut(duration: 0.18)) {
+                                                if expandedSessionIDs.contains(session.id) {
+                                                    expandedSessionIDs.remove(session.id)
+                                                } else {
+                                                    expandedSessionIDs.insert(session.id)
+                                                }
+                                            }
+                                        },
+                                        onSelect: { item in
+                                            withAnimation(.easeInOut(duration: 0.16)) {
+                                                selectedMemoryID = item.id
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.bottom, 12)
+                        }
+
+                        if !nonSessionItems.isEmpty {
+                            VStack(alignment: .leading, spacing: density.rowSpacing) {
+                                Text("Other Activity")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.leading, 4)
+
+                                ForEach(nonSessionItems) { item in
+                                    TimelineActivityRow(
+                                        item: item,
+                                        duration: duration(for: item),
+                                        isActive: isActive(item),
+                                        isSelected: selectedMemoryID == item.id,
+                                        density: density
+                                    )
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        withAnimation(.easeInOut(duration: 0.16)) {
+                                            selectedMemoryID = item.id
+                                        }
                                     }
                                 }
                             }
@@ -332,6 +376,25 @@ struct TimelineView: View {
                 || item.searchableText.localizedCaseInsensitiveContains(searchText)
             return matchesSearch && filter.matches(item)
         }
+    }
+
+    private var smartSessions: [SmartWorkSession] {
+        SearchService.smartSessions(from: filteredItems, now: now)
+    }
+
+    private var nonSessionItems: [MemoryItem] {
+        filteredItems.filter {
+            $0.sourceKind != .appActivity && $0.sourceKind != .file && $0.sourceKind != .link
+        }
+    }
+
+    private var dailyRecap: DailyRecap {
+        SearchService.dailyRecap(for: selectedDay, items: dayItems, now: now)
+    }
+
+    private var activeMemoryID: UUID? {
+        guard !preferences.capturePaused else { return nil }
+        return memories.first?.id
     }
 
     private var selectedItem: MemoryItem? {
@@ -794,6 +857,301 @@ private struct TimelineInspector: View {
         formatter.zeroFormattingBehavior = .dropAll
         return formatter
     }()
+}
+
+private struct DailyRecapCard: View {
+    let recap: DailyRecap
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 13) {
+            Image(systemName: "sun.max.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.tint)
+                .frame(width: 42, height: 42)
+                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 11))
+
+            VStack(alignment: .leading, spacing: 7) {
+                HStack {
+                    Text("Daily Recap")
+                        .font(.headline)
+
+                    Spacer()
+
+                    if recap.totalDuration >= 60 {
+                        Text(SearchService.compactDuration(recap.totalDuration))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Text(recap.summary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 7) {
+                    ForEach(Array(recap.topApps.prefix(3)), id: \.name) { app in
+                        Text(app.name)
+                            .font(.caption.weight(.medium))
+                            .padding(.horizontal, 8)
+                            .frame(height: 23)
+                            .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
+                    }
+
+                    if let busiestHour = recap.busiestHour {
+                        Label(hourLabel(busiestHour), systemImage: "chart.bar.fill")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+
+                    if recap.favoriteCount > 0 {
+                        Label("\(recap.favoriteCount)", systemImage: "star.fill")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color.accentColor.opacity(0.055), in: RoundedRectangle(cornerRadius: 15))
+        .overlay {
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(Color.accentColor.opacity(0.14), lineWidth: 1)
+        }
+    }
+
+    private func hourLabel(_ hour: Int) -> String {
+        var components = DateComponents()
+        components.hour = hour
+        let date = Calendar.current.date(from: components) ?? .now
+        return "Busiest around " + date.formatted(date: .omitted, time: .shortened)
+    }
+}
+
+private struct ActivityHeatmap: View {
+    let items: [MemoryItem]
+    let selectedDay: Date
+
+    private var buckets: [Int] {
+        var counts = Array(repeating: 0, count: 48)
+        let calendar = Calendar.current
+        for item in items {
+            guard calendar.isDate(item.createdAt, inSameDayAs: selectedDay) else { continue }
+            let hour = calendar.component(.hour, from: item.createdAt)
+            let minute = calendar.component(.minute, from: item.createdAt)
+            let index = min(47, max(0, hour * 2 + (minute >= 30 ? 1 : 0)))
+            counts[index] += 1
+        }
+        return counts
+    }
+
+    var body: some View {
+        let values = buckets
+        let maxCount = max(values.max() ?? 0, 1)
+
+        VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Label("Activity Overview", systemImage: "waveform.path.ecg")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("12 AM")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Text("·")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Text("12 PM")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Text("·")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Text("11:59 PM")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            HStack(spacing: 2) {
+                ForEach(Array(values.enumerated()), id: \.offset) { _, count in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(
+                            count == 0
+                                ? Color.secondary.opacity(0.08)
+                                : Color.accentColor.opacity(0.20 + (0.72 * Double(count) / Double(maxCount)))
+                        )
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 11)
+        }
+        .padding(.horizontal, 2)
+    }
+}
+
+private struct SmartSessionCard: View {
+    let session: SmartWorkSession
+    let isExpanded: Bool
+    let selectedMemoryID: UUID?
+    let activeMemoryID: UUID?
+    let onToggle: () -> Void
+    let onSelect: (MemoryItem) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button(action: onToggle) {
+                HStack(spacing: 13) {
+                    Image(systemName: "square.3.layers.3d")
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(.tint)
+                        .frame(width: 42, height: 42)
+                        .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 11))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 7) {
+                            Text(session.title)
+                                .font(.headline)
+                                .lineLimit(1)
+
+                            Text("\(session.items.count)")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.secondary.opacity(0.10), in: Capsule())
+                        }
+
+                        Text(session.summary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(isExpanded ? 3 : 2)
+
+                        HStack(spacing: 6) {
+                            Text(session.start.formatted(date: .omitted, time: .shortened))
+                            Text("–")
+                            Text(session.end.formatted(date: .omitted, time: .shortened))
+                            Text("·")
+                            Text(SearchService.compactDuration(session.duration))
+                            if !session.apps.isEmpty {
+                                Text("·")
+                                Text(session.apps.prefix(3).joined(separator: ", "))
+                                    .lineLimit(1)
+                            }
+                        }
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(14)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                Divider()
+                    .padding(.leading, 67)
+
+                VStack(spacing: 0) {
+                    ForEach(Array(session.items.reversed())) { item in
+                        Button {
+                            onSelect(item)
+                        } label: {
+                            SessionActivityRow(
+                                item: item,
+                                isSelected: selectedMemoryID == item.id,
+                                isActive: activeMemoryID == item.id
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        if item.id != session.items.first?.id {
+                            Divider()
+                                .padding(.leading, 55)
+                        }
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+            }
+        }
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 15))
+        .overlay {
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(
+                    session.items.contains(where: { $0.id == selectedMemoryID })
+                        ? Color.accentColor.opacity(0.36)
+                        : Color.secondary.opacity(0.14),
+                    lineWidth: 1
+                )
+        }
+    }
+}
+
+private struct SessionActivityRow: View {
+    let item: MemoryItem
+    let isSelected: Bool
+    let isActive: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            sourceIcon
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title.hasPrefix("Opened ") ? item.sourceApp : item.title)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+
+                HStack(spacing: 5) {
+                    Text(item.sourceApp)
+                    if item.sourceKind == .file, let sourceURL = item.sourceURL, let url = URL(string: sourceURL), url.isFileURL {
+                        Text("·")
+                        Text(url.deletingLastPathComponent().path(percentEncoded: false))
+                            .lineLimit(1)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if isActive {
+                Label("Active", systemImage: "circle.fill")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.green)
+            }
+
+            Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 9)
+        .background(
+            isSelected ? Color.accentColor.opacity(0.10) : Color.clear,
+            in: RoundedRectangle(cornerRadius: 9)
+        )
+    }
+
+    @ViewBuilder
+    private var sourceIcon: some View {
+        if let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
+            Image(nsImage: icon)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 25, height: 25)
+        } else {
+            Image(systemName: item.sourceKind.symbol)
+                .foregroundStyle(.tint)
+                .frame(width: 25, height: 25)
+        }
+    }
 }
 
 private struct WorkSessionCard: View {
