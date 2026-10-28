@@ -14,7 +14,6 @@ struct TimelineView: View {
     @State private var density: TimelineDensity = .comfortable
     @State private var dayOffset = 0
     @State private var now = Date()
-    @State private var expandedSessionIDs: Set<UUID> = []
     @AppStorage("timelineShowsInspector") private var showsInspector = true
 
     var body: some View {
@@ -253,78 +252,31 @@ struct TimelineView: View {
                     Section {
                         VStack(spacing: 10) {
                             DailyRecapCard(recap: dailyRecap)
-                            ActivityHeatmap(sessions: dailyRecap.sessions, selectedDay: selectedDay)
+                            ActivityHeatmap(items: dayItems, selectedDay: selectedDay, now: now)
                         }
                         .padding(.horizontal, 18)
                         .padding(.top, 12)
                         .padding(.bottom, 12)
 
-                        if !smartSessions.isEmpty {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Label("Smart Work Sessions", systemImage: "square.3.layers.3d")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                    Text("\(smartSessions.count)")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.tertiary)
-                                }
-                                .padding(.horizontal, 4)
-
-                                ForEach(smartSessions) { session in
-                                    SmartSessionCard(
-                                        session: session,
-                                        isExpanded: expandedSessionIDs.contains(session.id),
-                                        selectedMemoryID: selectedMemoryID,
-                                        activeMemoryID: activeMemoryID,
-                                        onToggle: {
-                                            withAnimation(.easeInOut(duration: 0.18)) {
-                                                if expandedSessionIDs.contains(session.id) {
-                                                    expandedSessionIDs.remove(session.id)
-                                                } else {
-                                                    expandedSessionIDs.insert(session.id)
-                                                }
-                                            }
-                                        },
-                                        onSelect: { item in
-                                            withAnimation(.easeInOut(duration: 0.16)) {
-                                                selectedMemoryID = item.id
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                            .padding(.horizontal, 18)
-                            .padding(.bottom, 12)
-                        }
-
-                        if !nonSessionItems.isEmpty {
-                            VStack(alignment: .leading, spacing: density.rowSpacing) {
-                                Text("Other Activity")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.leading, 4)
-
-                                ForEach(nonSessionItems) { item in
-                                    TimelineActivityRow(
-                                        item: item,
-                                        duration: duration(for: item),
-                                        isActive: isActive(item),
-                                        isSelected: selectedMemoryID == item.id,
-                                        density: density
-                                    )
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        withAnimation(.easeInOut(duration: 0.16)) {
-                                            selectedMemoryID = item.id
-                                        }
+                        VStack(spacing: density.rowSpacing) {
+                            ForEach(filteredItems) { item in
+                                TimelineActivityRow(
+                                    item: item,
+                                    duration: duration(for: item),
+                                    isActive: isActive(item),
+                                    isSelected: selectedMemoryID == item.id,
+                                    density: density
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    withAnimation(.easeInOut(duration: 0.16)) {
+                                        selectedMemoryID = item.id
                                     }
                                 }
                             }
-                            .padding(.horizontal, 18)
-                            .padding(.bottom, 18)
                         }
+                        .padding(.horizontal, 18)
+                        .padding(.bottom, 18)
                     } header: {
                         dayHeader
                     }
@@ -378,25 +330,6 @@ struct TimelineView: View {
         }
     }
 
-    private var smartSessions: [SmartWorkSession] {
-        SearchService.smartSessions(from: filteredItems, now: now)
-    }
-
-    private var nonSessionItems: [MemoryItem] {
-        filteredItems.filter {
-            $0.sourceKind != .appActivity && $0.sourceKind != .file && $0.sourceKind != .link
-        }
-    }
-
-    private var dailyRecap: DailyRecap {
-        SearchService.dailyRecap(for: selectedDay, items: dayItems, now: now)
-    }
-
-    private var activeMemoryID: UUID? {
-        guard !preferences.capturePaused else { return nil }
-        return memories.first?.id
-    }
-
     private var selectedItem: MemoryItem? {
         guard let selectedMemoryID else { return nil }
         return memories.first { $0.id == selectedMemoryID }
@@ -444,11 +377,6 @@ struct TimelineView: View {
             guard index + 1 < memories.count else { return nil }
             return memories[index + 1]
         }
-    }
-
-    private var primaryWorkSession: WorkSession? {
-        let sessions = WorkSession.make(from: filteredItems)
-        return sessions.max(by: { $0.items.count < $1.items.count })
     }
 
     private func clearTimeline() {
@@ -928,35 +856,39 @@ private struct DailyRecapCard: View {
 }
 
 private struct ActivityHeatmap: View {
-    let sessions: [SmartWorkSession]
+    let items: [MemoryItem]
     let selectedDay: Date
+    let now: Date
 
     private var buckets: [Int] {
         var counts = Array(repeating: 0, count: 48)
         let calendar = Calendar.current
         let dayStart = calendar.startOfDay(for: selectedDay)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? selectedDay
 
-        for session in sessions {
-            let clampedStart = max(session.start, dayStart)
-            let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? selectedDay
-            let clampedEnd = min(session.end, dayEnd.addingTimeInterval(-1))
+        let relevant = items
+            .filter { $0.sourceKind == .appActivity || $0.sourceKind == .file || $0.sourceKind == .link }
+            .sorted { $0.createdAt < $1.createdAt }
 
-            guard clampedEnd >= clampedStart else { continue }
+        for (index, item) in relevant.enumerated() {
+            let nextDate: Date
+            if index + 1 < relevant.count {
+                nextDate = relevant[index + 1].createdAt
+            } else {
+                nextDate = min(now, item.createdAt.addingTimeInterval(8 * 60))
+            }
+
+            let spanEnd = min(nextDate, item.createdAt.addingTimeInterval(30 * 60), dayEnd.addingTimeInterval(-1))
+            let clampedStart = max(item.createdAt, dayStart)
+            guard spanEnd >= clampedStart else { continue }
 
             let startMinutes = max(0, Int(clampedStart.timeIntervalSince(dayStart) / 60))
-            let endMinutes = min(1439, Int(clampedEnd.timeIntervalSince(dayStart) / 60))
+            let endMinutes = min(1439, Int(spanEnd.timeIntervalSince(dayStart) / 60))
             let startIndex = min(47, max(0, startMinutes / 30))
             let endIndex = min(47, max(startIndex, endMinutes / 30))
 
-            for index in startIndex...endIndex {
-                counts[index] += 1
-            }
-
-            for item in session.items {
-                let hour = calendar.component(.hour, from: item.createdAt)
-                let minute = calendar.component(.minute, from: item.createdAt)
-                let index = min(47, max(0, hour * 2 + (minute >= 30 ? 1 : 0)))
-                counts[index] += 1
+            for bucket in startIndex...endIndex {
+                counts[bucket] += 1
             }
         }
 
@@ -1006,275 +938,6 @@ private struct ActivityHeatmap: View {
         }
         .padding(.horizontal, 2)
     }
-}
-
-private struct SmartSessionCard: View {
-    let session: SmartWorkSession
-    let isExpanded: Bool
-    let selectedMemoryID: UUID?
-    let activeMemoryID: UUID?
-    let onToggle: () -> Void
-    let onSelect: (MemoryItem) -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Button(action: onToggle) {
-                HStack(spacing: 13) {
-                    Image(systemName: "square.3.layers.3d")
-                        .font(.system(size: 19, weight: .semibold))
-                        .foregroundStyle(.tint)
-                        .frame(width: 42, height: 42)
-                        .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 11))
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 7) {
-                            Text(session.title)
-                                .font(.headline)
-                                .lineLimit(1)
-
-                            Text("\(session.items.count)")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.secondary.opacity(0.10), in: Capsule())
-                        }
-
-                        Text(session.summary)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(isExpanded ? 3 : 2)
-
-                        HStack(spacing: 6) {
-                            Text(session.start.formatted(date: .omitted, time: .shortened))
-                            Text("–")
-                            Text(session.end.formatted(date: .omitted, time: .shortened))
-                            Text("·")
-                            Text(SearchService.compactDuration(session.duration))
-                            if !session.apps.isEmpty {
-                                Text("·")
-                                Text(session.apps.prefix(3).joined(separator: ", "))
-                                    .lineLimit(1)
-                            }
-                        }
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                    }
-
-                    Spacer(minLength: 8)
-
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(14)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if isExpanded {
-                Divider()
-                    .padding(.leading, 67)
-
-                VStack(spacing: 0) {
-                    ForEach(Array(session.items.reversed())) { item in
-                        Button {
-                            onSelect(item)
-                        } label: {
-                            SessionActivityRow(
-                                item: item,
-                                isSelected: selectedMemoryID == item.id,
-                                isActive: activeMemoryID == item.id
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        if item.id != session.items.first?.id {
-                            Divider()
-                                .padding(.leading, 55)
-                        }
-                    }
-                }
-                .padding(.horizontal, 8)
-                .padding(.bottom, 8)
-            }
-        }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 15))
-        .overlay {
-            RoundedRectangle(cornerRadius: 15)
-                .stroke(
-                    session.items.contains(where: { $0.id == selectedMemoryID })
-                        ? Color.accentColor.opacity(0.36)
-                        : Color.secondary.opacity(0.14),
-                    lineWidth: 1
-                )
-        }
-    }
-}
-
-private struct SessionActivityRow: View {
-    let item: MemoryItem
-    let isSelected: Bool
-    let isActive: Bool
-
-    var body: some View {
-        HStack(spacing: 10) {
-            sourceIcon
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title.hasPrefix("Opened ") ? item.sourceApp : item.title)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
-
-                HStack(spacing: 5) {
-                    Text(item.sourceApp)
-                    if item.sourceKind == .file, let sourceURL = item.sourceURL, let url = URL(string: sourceURL), url.isFileURL {
-                        Text("·")
-                        Text(url.deletingLastPathComponent().path(percentEncoded: false))
-                            .lineLimit(1)
-                    }
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            if isActive {
-                Label("Active", systemImage: "circle.fill")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.green)
-            }
-
-            Text(item.createdAt.formatted(date: .omitted, time: .shortened))
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 9)
-        .background(
-            isSelected ? Color.accentColor.opacity(0.10) : Color.clear,
-            in: RoundedRectangle(cornerRadius: 9)
-        )
-    }
-
-    @ViewBuilder
-    private var sourceIcon: some View {
-        if let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
-            Image(nsImage: icon)
-                .resizable()
-                .interpolation(.high)
-                .scaledToFit()
-                .frame(width: 25, height: 25)
-        } else {
-            Image(systemName: item.sourceKind.symbol)
-                .foregroundStyle(.tint)
-                .frame(width: 25, height: 25)
-        }
-    }
-}
-
-private struct WorkSessionCard: View {
-    let session: WorkSession
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 13) {
-                Image(systemName: "square.3.layers.3d")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.tint)
-                    .frame(width: 42, height: 42)
-                    .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 11))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Work Session")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(session.title)
-                        .font(.headline)
-                    Text("\(session.start.formatted(date: .omitted, time: .shortened)) – \(session.end.formatted(date: .omitted, time: .shortened)) · \(session.durationLabel)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Text("\(session.items.count) activities")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
-            .padding(14)
-            .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 15))
-            .overlay {
-                RoundedRectangle(cornerRadius: 15)
-                    .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct WorkSession {
-    let items: [MemoryItem]
-
-    var start: Date {
-        items.map(\.createdAt).min() ?? .now
-    }
-
-    var end: Date {
-        items.map(\.createdAt).max() ?? .now
-    }
-
-    var title: String {
-        let meaningfulTitles = items
-            .map(\.title)
-            .filter { !$0.hasPrefix("Opened ") && !$0.isEmpty }
-
-        if let mostCommon = Dictionary(grouping: meaningfulTitles, by: { $0 })
-            .max(by: { $0.value.count < $1.value.count })?.key {
-            return mostCommon
-        }
-
-        return items.first?.sourceApp ?? "Work Session"
-    }
-
-    var durationLabel: String {
-        let interval = max(0, end.timeIntervalSince(start))
-        return Self.durationFormatter.string(from: interval) ?? ""
-    }
-
-    static func make(from items: [MemoryItem]) -> [WorkSession] {
-        let ascending = items.sorted { $0.createdAt < $1.createdAt }
-        guard let first = ascending.first else { return [] }
-
-        var sessions: [[MemoryItem]] = [[first]]
-
-        for item in ascending.dropFirst() {
-            guard let last = sessions.last?.last else { continue }
-            if item.createdAt.timeIntervalSince(last.createdAt) <= 30 * 60 {
-                sessions[sessions.count - 1].append(item)
-            } else {
-                sessions.append([item])
-            }
-        }
-
-        return sessions
-            .filter { $0.count >= 2 }
-            .map { WorkSession(items: $0) }
-    }
-
-    private static let durationFormatter: DateComponentsFormatter = {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute]
-        formatter.unitsStyle = .abbreviated
-        formatter.zeroFormattingBehavior = .dropAll
-        return formatter
-    }()
 }
 
 private enum TimelineFilter: String, CaseIterable, Identifiable, Hashable {

@@ -25,10 +25,6 @@ struct SearchView: View {
                 if let answer {
                     answerCard(answer)
 
-                    if !answer.sessions.isEmpty {
-                        sessionResults(answer.sessions)
-                    }
-
                     if !answer.items.isEmpty {
                         activityResults(answer.items)
                     }
@@ -185,49 +181,6 @@ struct SearchView: View {
         .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
-        }
-    }
-
-    private func sessionResults(_ sessions: [SmartWorkSession]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Related Work Sessions")
-                .font(.headline)
-
-            ForEach(sessions.prefix(4)) { session in
-                HStack(spacing: 12) {
-                    Image(systemName: "square.3.layers.3d")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.tint)
-                        .frame(width: 40, height: 40)
-                        .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(session.title)
-                            .font(.headline)
-                            .lineLimit(1)
-                        Text(session.summary)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 3) {
-                        Text(SearchService.compactDuration(session.duration))
-                            .font(.subheadline.weight(.semibold))
-                        Text("\(session.items.count) activities")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .padding(13)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(.quaternary, lineWidth: 1)
-                }
-            }
         }
     }
 
