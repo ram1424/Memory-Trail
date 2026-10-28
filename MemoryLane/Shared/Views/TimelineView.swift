@@ -267,6 +267,12 @@ struct TimelineView: View {
                                     density: density
                                 )
                                 .contentShape(Rectangle())
+                                .onTapGesture(count: 2) {
+                                    withAnimation(.easeInOut(duration: 0.16)) {
+                                        selectedMemoryID = item.id
+                                        showsInspector = true
+                                    }
+                                }
                                 .onTapGesture {
                                     withAnimation(.easeInOut(duration: 0.16)) {
                                         selectedMemoryID = item.id

@@ -191,7 +191,7 @@ struct OnboardingView: View {
 
             HStack(spacing: 14) {
                 compactFeature(icon: "waveform.path.ecg", title: "Activity Overview", text: "See busy and quiet periods across the day.")
-                compactFeature(icon: "rectangle.righthalf.inset.filled", title: "Details Panel", text: "Show or hide details for the selected activity.")
+                compactFeature(icon: "rectangle.righthalf.inset.filled", title: "Details Panel", text: "Double-click any activity to open its details on the right.")
                 compactFeature(icon: "rectangle.compress.vertical", title: "View Density", text: "Switch between Compact and Comfortable views.")
             }
             .frame(maxWidth: 690)
@@ -234,36 +234,36 @@ struct OnboardingView: View {
 
             HStack(alignment: .top, spacing: 16) {
                 featureCard(
-                    icon: "safari",
+                    bundleID: "com.apple.Safari",
+                    fallbackSymbol: "safari",
                     title: "Web",
                     lines: [
                         "Safari page and tab titles",
                         "Supported browser context",
                         "Page URLs when available"
                     ],
-                    tint: .blue
                 )
 
                 featureCard(
-                    icon: "envelope.fill",
+                    bundleID: "com.apple.mail",
+                    fallbackSymbol: "envelope.fill",
                     title: "Email & Chat",
                     lines: [
                         "Outlook email subject lines",
                         "Mail item subjects",
                         "Teams conversations and windows"
                     ],
-                    tint: .purple
                 )
 
                 featureCard(
-                    icon: "doc.fill",
+                    bundleID: "com.apple.finder",
+                    fallbackSymbol: "folder.fill",
                     title: "Files & Notes",
                     lines: [
                         "Finder locations and filenames",
                         "Word, Excel, PowerPoint, Preview",
                         "OneNote pages and local paths when macOS exposes them"
                     ],
-                    tint: .orange
                 )
             }
             .frame(maxWidth: 710)
@@ -556,17 +556,23 @@ struct OnboardingView: View {
         }
     }
 
-    private func featureCard(icon: String, title: String, lines: [String], tint: Color) -> some View {
+    private func featureCard(
+        bundleID: String,
+        fallbackSymbol: String,
+        title: String,
+        lines: [String]
+    ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(.white)
-                .frame(width: 42, height: 42)
-                .background(tint.gradient, in: RoundedRectangle(cornerRadius: 11))
+            HStack {
+                Spacer()
+                tutorialAppIcon(bundleID: bundleID, fallbackSymbol: fallbackSymbol)
+                Spacer()
+            }
 
             Text(title)
                 .font(.headline)
                 .foregroundStyle(primaryText)
+                .frame(maxWidth: .infinity, alignment: .center)
 
             ForEach(lines, id: \.self) { line in
                 HStack(alignment: .top, spacing: 6) {
@@ -580,12 +586,30 @@ struct OnboardingView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 160, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 174, alignment: .topLeading)
         .padding(15)
         .background(Color.black.opacity(0.20), in: RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(.white.opacity(0.10), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func tutorialAppIcon(bundleID: String, fallbackSymbol: String) -> some View {
+        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: appURL.path))
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 58, height: 58)
+                .shadow(color: .black.opacity(0.22), radius: 5, y: 2)
+        } else {
+            Image(systemName: fallbackSymbol)
+                .font(.system(size: 27, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 58, height: 58)
+                .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 13))
         }
     }
 
