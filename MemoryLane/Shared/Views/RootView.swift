@@ -46,7 +46,7 @@ struct RootView: View {
             }
             .listStyle(.sidebar)
             .navigationTitle("Memory Lane")
-            .navigationSplitViewColumnWidth(min: 205, ideal: 220, max: 250)
+            .frame(minWidth: 205, idealWidth: 220, maxWidth: 250)
             .safeAreaInset(edge: .bottom) {
                 HStack(spacing: 8) {
                     Circle()
