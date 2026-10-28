@@ -889,8 +889,8 @@ private struct DailyRecapCard: View {
                     .foregroundStyle(.secondary)
 
                 HStack(spacing: 7) {
-                    ForEach(Array(recap.topApps.prefix(3)), id: \.name) { app in
-                        Text(app.name)
+                    ForEach(Array(recap.topApps.prefix(3).enumerated()), id: \.offset) { entry in
+                        Text(entry.element.name)
                             .font(.caption.weight(.medium))
                             .padding(.horizontal, 8)
                             .frame(height: 23)
@@ -972,7 +972,8 @@ private struct ActivityHeatmap: View {
             }
 
             HStack(spacing: 2) {
-                ForEach(Array(values.enumerated()), id: \.offset) { _, count in
+                ForEach(values.indices, id: \.self) { index in
+                    let count = values[index]
                     RoundedRectangle(cornerRadius: 2)
                         .fill(
                             count == 0

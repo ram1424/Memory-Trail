@@ -401,52 +401,77 @@ enum SearchService {
     }
 
     private static func relationalAnswer(query: String, candidates: [MemoryItem], now: Date) -> MemoryLaneAnswer? {
-        guard query.contains("before") || query.contains("after"),
-              let app = detectedApp(in: query)
-        else {
+        let before = query.contains("before")
+        let after = query.contains("after")
+        guard before || after else { return nil }
+
+        let relationshipToken = before ? "before" : "after"
+        let pieces = query.components(separatedBy: relationshipToken)
+        let leftText = pieces.first ?? ""
+        let rightText = pieces.dropFirst().joined(separator: relationshipToken)
+
+        // The app named after "before/after" is the anchor. This correctly
+        // interprets questions such as "Outlook email before opening Teams".
+        guard let targetApp = detectedApp(in: rightText) ?? detectedApp(in: query) else {
             return nil
         }
+        let desiredApp = detectedApp(in: leftText)
 
         let ordered = candidates.sorted { $0.createdAt < $1.createdAt }
         guard let targetIndex = ordered.lastIndex(where: { item in
             let haystack = "\(item.sourceApp) \(item.sourceBundleID)".lowercased()
-            return app.aliases.contains { haystack.contains($0) }
+            return targetApp.aliases.contains { haystack.contains($0) }
         }) else {
             return MemoryLaneAnswer(
-                summary: "I couldn't find a captured \(app.displayName) activity matching that question.",
+                summary: "I couldn't find a captured \(targetApp.displayName) activity matching that question.",
                 items: [],
                 sessions: [],
-                interpretedQuery: "Looking for activity relative to \(app.displayName)"
+                interpretedQuery: "Looking for activity relative to \(targetApp.displayName)"
             )
         }
 
         let target = ordered[targetIndex]
-        let before = query.contains("before")
         let window: [MemoryItem]
 
         if before {
             let lowerBound = target.createdAt.addingTimeInterval(-60 * 60)
-            window = ordered.filter { $0.createdAt < target.createdAt && $0.createdAt >= lowerBound }.suffix(8)
+            window = Array(ordered.filter {
+                $0.createdAt < target.createdAt && $0.createdAt >= lowerBound
+            }.suffix(12))
         } else {
             let upperBound = target.createdAt.addingTimeInterval(60 * 60)
-            window = Array(ordered.filter { $0.createdAt > target.createdAt && $0.createdAt <= upperBound }.prefix(8))
+            window = Array(ordered.filter {
+                $0.createdAt > target.createdAt && $0.createdAt <= upperBound
+            }.prefix(12))
         }
 
-        let result = Array(window.reversed())
+        var result = before ? Array(window.reversed()) : window
+
+        if let desiredApp, desiredApp.displayName != targetApp.displayName {
+            let appMatches = result.filter { item in
+                let haystack = "\(item.sourceApp) \(item.sourceBundleID)".lowercased()
+                return desiredApp.aliases.contains { haystack.contains($0) }
+            }
+            if !appMatches.isEmpty {
+                result = appMatches
+            }
+        }
+
+        result = Array(result.prefix(8))
         let relationship = before ? "before" : "after"
         let summary: String
 
         if let nearest = result.first {
-            summary = "Immediately \(relationship) the \(app.displayName) activity at \(target.createdAt.formatted(date: .omitted, time: .shortened)), Memory Lane shows \(nearest.sourceApp): “\(nearest.title)”."
+            summary = "Immediately \(relationship) the \(targetApp.displayName) activity at \(target.createdAt.formatted(date: .omitted, time: .shortened)), Memory Lane found \(nearest.sourceApp): “\(nearest.title)”."
         } else {
-            summary = "I found the \(app.displayName) activity, but there wasn't another captured activity within an hour \(relationship) it."
+            summary = "I found the \(targetApp.displayName) activity, but there wasn't a matching captured activity within an hour \(relationship) it."
         }
 
         return MemoryLaneAnswer(
             summary: summary,
             items: result,
             sessions: smartSessions(from: result, now: now),
-            interpretedQuery: "Activity \(relationship) \(app.displayName) at \(target.createdAt.formatted(date: .abbreviated, time: .shortened))"
+            interpretedQuery: "Activity \(relationship) \(targetApp.displayName) at \(target.createdAt.formatted(date: .abbreviated, time: .shortened))"
         )
     }
 
