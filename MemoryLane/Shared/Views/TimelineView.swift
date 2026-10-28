@@ -14,6 +14,7 @@ struct TimelineView: View {
     @State private var density: TimelineDensity = .comfortable
     @State private var dayOffset = 0
     @State private var now = Date()
+    @AppStorage("timelineShowsInspector") private var showsInspector = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,7 +26,7 @@ struct TimelineView: View {
                 timelineContent
                     .frame(minWidth: 560, maxWidth: .infinity)
 
-                if let item = selectedItem {
+                if showsInspector, let item = selectedItem {
                     Divider()
                     TimelineInspector(
                         item: item,
@@ -204,6 +205,23 @@ struct TimelineView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .frame(width: 190)
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    showsInspector.toggle()
+                }
+            } label: {
+                Image(systemName: showsInspector ? "info.circle.fill" : "info.circle")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 28, height: 26)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(showsInspector ? Color.accentColor : Color.secondary)
+            .background(
+                showsInspector ? Color.accentColor.opacity(0.10) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 7)
+            )
+            .help(showsInspector ? "Hide Details" : "Show Details")
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 10)
