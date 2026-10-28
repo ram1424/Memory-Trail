@@ -17,10 +17,10 @@ func roundedRect(_ rect: NSRect, radius: CGFloat) -> NSBezierPath {
 }
 
 func fillGradient(_ path: NSBezierPath, colors: [NSColor], angle: CGFloat) {
-    path.saveGraphicsState()
+    NSGraphicsContext.saveGraphicsState()
     path.addClip()
     NSGradient(colors: colors)?.draw(in: path.bounds, angle: angle)
-    path.restoreGraphicsState()
+    NSGraphicsContext.restoreGraphicsState()
 }
 
 func drawText(_ text: String, in rect: NSRect, size: CGFloat, weight: NSFont.Weight = .bold, color: NSColor = .white) {
@@ -179,7 +179,7 @@ func drawIcon(size: Int) -> NSImage {
     NSColor(calibratedRed: 0.65, green: 0.88, blue: 1.0, alpha: 0.96).setStroke()
     arc.stroke()
 
-    let tip = NSPoint(x: center.x + cos(210 * .pi / 180) * 205, y: center.y + sin(210 * .pi / 180) * 205)
+    let tip = NSPoint(x: center.x + cos(CGFloat(210) * .pi / 180) * 205, y: center.y + sin(CGFloat(210) * .pi / 180) * 205)
     let arrow = NSBezierPath()
     arrow.move(to: NSPoint(x: tip.x - 48, y: tip.y + 58))
     arrow.line(to: NSPoint(x: tip.x + 40, y: tip.y + 4))
