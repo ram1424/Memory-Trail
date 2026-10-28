@@ -330,6 +330,10 @@ struct TimelineView: View {
         }
     }
 
+    private var dailyRecap: DailyRecap {
+        SearchService.dailyRecap(for: selectedDay, items: dayItems, now: now)
+    }
+
     private var selectedItem: MemoryItem? {
         guard let selectedMemoryID else { return nil }
         return memories.first { $0.id == selectedMemoryID }
