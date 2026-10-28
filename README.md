@@ -265,11 +265,11 @@ The tutorial can be replayed later from **Settings → Help**.
 
 Download the current macOS DMG from the latest release:
 
-**[Memory Lane v1.0.1](https://github.com/ram1424/Memory-Lane/releases/tag/v1.0.1)**
+**[Memory Lane v1.0](https://github.com/ram1424/Memory-Lane/releases/tag/v1.0)**
 
 Direct DMG:
 
-**[MemoryLane-1.0.1.dmg](https://github.com/ram1424/Memory-Lane/releases/download/v1.0.1/MemoryLane-1.0.1.dmg)**
+**[MemoryLane-1.0.dmg](https://github.com/ram1424/Memory-Lane/releases/download/v1.0/MemoryLane-1.0.dmg)**
 
 ---
 
