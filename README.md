@@ -13,6 +13,18 @@ Memory Lane gives you a searchable chronological record of your work across supp
 
 > Memory Lane is designed to preserve the actual context it captures — such as an email subject, page title, filename, or window title — rather than rewriting or summarizing your timeline.
 
+## Screenshots
+
+### Timeline & Details
+
+![Memory Lane Timeline and Details](docs/screenshots/timeline-details.svg)
+
+### Capture & Files Tutorial
+
+![Memory Lane Capture and Files Tutorial](docs/screenshots/capture-files.svg)
+
+_All preview content shown above is generic demo data._
+
 ---
 
 ## What Memory Lane Does
