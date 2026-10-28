@@ -100,6 +100,24 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                settingsCard("About Memory Lane", systemImage: "info.circle") {
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text("\(appVersion) (Build \(buildNumber))")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Divider()
+
+                    HStack {
+                        Text("Created By")
+                        Spacer()
+                        Text("Roman Zakharov")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 settingsCard("Help", systemImage: "questionmark.circle") {
                     Button {
                         hasCompletedOnboarding = false
@@ -180,6 +198,14 @@ struct SettingsView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(.quaternary, lineWidth: 1)
         }
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
     }
 
     private var selectedOptions: [RecallExclusionOption] {

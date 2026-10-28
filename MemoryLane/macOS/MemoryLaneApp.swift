@@ -96,6 +96,13 @@ struct MemoryLaneApp: App {
             }
         }
         .defaultSize(width: 1000, height: 700)
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About Memory Lane") {
+                    showAboutPanel()
+                }
+            }
+        }
 
         MenuBarExtra {
             Button(preferences.capturePaused ? "Resume Capture" : "Pause Capture") {
@@ -111,6 +118,32 @@ struct MemoryLaneApp: App {
             Image(nsImage: Self.menuBarIcon)
                 .renderingMode(.original)
         }
+    }
+
+    private static var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    }
+
+    private static var buildNumber: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+    }
+
+    private func showAboutPanel() {
+        let credits = NSAttributedString(
+            string: "Created By: Roman Zakharov",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+
+        NSApplication.shared.orderFrontStandardAboutPanel(options: [
+            .applicationName: "Memory Lane",
+            .applicationIcon: Self.brandIcon,
+            .applicationVersion: "Version \(Self.appVersion)",
+            .version: "Build \(Self.buildNumber)",
+            .credits: credits
+        ])
     }
 
     private var startupView: some View {
