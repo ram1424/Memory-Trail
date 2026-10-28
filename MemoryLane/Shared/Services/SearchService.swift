@@ -170,7 +170,7 @@ enum SearchService {
                 return $0.1 > $1.1
             }
             .prefix(12)
-            .map(.0)
+            .map { $0.0 }
 
         let results: [MemoryItem]
         if ranked.isEmpty && queryTokens.isEmpty {
