@@ -34,16 +34,22 @@ final class MacCaptureCoordinator {
         guard !accessibilityTrusted else { return }
 
         NSApplication.shared.activate(ignoringOtherApps: true)
+
+        // Touch the Accessibility API before prompting. On current macOS this
+        // helps TCC register the running app as an Accessibility client rather
+        // than only performing a passive trust check.
+        touchAccessibilityAPI()
         requestAccessibilityPermissionIfNeeded()
 
-        try? await Task.sleep(nanoseconds: 900_000_000)
+        try? await Task.sleep(nanoseconds: 1_200_000_000)
+        touchAccessibilityAPI()
         refreshAccessibilityStatus()
 
         guard !accessibilityTrusted else { return }
 
         // macOS owns the Privacy & Security authorization switch. If access was
         // not granted from the system prompt, take the user directly to the
-        // Accessibility pane where Memory Lane can be enabled.
+        // Accessibility / Device Control and Data Access pane.
         openAccessibilitySettings()
     }
 
@@ -94,6 +100,26 @@ final class MacCaptureCoordinator {
     func openAccessibilitySettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    private func touchAccessibilityAPI() {
+        let systemWide = AXUIElementCreateSystemWide()
+        var focusedElement: CFTypeRef?
+        _ = AXUIElementCopyAttributeValue(
+            systemWide,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedElement
+        )
+
+        if let frontmost = NSWorkspace.shared.frontmostApplication {
+            let appElement = AXUIElementCreateApplication(frontmost.processIdentifier)
+            var focusedWindow: CFTypeRef?
+            _ = AXUIElementCopyAttributeValue(
+                appElement,
+                kAXFocusedWindowAttribute as CFString,
+                &focusedWindow
+            )
+        }
     }
 
     func clearRuntimeCache() {
