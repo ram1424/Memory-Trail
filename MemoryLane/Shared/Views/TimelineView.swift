@@ -251,7 +251,6 @@ struct TimelineView: View {
                 } else {
                     Section {
                         VStack(spacing: 10) {
-                            DailyRecapCard(recap: dailyRecap)
                             ActivityHeatmap(items: dayItems, selectedDay: selectedDay, now: now)
                         }
                         .padding(.horizontal, 18)
@@ -328,10 +327,6 @@ struct TimelineView: View {
                 || item.searchableText.localizedCaseInsensitiveContains(searchText)
             return matchesSearch && filter.matches(item)
         }
-    }
-
-    private var dailyRecap: DailyRecap {
-        SearchService.dailyRecap(for: selectedDay, items: dayItems, now: now)
     }
 
     private var selectedItem: MemoryItem? {
@@ -789,74 +784,6 @@ private struct TimelineInspector: View {
         formatter.zeroFormattingBehavior = .dropAll
         return formatter
     }()
-}
-
-private struct DailyRecapCard: View {
-    let recap: DailyRecap
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 13) {
-            Image(systemName: "sun.max.fill")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 42, height: 42)
-                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 11))
-
-            VStack(alignment: .leading, spacing: 7) {
-                HStack {
-                    Text("Daily Recap")
-                        .font(.headline)
-
-                    Spacer()
-
-                    if recap.totalDuration >= 60 {
-                        Text(SearchService.compactDuration(recap.totalDuration))
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Text(recap.summary)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 7) {
-                    ForEach(Array(recap.topApps.prefix(3).enumerated()), id: \.offset) { entry in
-                        Text(entry.element.name)
-                            .font(.caption.weight(.medium))
-                            .padding(.horizontal, 8)
-                            .frame(height: 23)
-                            .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
-                    }
-
-                    if let busiestHour = recap.busiestHour {
-                        Label(hourLabel(busiestHour), systemImage: "chart.bar.fill")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-
-                    if recap.favoriteCount > 0 {
-                        Label("\(recap.favoriteCount)", systemImage: "star.fill")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-            }
-        }
-        .padding(14)
-        .background(Color.accentColor.opacity(0.055), in: RoundedRectangle(cornerRadius: 15))
-        .overlay {
-            RoundedRectangle(cornerRadius: 15)
-                .stroke(Color.accentColor.opacity(0.14), lineWidth: 1)
-        }
-    }
-
-    private func hourLabel(_ hour: Int) -> String {
-        var components = DateComponents()
-        components.hour = hour
-        let date = Calendar.current.date(from: components) ?? .now
-        return "Busiest around " + date.formatted(date: .omitted, time: .shortened)
-    }
 }
 
 private struct ActivityHeatmap: View {

@@ -1,14 +1,5 @@
 import Foundation
 
-struct DailyRecap {
-    let date: Date
-    let totalDuration: TimeInterval
-    let topApps: [(name: String, count: Int)]
-    let busiestHour: Int?
-    let favoriteCount: Int
-    let summary: String
-}
-
 struct MemoryLaneAnswer {
     let summary: String
     let items: [MemoryItem]
@@ -51,60 +42,6 @@ enum SearchService {
         guard !tokens.isEmpty else { return true }
         let haystack = item.searchableText
         return tokens.allSatisfy { haystack.localizedStandardContains($0) }
-    }
-
-    static func dailyRecap(for date: Date, items: [MemoryItem], now: Date = .now) -> DailyRecap {
-        let calendar = Calendar.current
-        let dayItems = items.filter { calendar.isDate($0.createdAt, inSameDayAs: date) }
-        let relevantItems = dayItems.filter {
-            $0.sourceKind == .appActivity || $0.sourceKind == .file || $0.sourceKind == .link
-        }
-        let total = reconstructedActivityDuration(from: relevantItems, now: now)
-
-        let appCounts = Dictionary(
-            grouping: relevantItems.filter { !$0.sourceApp.isEmpty },
-            by: { $0.sourceApp }
-        )
-        .map { (name: $0.key, count: $0.value.count) }
-        .sorted {
-            if $0.count == $1.count { return $0.name < $1.name }
-            return $0.count > $1.count
-        }
-
-        let hourCounts = Dictionary(grouping: relevantItems) {
-            calendar.component(.hour, from: $0.createdAt)
-        }.mapValues { $0.count }
-
-        let busiest = hourCounts.max {
-            if $0.value == $1.value { return $0.key > $1.key }
-            return $0.value < $1.value
-        }?.key
-
-        let favoriteCount = dayItems.filter { $0.isFavorite }.count
-        let topNames = appCounts.prefix(3).map { $0.name }
-        let appPhrase = naturalList(topNames)
-        let durationText = compactDuration(total)
-
-        var parts: [String] = []
-        if !durationText.isEmpty {
-            parts.append("Memory Lane reconstructed about \(durationText) of active work")
-        }
-        if !appPhrase.isEmpty {
-            parts.append("mostly across \(appPhrase)")
-        }
-
-        let summary = parts.isEmpty
-            ? "No substantial work activity was captured for this day."
-            : parts.joined(separator: " ") + "."
-
-        return DailyRecap(
-            date: date,
-            totalDuration: total,
-            topApps: Array(appCounts.prefix(5)),
-            busiestHour: busiest,
-            favoriteCount: favoriteCount,
-            summary: summary
-        )
     }
 
     static func ask(_ query: String, memories: [MemoryItem], now: Date = .now) -> MemoryLaneAnswer {
@@ -184,34 +121,6 @@ enum SearchService {
             items: results,
             interpretedQuery: interpretationText(query: trimmed, targetDay: targetDay, appFilter: appFilter)
         )
-    }
-
-    static func compactDuration(_ interval: TimeInterval) -> String {
-        guard interval >= 60 else { return "<1m" }
-        let minutes = Int(interval / 60)
-        if minutes < 60 { return "\(minutes)m" }
-        let hours = minutes / 60
-        let remainder = minutes % 60
-        return remainder == 0 ? "\(hours)h" : "\(hours)h \(remainder)m"
-    }
-
-    static func reconstructedActivityDuration(from items: [MemoryItem], now: Date = .now) -> TimeInterval {
-        let ordered = items.sorted { $0.createdAt < $1.createdAt }
-        guard !ordered.isEmpty else { return 0 }
-
-        var total: TimeInterval = 0
-        for (index, item) in ordered.enumerated() {
-            let nextDate: Date
-            if index + 1 < ordered.count {
-                nextDate = ordered[index + 1].createdAt
-            } else {
-                nextDate = min(now, item.createdAt.addingTimeInterval(8 * 60))
-            }
-
-            let delta = max(0, nextDate.timeIntervalSince(item.createdAt))
-            total += min(delta, 30 * 60)
-        }
-        return total
     }
 
     static func orderedUnique(_ values: [String]) -> [String] {
