@@ -413,7 +413,8 @@ private struct TimelineActivityRow: View {
                     .fill(Color.secondary.opacity(0.22))
                     .frame(width: 1)
             }
-            .frame(width: 20, minHeight: density.rowHeight)
+            .frame(width: 20)
+            .frame(minHeight: density.rowHeight)
 
             HStack(spacing: 12) {
                 sourceIcon
