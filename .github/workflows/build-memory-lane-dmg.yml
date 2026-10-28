@@ -9,6 +9,7 @@ on:
       - ".github/workflows/build-memory-lane-dmg.yml"
       - "Memory Lane.xcodeproj/**"
       - "MemoryLane/**"
+      - "Scripts/**"
 
 permissions:
   contents: write
@@ -27,38 +28,11 @@ jobs:
       - name: Prepare app icon assets
         run: |
           set -euo pipefail
-          ICON_DIR="$PWD/MemoryLane/Resources/Assets.xcassets/AppIcon.appiconset"
-          SWIFT_FILE="$PWD/MemoryLane/macOS/MemoryLaneApp.swift"
-          mkdir -p "$ICON_DIR"
+          /usr/bin/xcrun swift "$PWD/Scripts/generate_app_icons.swift" "$PWD"
 
-          python3 - "$SWIFT_FILE" "$PWD/memory-lane-icon-source.png" <<'PY'
-          import base64
-          import re
-          import sys
-
-          source = open(sys.argv[1], "r", encoding="utf-8").read()
-          match = re.search(r'iconSeedBase64 = "([A-Za-z0-9+/=]+)"', source)
-          if not match:
-              raise SystemExit("Unable to locate Memory Lane icon seed data.")
-          open(sys.argv[2], "wb").write(base64.b64decode(match.group(1)))
-          PY
-
-          sips -z 1024 1024 "$PWD/memory-lane-icon-source.png" --out "$PWD/memory-lane-icon-master.png" >/dev/null
-
-          sips -z 16 16 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_16x16.png" >/dev/null
-          sips -z 32 32 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_16x16@2x.png" >/dev/null
-          sips -z 32 32 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_32x32.png" >/dev/null
-          sips -z 64 64 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_32x32@2x.png" >/dev/null
-          sips -z 128 128 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_128x128.png" >/dev/null
-          sips -z 256 256 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_128x128@2x.png" >/dev/null
-          sips -z 256 256 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_256x256.png" >/dev/null
-          sips -z 512 512 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_256x256@2x.png" >/dev/null
-          sips -z 512 512 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_512x512.png" >/dev/null
-          sips -z 1024 1024 "$PWD/memory-lane-icon-master.png" --out "$ICON_DIR/icon_512x512@2x.png" >/dev/null
-
-          ONBOARDING_DIR="$PWD/MemoryLane/Resources/Assets.xcassets/OnboardingIcon.imageset"
-          mkdir -p "$ONBOARDING_DIR"
-          cp "$ICON_DIR/icon_512x512@2x.png" "$ONBOARDING_DIR/OnboardingIcon.png"
+          test -f "$PWD/MemoryLane/Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png"
+          test -f "$PWD/MemoryLane/Resources/Assets.xcassets/OnboardingIcon.imageset/OnboardingIcon.png"
+          test -f "$PWD/MemoryLane/Resources/Assets.xcassets/OnboardingIcon.imageset/OnboardingIcon@2x.png"
 
       - name: Build Memory Lane
         run: |
