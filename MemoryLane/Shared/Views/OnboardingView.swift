@@ -240,9 +240,9 @@ struct OnboardingView: View {
                     title: "Web Browsers",
                     tint: .blue,
                     icons: [
-                        .app(bundleID: "com.apple.Safari", fallback: "safari"),
-                        .app(bundleID: "com.google.Chrome", fallback: "globe"),
-                        .app(bundleID: "org.mozilla.firefox", fallback: "flame.fill")
+                        .symbol("globe"),
+                        .symbol("compass.drawing"),
+                        .symbol("network")
                     ],
                     lines: [
                         "Page and tab titles",
@@ -255,9 +255,9 @@ struct OnboardingView: View {
                     title: "Email & Chat",
                     tint: .purple,
                     icons: [
-                        .app(bundleID: "com.microsoft.Outlook", fallback: "envelope.fill"),
-                        .app(bundleID: "com.apple.mail", fallback: "envelope"),
-                        .app(bundleID: "com.microsoft.teams2", fallback: "bubble.left.and.bubble.right.fill")
+                        .symbol("envelope.fill"),
+                        .symbol("bubble.left.and.bubble.right.fill"),
+                        .symbol("at")
                     ],
                     lines: [
                         "Email subject lines",
@@ -270,9 +270,9 @@ struct OnboardingView: View {
                     title: "Files & Notes",
                     tint: .green,
                     icons: [
-                        .app(bundleID: "com.apple.finder", fallback: "folder.fill"),
-                        .app(bundleID: "com.microsoft.Word", fallback: "doc.text.fill"),
-                        .app(bundleID: "com.microsoft.onenote.mac", fallback: "note.text")
+                        .symbol("folder.fill"),
+                        .symbol("doc.text.fill"),
+                        .symbol("note.text")
                     ],
                     lines: [
                         "Finder locations and filenames",
@@ -316,8 +316,8 @@ struct OnboardingView: View {
                     tint: .green,
                     icons: [
                         .symbol("star.fill"),
-                        .app(bundleID: "com.apple.Safari", fallback: "safari"),
-                        .symbol("doc.fill")
+                        .symbol("bookmark.fill"),
+                        .symbol("pin.fill")
                     ],
                     lines: [
                         "Mark important timeline items",
@@ -676,7 +676,6 @@ struct OnboardingView: View {
     }
 
     private enum CaptureGraphic {
-        case app(bundleID: String, fallback: String)
         case symbol(String)
     }
 
@@ -738,26 +737,6 @@ struct OnboardingView: View {
     @ViewBuilder
     private func captureGraphic(_ graphic: CaptureGraphic, tint: Color) -> some View {
         switch graphic {
-        case let .app(bundleID, fallback):
-            if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
-                Image(nsImage: NSWorkspace.shared.icon(forFile: appURL.path))
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .frame(width: 44, height: 44)
-                    .shadow(color: .black.opacity(0.28), radius: 5, y: 2)
-            } else {
-                Image(systemName: fallback)
-                    .font(.system(size: 21, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(tint.opacity(0.85), in: RoundedRectangle(cornerRadius: 11))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 11)
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    }
-            }
-
         case let .symbol(symbol):
             Image(systemName: symbol)
                 .font(.system(size: 21, weight: .semibold))
