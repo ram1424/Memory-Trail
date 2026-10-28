@@ -63,7 +63,7 @@ enum SearchService {
 
         let appCounts = Dictionary(
             grouping: relevantItems.filter { !$0.sourceApp.isEmpty },
-            by: .sourceApp
+            by: { $0.sourceApp }
         )
         .map { (name: $0.key, count: $0.value.count) }
         .sorted {
@@ -73,15 +73,15 @@ enum SearchService {
 
         let hourCounts = Dictionary(grouping: relevantItems) {
             calendar.component(.hour, from: $0.createdAt)
-        }.mapValues(.count)
+        }.mapValues { $0.count }
 
         let busiest = hourCounts.max {
             if $0.value == $1.value { return $0.key > $1.key }
             return $0.value < $1.value
         }?.key
 
-        let favoriteCount = dayItems.filter(.isFavorite).count
-        let topNames = appCounts.prefix(3).map(.name)
+        let favoriteCount = dayItems.filter { $0.isFavorite }.count
+        let topNames = appCounts.prefix(3).map { $0.name }
         let appPhrase = naturalList(topNames)
         let durationText = compactDuration(total)
 
@@ -363,7 +363,7 @@ enum SearchService {
             return "I couldn't find a strong match in the local timeline for “\(query)”. Try an app name, project/file name, or a time such as “around 10:30 AM.”"
         }
 
-        let apps = orderedUnique(items.map(.sourceApp))
+        let apps = orderedUnique(items.map { $0.sourceApp })
         let appPhrase = naturalList(Array(apps.prefix(3)))
         let ordered = items.sorted { $0.createdAt < $1.createdAt }
 
