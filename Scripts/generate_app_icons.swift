@@ -78,9 +78,11 @@ func drawIcon(size: Int) -> NSImage {
         NSColor(calibratedRed: 0.02, green: 0.28, blue: 0.72, alpha: 1),
         NSColor(calibratedRed: 0.03, green: 0.12, blue: 0.34, alpha: 1)
     ], angle: 35)
-    NSColor(calibratedRed: 0.10, green: 0.67, blue: 1.0, alpha: 0.85).setStroke()
-    outer.lineWidth = 7
-    outer.stroke()
+    // Keep every decorative layer strictly inside the rounded-square icon.
+    // This prevents the lower floor/timeline artwork from showing as rectangular
+    // extensions outside the bottom corners at smaller macOS icon sizes.
+    NSGraphicsContext.saveGraphicsState()
+    outer.addClip()
 
     // Subtle floor
     let floor = NSBezierPath()
@@ -96,7 +98,7 @@ func drawIcon(size: Int) -> NSImage {
 
     // Glowing activity lane
     let lane = NSBezierPath()
-    lane.move(to: NSPoint(x: 95, y: 130))
+    lane.move(to: NSPoint(x: 112, y: 145))
     lane.curve(to: NSPoint(x: 650, y: 430), controlPoint1: NSPoint(x: 280, y: 230), controlPoint2: NSPoint(x: 760, y: 185))
     lane.curve(to: NSPoint(x: 560, y: 525), controlPoint1: NSPoint(x: 575, y: 465), controlPoint2: NSPoint(x: 500, y: 485))
     lane.curve(to: NSPoint(x: 675, y: 610), controlPoint1: NSPoint(x: 630, y: 565), controlPoint2: NSPoint(x: 675, y: 575))
@@ -188,6 +190,14 @@ func drawIcon(size: Int) -> NSImage {
     NSColor(calibratedRed: 0.75, green: 0.92, blue: 1.0, alpha: 1).setFill()
     arrow.fill()
 
+    NSGraphicsContext.restoreGraphicsState()
+
+    // Draw the outer rim after clipping all interior artwork so the border
+    // remains crisp and nothing can bleed beyond it.
+    NSColor(calibratedRed: 0.10, green: 0.67, blue: 1.0, alpha: 0.85).setStroke()
+    outer.lineWidth = 7
+    outer.stroke()
+
     image.unlockFocus()
     return image
 }
@@ -219,4 +229,4 @@ for (name, size) in appTargets {
 try writePNG(drawIcon(size: 512), to: onboardingDir.appendingPathComponent("OnboardingIcon.png"))
 try writePNG(drawIcon(size: 1024), to: onboardingDir.appendingPathComponent("OnboardingIcon@2x.png"))
 
-print("Memory Lane icons generated from the approved clock/timeline design.")
+print("Memory Lane icons generated from the approved contained clock/timeline design.")
