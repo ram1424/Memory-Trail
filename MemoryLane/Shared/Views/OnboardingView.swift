@@ -226,68 +226,110 @@ struct OnboardingView: View {
     }
 
     private var capturePage: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 14) {
             pageHeading(
                 title: "Remember the Useful Details",
-                subtitle: "With Accessibility permission, Memory Lane captures the meaningful thing you were viewing—not just the app name."
+                subtitle: "Memory Lane captures the meaningful thing you were viewing—not just the app name. Here are examples of what's captured from each app."
             )
 
-            HStack(alignment: .top, spacing: 16) {
-                featureCard(
-                    bundleID: "com.apple.Safari",
-                    fallbackSymbol: "safari",
-                    title: "Web",
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3),
+                spacing: 12
+            ) {
+                captureFeatureCard(
+                    title: "Web Browsers",
+                    tint: .blue,
+                    icons: [
+                        .app(bundleID: "com.apple.Safari", fallback: "safari"),
+                        .app(bundleID: "com.google.Chrome", fallback: "globe"),
+                        .app(bundleID: "org.mozilla.firefox", fallback: "flame.fill")
+                    ],
                     lines: [
-                        "Safari page and tab titles",
-                        "Supported browser context",
-                        "Page URLs when available"
+                        "Page and tab titles",
+                        "Page URLs when available",
+                        "Supports Safari, Chrome, Firefox and more"
                     ]
                 )
 
-                featureCard(
-                    bundleID: "com.apple.mail",
-                    fallbackSymbol: "envelope.fill",
+                captureFeatureCard(
                     title: "Email & Chat",
+                    tint: .purple,
+                    icons: [
+                        .app(bundleID: "com.microsoft.Outlook", fallback: "envelope.fill"),
+                        .app(bundleID: "com.apple.mail", fallback: "envelope"),
+                        .app(bundleID: "com.microsoft.teams2", fallback: "bubble.left.and.bubble.right.fill")
+                    ],
                     lines: [
-                        "Outlook email subject lines",
+                        "Email subject lines",
                         "Mail item subjects",
-                        "Teams conversations and windows"
+                        "Teams and other supported chat conversations"
                     ]
                 )
 
-                featureCard(
-                    bundleID: "com.apple.finder",
-                    fallbackSymbol: "folder.fill",
+                captureFeatureCard(
                     title: "Files & Notes",
+                    tint: .green,
+                    icons: [
+                        .app(bundleID: "com.apple.finder", fallback: "folder.fill"),
+                        .app(bundleID: "com.microsoft.Word", fallback: "doc.text.fill"),
+                        .app(bundleID: "com.microsoft.onenote.mac", fallback: "note.text")
+                    ],
                     lines: [
                         "Finder locations and filenames",
-                        "Word, Excel, PowerPoint, Preview",
-                        "OneNote pages and local paths when macOS exposes them"
+                        "Word, Excel, PowerPoint and Preview documents",
+                        "OneNote pages and other supported apps"
+                    ]
+                )
+
+                captureFeatureCard(
+                    title: "Clipboard History",
+                    tint: .blue,
+                    icons: [
+                        .symbol("doc.text.fill"),
+                        .symbol("link"),
+                        .symbol("curlybraces")
+                    ],
+                    lines: [
+                        "Copied text",
+                        "Copied links/URLs",
+                        "Copied code snippets"
+                    ]
+                )
+
+                captureFeatureCard(
+                    title: "Add Memory",
+                    tint: .purple,
+                    icons: [
+                        .symbol("note.text"),
+                        .symbol("link.badge.plus"),
+                        .symbol("camera.fill")
+                    ],
+                    lines: [
+                        "Create a manual memory anytime",
+                        "Save links or notes",
+                        "Quick access from the toolbar"
+                    ]
+                )
+
+                captureFeatureCard(
+                    title: "Favorites",
+                    tint: .green,
+                    icons: [
+                        .symbol("star.fill"),
+                        .app(bundleID: "com.apple.Safari", fallback: "safari"),
+                        .symbol("doc.fill")
+                    ],
+                    lines: [
+                        "Mark important timeline items",
+                        "Quick access to saved items",
+                        "Find them easily later"
                     ]
                 )
             }
-            .frame(maxWidth: 710)
-
-            HStack(spacing: 14) {
-                infoStrip(
-                    icon: "doc.on.clipboard.fill",
-                    title: "Clipboard History",
-                    text: "Copied text is remembered by default and can be disabled in Settings."
-                )
-                infoStrip(
-                    icon: "plus.circle.fill",
-                    title: "Add Memory",
-                    text: "Create a manual memory anytime from the toolbar."
-                )
-                infoStrip(
-                    icon: "star.fill",
-                    title: "Favorites",
-                    text: "Mark important timeline items so they are easy to find again."
-                )
-            }
-            .frame(maxWidth: 710)
+            .frame(maxWidth: 720)
         }
-        .padding(34)
+        .padding(.horizontal, 30)
+        .padding(.vertical, 20)
     }
 
     private var privacyAndControlPage: some View {
@@ -631,6 +673,109 @@ struct OnboardingView: View {
         .frame(maxWidth: .infinity, minHeight: 70, alignment: .topLeading)
         .padding(11)
         .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 13))
+    }
+
+    private enum CaptureGraphic {
+        case app(bundleID: String, fallback: String)
+        case symbol(String)
+    }
+
+    private func captureFeatureCard(
+        title: String,
+        tint: Color,
+        icons: [CaptureGraphic],
+        lines: [String]
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Spacer(minLength: 0)
+                ForEach(Array(icons.prefix(3).enumerated()), id: \.offset) { entry in
+                    captureGraphic(entry.element, tint: tint)
+                }
+                Spacer(minLength: 0)
+            }
+
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(primaryText)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            VStack(alignment: .leading, spacing: 7) {
+                ForEach(lines, id: \.self) { line in
+                    HStack(alignment: .top, spacing: 7) {
+                        Image(systemName: "checkmark")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(tint)
+                            .padding(.top, 2)
+
+                        Text(line)
+                            .font(.caption)
+                            .foregroundStyle(secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 174, alignment: .topLeading)
+        .padding(14)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.24),
+                    tint.opacity(0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 16)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.white.opacity(0.10), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func captureGraphic(_ graphic: CaptureGraphic, tint: Color) -> some View {
+        switch graphic {
+        case let .app(bundleID, fallback):
+            if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+                Image(nsImage: NSWorkspace.shared.icon(forFile: appURL.path))
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: 44, height: 44)
+                    .shadow(color: .black.opacity(0.28), radius: 5, y: 2)
+            } else {
+                Image(systemName: fallback)
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(tint.opacity(0.85), in: RoundedRectangle(cornerRadius: 11))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 11)
+                            .stroke(.white.opacity(0.18), lineWidth: 1)
+                    }
+            }
+
+        case let .symbol(symbol):
+            Image(systemName: symbol)
+                .font(.system(size: 21, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(
+                    LinearGradient(
+                        colors: [tint.opacity(0.92), tint.opacity(0.58)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: 11)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 11)
+                        .stroke(.white.opacity(0.18), lineWidth: 1)
+                }
+        }
     }
 
     private func privacyRow(icon: String, title: String, text: String, tint: Color) -> some View {
