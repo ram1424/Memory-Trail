@@ -52,7 +52,7 @@ struct SettingsView: View {
                             }
                         }
 
-                        Text("Memory Lane checks Accessibility permission automatically. Production DMGs are required to use one stable Developer ID identity so macOS can preserve this approval across updates.")
+                        Text("Memory Lane requests Accessibility access automatically on launch. If macOS does not show the prompt, use Request Access or open Accessibility Settings, then enable Memory Lane.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
