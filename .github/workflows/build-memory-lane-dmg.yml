@@ -54,6 +54,10 @@ jobs:
           sips -z 512 512 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_512x512.png" >/dev/null
           sips -z 1024 1024 "$PWD/memory-lane-icon-source.png" --out "$ICON_DIR/icon_512x512@2x.png" >/dev/null
 
+          ONBOARDING_DIR="$PWD/MemoryLane/Resources/Assets.xcassets/OnboardingIcon.imageset"
+          mkdir -p "$ONBOARDING_DIR"
+          cp "$ICON_DIR/icon_512x512@2x.png" "$ONBOARDING_DIR/OnboardingIcon.png"
+
       - name: Build Memory Lane
         run: |
           set -euo pipefail
