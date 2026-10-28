@@ -66,7 +66,7 @@ enum SearchService {
             return nil
         }()
 
-        var candidates = memories
+        var candidates = memories.filter { !$0.isOutlookCaptureNoise }
         if let targetDay {
             candidates = candidates.filter { calendar.isDate($0.createdAt, inSameDayAs: targetDay) }
         }
@@ -95,7 +95,7 @@ enum SearchService {
                 var score = 0
                 for token in queryTokens {
                     if text.localizedStandardContains(token) { score += 20 }
-                    if item.title.lowercased().localizedStandardContains(token) { score += 15 }
+                    if item.displayTitle.lowercased().localizedStandardContains(token) { score += 15 }
                 }
                 if item.sourceKind == .file { score += 5 }
                 if item.isFavorite { score += 3 }
@@ -218,7 +218,7 @@ enum SearchService {
         let summary: String
 
         if let nearest = result.first {
-            summary = "Immediately \(relationship) the \(targetApp.displayName) activity at \(target.createdAt.formatted(date: .omitted, time: .shortened)), Memory Lane found \(nearest.sourceApp): “\(nearest.title)”."
+            summary = "Immediately \(relationship) the \(targetApp.displayName) activity at \(target.createdAt.formatted(date: .omitted, time: .shortened)), Memory Lane found \(nearest.sourceApp): “\(nearest.displayTitle)”."
         } else {
             summary = "I found the \(targetApp.displayName) activity, but there wasn't a matching captured activity within an hour \(relationship) it."
         }

@@ -323,6 +323,8 @@ struct TimelineView: View {
 
     private var filteredItems: [MemoryItem] {
         dayItems.filter { item in
+            guard !item.isOutlookCaptureNoise else { return false }
+
             let matchesSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || item.searchableText.localizedCaseInsensitiveContains(searchText)
             return matchesSearch && filter.matches(item)
@@ -525,8 +527,8 @@ private struct TimelineActivityRow: View {
     }
 
     private var primaryTitle: String {
-        if item.sourceKind == .appActivity, !item.title.hasPrefix("Opened ") {
-            return item.title
+        if item.sourceKind == .appActivity, !item.displayTitle.hasPrefix("Opened ") {
+            return item.displayTitle
         }
         return item.sourceKind == .appActivity ? item.sourceApp : item.title
     }
@@ -591,7 +593,7 @@ private struct TimelineInspector: View {
                 inspectorIcon
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(item.title)
+                    Text(item.displayTitle)
                         .font(.title3.weight(.semibold))
                         .lineLimit(2)
                     Text(item.sourceApp)
@@ -770,7 +772,7 @@ private struct TimelineInspector: View {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(
-            [item.title, item.body, item.sourceApp, item.sourceURL ?? ""]
+            [item.displayTitle, item.body, item.sourceApp, item.sourceURL ?? ""]
                 .filter { !$0.isEmpty }
                 .joined(separator: "\n"),
             forType: .string

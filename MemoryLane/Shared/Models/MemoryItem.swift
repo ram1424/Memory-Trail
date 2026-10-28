@@ -40,8 +40,58 @@ final class MemoryItem {
         set { sourceKindRaw = newValue.rawValue }
     }
 
+    var displayTitle: String {
+        guard isOutlookActivity else { return title }
+
+        let value = title
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = value.lowercased()
+
+        if lower.contains(", sent by "),
+           lower.contains("; has "),
+           lower.contains("attachment"),
+           let range = value.range(of: ", sent by ", options: .caseInsensitive) {
+            let subjectOnly = String(value[..<range.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !subjectOnly.isEmpty {
+                return subjectOnly
+            }
+        }
+
+        return value
+    }
+
+    var isOutlookCaptureNoise: Bool {
+        guard isOutlookActivity else { return false }
+
+        let value = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = value.lowercased()
+
+        if lower.hasPrefix("inbox;") && lower.contains("unread message") { return true }
+        if lower.hasPrefix("from ") && lower.contains(" to ") && lower.contains(" events") { return true }
+        if lower.contains("copyright ©") || lower.contains("all rights reserved") { return true }
+        if lower.contains("one apple park way") { return true }
+
+        return [
+            "inbox",
+            "mail",
+            "calendar",
+            "people",
+            "contacts",
+            "tasks",
+            "microsoft outlook",
+            "outlook"
+        ].contains(lower)
+    }
+
+    private var isOutlookActivity: Bool {
+        sourceBundleID.lowercased() == "com.microsoft.outlook"
+            || sourceApp.lowercased().contains("outlook")
+    }
+
     var searchableText: String {
-        [title, body, sourceApp, sourceBundleID, sourceURL ?? ""]
+        [displayTitle, body, sourceApp, sourceBundleID, sourceURL ?? ""]
             .joined(separator: " ")
             .lowercased()
     }
