@@ -10,7 +10,7 @@ When you need to pick up where you left off, Memory Lane gives you a chronologic
 
 ### Memory Lane App UI
 
-![Memory Lane app UI](docs/screenshots/memory-lane-ui.svg)
+![Memory Lane app UI](docs/screenshots/memory-lane-ui.webp)
 
 ### Capture & Files Tutorial
 
