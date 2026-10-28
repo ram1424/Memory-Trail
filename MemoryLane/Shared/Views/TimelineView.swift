@@ -155,7 +155,8 @@ struct TimelineView: View {
                 }
                 .font(.subheadline)
                 .padding(.horizontal, 9)
-                .frame(minWidth: 112, height: 30)
+                .frame(minWidth: 112)
+                .frame(height: 30)
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
