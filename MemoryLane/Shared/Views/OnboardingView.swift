@@ -190,9 +190,6 @@ struct OnboardingView: View {
                     Image("OnboardingIcon")
                         .resizable()
                         .interpolation(.high)
-                        .contrast(1.14)
-                        .saturation(1.10)
-                        .brightness(-0.025)
                         .frame(width: 112, height: 112)
                         .shadow(color: .black.opacity(0.22), radius: 6, y: 3)
 
