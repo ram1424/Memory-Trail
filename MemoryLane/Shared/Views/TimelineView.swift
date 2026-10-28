@@ -253,7 +253,7 @@ struct TimelineView: View {
                     Section {
                         VStack(spacing: 10) {
                             DailyRecapCard(recap: dailyRecap)
-                            ActivityHeatmap(items: dayItems, selectedDay: selectedDay)
+                            ActivityHeatmap(sessions: dailyRecap.sessions, selectedDay: selectedDay)
                         }
                         .padding(.horizontal, 18)
                         .padding(.top, 12)
@@ -928,19 +928,38 @@ private struct DailyRecapCard: View {
 }
 
 private struct ActivityHeatmap: View {
-    let items: [MemoryItem]
+    let sessions: [SmartWorkSession]
     let selectedDay: Date
 
     private var buckets: [Int] {
         var counts = Array(repeating: 0, count: 48)
         let calendar = Calendar.current
-        for item in items {
-            guard calendar.isDate(item.createdAt, inSameDayAs: selectedDay) else { continue }
-            let hour = calendar.component(.hour, from: item.createdAt)
-            let minute = calendar.component(.minute, from: item.createdAt)
-            let index = min(47, max(0, hour * 2 + (minute >= 30 ? 1 : 0)))
-            counts[index] += 1
+        let dayStart = calendar.startOfDay(for: selectedDay)
+
+        for session in sessions {
+            let clampedStart = max(session.start, dayStart)
+            let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? selectedDay
+            let clampedEnd = min(session.end, dayEnd.addingTimeInterval(-1))
+
+            guard clampedEnd >= clampedStart else { continue }
+
+            let startMinutes = max(0, Int(clampedStart.timeIntervalSince(dayStart) / 60))
+            let endMinutes = min(1439, Int(clampedEnd.timeIntervalSince(dayStart) / 60))
+            let startIndex = min(47, max(0, startMinutes / 30))
+            let endIndex = min(47, max(startIndex, endMinutes / 30))
+
+            for index in startIndex...endIndex {
+                counts[index] += 1
+            }
+
+            for item in session.items {
+                let hour = calendar.component(.hour, from: item.createdAt)
+                let minute = calendar.component(.minute, from: item.createdAt)
+                let index = min(47, max(0, hour * 2 + (minute >= 30 ? 1 : 0)))
+                counts[index] += 1
+            }
         }
+
         return counts
     }
 

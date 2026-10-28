@@ -122,7 +122,12 @@ enum SearchService {
         let sessions = smartSessions(from: dayItems, now: now)
         let total = sessions.reduce(0) { $0 + $1.duration }
 
-        let appCounts = Dictionary(grouping: dayItems.filter { !$0.sourceApp.isEmpty }, by: \.sourceApp)
+        let appCounts = Dictionary(
+            grouping: dayItems.filter {
+                !$0.sourceApp.isEmpty && ($0.sourceKind == .appActivity || $0.sourceKind == .file || $0.sourceKind == .link)
+            },
+            by: \.sourceApp
+        )
             .map { (name: $0.key, count: $0.value.count) }
             .sorted {
                 if $0.count == $1.count { return $0.name < $1.name }
