@@ -147,14 +147,15 @@ struct TimelineView: View {
                     }
                 }
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Text(filter == .all ? "All Activity" : filter.title)
+                        .lineLimit(1)
                     Image(systemName: "chevron.down")
                         .font(.caption2)
                 }
                 .font(.subheadline)
-                .padding(.horizontal, 10)
-                .frame(height: 30)
+                .padding(.horizontal, 9)
+                .frame(minWidth: 112, height: 30)
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
