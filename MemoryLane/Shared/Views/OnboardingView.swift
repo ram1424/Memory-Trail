@@ -145,21 +145,21 @@ struct OnboardingView: View {
                 sampleTimelineRow(
                     time: "9:42 AM",
                     app: "Safari",
-                    detail: "Cisco Room Bar Configuration Guide",
+                    detail: "Planning a Weekend Getaway",
                     icon: "safari"
                 )
                 Divider()
                 sampleTimelineRow(
                     time: "9:18 AM",
                     app: "Microsoft Outlook",
-                    detail: "RE: Data Center Staffing Plan",
+                    detail: "RE: Project Update",
                     icon: "envelope.fill"
                 )
                 Divider()
                 sampleTimelineRow(
                     time: "8:54 AM",
                     app: "Microsoft Teams",
-                    detail: "John Smith | Project Phoenix",
+                    detail: "Alex Morgan | Design Team",
                     icon: "person.2.fill"
                 )
                 Divider()
@@ -221,7 +221,7 @@ struct OnboardingView: View {
                 privacyRow(icon: "externaldrive.fill", title: "Stored Locally", text: "Your Memory Lane timeline is kept on your Mac.", tint: .blue)
                 privacyRow(icon: "hand.raised.slash.fill", title: "Sensitive Apps Stay Private", text: "Passwords and Wallet are excluded from capture automatically.", tint: .orange)
                 privacyRow(icon: "pause.circle.fill", title: "Pause Whenever You Want", text: "Pause or resume activity capture at any time from the menu bar.", tint: .green)
-                privacyRow(icon: "doc.on.clipboard.fill", title: "Clipboard Is Optional", text: "Clipboard capture is off by default and only turns on if you choose it.", tint: .purple)
+                privacyRow(icon: "doc.on.clipboard.fill", title: "Clipboard Capture", text: "Clipboard capture is enabled by default and can be turned off anytime in Settings.", tint: .purple)
             }
             .frame(maxWidth: 350)
         }
