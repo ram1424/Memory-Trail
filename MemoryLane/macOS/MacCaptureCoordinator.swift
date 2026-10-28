@@ -210,6 +210,12 @@ final class MacCaptureCoordinator {
         enableDetailedAccessibilityIfNeeded(for: app)
 
         let lowerBundleID = bundleID.lowercased()
+
+        if lowerBundleID == "com.microsoft.outlook" {
+            captureOutlookSelectedSubject(application: app)
+            return
+        }
+
         if lowerBundleID == "com.apple.safari" || fileAwareBundleIDs.contains(lowerBundleID) {
             pollFocusedWindow()
             return
@@ -227,8 +233,7 @@ final class MacCaptureCoordinator {
         guard result == .success, let hitElement else { return }
 
         let activity: ActivityContext?
-        if lowerBundleID == "com.microsoft.outlook" ||
-            lowerBundleID == "com.microsoft.teams2" ||
+        if lowerBundleID == "com.microsoft.teams2" ||
             lowerBundleID.contains("msteams") ||
             lowerBundleID.contains("teams") ||
             lowerBundleID.contains("onenote") {
@@ -249,6 +254,11 @@ final class MacCaptureCoordinator {
         )
 
         guard !title.isEmpty, !isGenericWindowTitle(title, applicationName: appName) else { return }
+
+        if bundleID.lowercased() == "com.microsoft.outlook",
+           !isLikelyOutlookSubject(title) {
+            return
+        }
 
         logActivity(
             title: title,
@@ -296,6 +306,11 @@ final class MacCaptureCoordinator {
         )
 
         guard !title.isEmpty, !isGenericWindowTitle(title, applicationName: appName) else { return }
+
+        if bundleID.lowercased() == "com.microsoft.outlook",
+           !isLikelyOutlookSubject(title) {
+            return
+        }
 
         logActivity(
             title: title,
@@ -412,8 +427,25 @@ final class MacCaptureCoordinator {
             return ActivityContext(title: windowContext.title, sourceURL: windowContext.sourceURL)
         }
 
-        if lower == "com.microsoft.outlook" ||
-            lower == "com.microsoft.teams2" ||
+        if lower == "com.microsoft.outlook" {
+            if let subject = outlookSelectedSubject() {
+                return ActivityContext(title: subject, sourceURL: nil)
+            }
+
+            let fallback = normalizeWindowTitle(
+                windowContext.title,
+                applicationName: "Microsoft Outlook",
+                bundleID: bundleID
+            )
+
+            if isLikelyOutlookSubject(fallback) {
+                return ActivityContext(title: fallback, sourceURL: windowContext.sourceURL)
+            }
+
+            return ActivityContext(title: "", sourceURL: nil)
+        }
+
+        if lower == "com.microsoft.teams2" ||
             lower.contains("msteams") ||
             lower.contains("teams") ||
             lower.contains("onenote") {
@@ -443,6 +475,80 @@ final class MacCaptureCoordinator {
         }
 
         return ActivityContext(title: windowContext.title, sourceURL: windowContext.sourceURL)
+    }
+
+    private func captureOutlookSelectedSubject(application: NSRunningApplication) {
+        guard let subject = outlookSelectedSubject() else { return }
+
+        let appName = application.localizedName ?? "Microsoft Outlook"
+        logActivity(
+            title: subject,
+            sourceURL: nil,
+            applicationName: appName,
+            bundleID: application.bundleIdentifier ?? "com.microsoft.outlook"
+        )
+    }
+
+    private func outlookSelectedSubject() -> String? {
+        let source = """
+        tell application "Microsoft Outlook"
+            try
+                set selectedItems to selected objects
+                if (count of selectedItems) is greater than 0 then
+                    set theItem to item 1 of selectedItems
+                    try
+                        return subject of theItem as text
+                    end try
+                end if
+            end try
+        end tell
+        return ""
+        """
+
+        guard let script = NSAppleScript(source: source) else { return nil }
+
+        var error: NSDictionary?
+        let result = script.executeAndReturnError(&error)
+        guard error == nil else { return nil }
+
+        let subject = result.stringValue?
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard isLikelyOutlookSubject(subject) else { return nil }
+        return String(subject.prefix(250))
+    }
+
+    private func isLikelyOutlookSubject(_ value: String) -> Bool {
+        let subject = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = subject.lowercased()
+
+        guard subject.count >= 2, subject.count <= 250 else { return false }
+
+        let exactGeneric = Set([
+            "inbox",
+            "mail",
+            "calendar",
+            "people",
+            "contacts",
+            "tasks",
+            "microsoft outlook",
+            "outlook"
+        ])
+
+        if exactGeneric.contains(lower) { return false }
+        if lower.contains("unread message") && lower.hasPrefix("inbox") { return false }
+        if lower.hasPrefix("from ") && lower.contains(" to ") && lower.contains(" events") { return false }
+        if lower.contains("copyright ©") || lower.contains("all rights reserved") { return false }
+        if lower.contains("one apple park way") { return false }
+
+        // Accessibility rows often append Outlook UI metadata to a real subject.
+        // The AppleScript path above returns only the subject, so reject those
+        // composite strings instead of displaying a fake summarized title.
+        if lower.contains("; has ") && lower.contains("attachment") { return false }
+        if lower.contains("; sent by ") { return false }
+
+        return true
     }
 
     private func selectedTabContext(in root: AXUIElement) -> ActivityContext? {
