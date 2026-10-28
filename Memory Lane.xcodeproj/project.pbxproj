@@ -6,6 +6,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		ABCD10010000000000000001 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCD10020000000000000002 /* OnboardingView.swift */; };
 		1894C2E5F7C138A36D3E4486 /* MemoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D466FC931781ED9924C60B /* MemoryItem.swift */; };
 		809D3BB21CEBB4A8648560C9 /* RecallPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEA0A219568FE30787F0A21C /* RecallPreferences.swift */; };
 		7726E38D0112AFFA8CD5C0CA /* SearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12A48F812D58BC8404510A48 /* SearchService.swift */; };
@@ -22,6 +23,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		ABCD10020000000000000002 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Views/OnboardingView.swift"; sourceTree = "<group>"; };
 		12D466FC931781ED9924C60B /* MemoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Models/MemoryItem.swift"; sourceTree = "<group>"; };
 		DEA0A219568FE30787F0A21C /* RecallPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Services/RecallPreferences.swift"; sourceTree = "<group>"; };
 		12A48F812D58BC8404510A48 /* SearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Services/SearchService.swift"; sourceTree = "<group>"; };
@@ -55,6 +57,7 @@
 			31D24D64E6D2A2456C5EA0A3 /* SearchView.swift */,
 			8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */,
 			852A24A7AF9B8D309686CCDA /* TimelineView.swift */,
+			ABCD10020000000000000002 /* OnboardingView.swift */,
 			9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */,
 			93B173E22FB694D1026018A7 /* MemoryLaneApp.swift */,
 			86BE5228102BBE430BCEEA46 /* Assets.xcassets */,
@@ -82,6 +85,7 @@
 			7726E38D0112AFFA8CD5C0CA /* SearchService.swift in Sources */,
 			A0A27F820E1B61353D4DD95B /* RootView.swift in Sources */,
 			272EFD26C2D6749C0FD7E3B1 /* TimelineView.swift in Sources */,
+			ABCD10010000000000000001 /* OnboardingView.swift in Sources */,
 			E9A697527BD99E490D21E5D6 /* SearchView.swift in Sources */,
 			65E9E89D30809A6B84254196 /* FavoritesView.swift in Sources */,
 			653CFD42E1976F8199D3836A /* AddMemoryView.swift in Sources */,

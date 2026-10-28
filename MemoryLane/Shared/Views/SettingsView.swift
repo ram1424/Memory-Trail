@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var customExclusions = ""
     @State private var showingClearCacheConfirmation = false
     @State private var cacheClearedMessage = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some View {
         @Bindable var preferences = preferences
@@ -95,6 +96,18 @@ struct SettingsView: View {
                     }
 
                     Label("Wallet and Passwords are always excluded. Memory Lane will not intentionally log activity or clipboard content while either app is active.", systemImage: "lock.shield.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                settingsCard("Help", systemImage: "questionmark.circle") {
+                    Button {
+                        hasCompletedOnboarding = false
+                    } label: {
+                        Label("Show Welcome Tutorial", systemImage: "sparkles")
+                    }
+
+                    Text("Replay the first-launch walkthrough for Memory Lane.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

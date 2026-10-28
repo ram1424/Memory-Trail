@@ -5,8 +5,19 @@ struct RootView: View {
     @Environment(RecallPreferences.self) private var preferences
     @State private var selection: SidebarItem? = .timeline
     @State private var showingAddMemory = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some View {
+        Group {
+            if hasCompletedOnboarding {
+                mainInterface
+            } else {
+                OnboardingView()
+            }
+        }
+    }
+
+    private var mainInterface: some View {
         NavigationSplitView {
             List(selection: $selection) {
                 Section("Memory Lane") {
