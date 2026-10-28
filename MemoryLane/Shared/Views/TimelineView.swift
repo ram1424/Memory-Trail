@@ -966,6 +966,93 @@ private enum AdjacentDirection {
     case older
 }
 
+struct MemoryRow: View {
+    let item: MemoryItem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            sourceIcon
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 8) {
+                    Text(primaryTitle)
+                        .font(.headline)
+                        .lineLimit(1)
+
+                    if item.isFavorite {
+                        Image(systemName: "star.fill")
+                            .font(.caption)
+                            .foregroundStyle(.yellow)
+                    }
+
+                    Spacer()
+
+                    Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+
+                if !secondaryTitle.isEmpty {
+                    Text(secondaryTitle)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(2)
+                }
+
+                if !item.body.isEmpty && item.body != secondaryTitle {
+                    Text(item.body)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                HStack(spacing: 6) {
+                    Text(item.sourceApp)
+                    Text("•")
+                    Text(item.sourceKind.rawValue)
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(14)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(.quaternary, lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private var sourceIcon: some View {
+        if item.sourceKind == .appActivity,
+           let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
+            Image(nsImage: icon)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 30, height: 30)
+                .padding(4)
+                .frame(width: 38, height: 38)
+                .background(Color(nsColor: .controlBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 10))
+        } else {
+            Image(systemName: item.sourceKind.symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 38, height: 38)
+                .foregroundStyle(.tint)
+                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    private var primaryTitle: String {
+        item.sourceKind == .appActivity ? item.sourceApp : item.title
+    }
+
+    private var secondaryTitle: String {
+        guard item.sourceKind == .appActivity else { return "" }
+        return item.title.hasPrefix("Opened ") ? "" : item.title
+    }
+}
+
 @MainActor
 private final class AppIconCache {
     static let shared = AppIconCache()
