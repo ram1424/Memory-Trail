@@ -15,9 +15,9 @@ Memory Lane gives you a searchable chronological record of your work across supp
 
 ## Screenshots
 
-### Timeline & Details
+### Memory Lane App UI
 
-![Memory Lane Timeline and Details](docs/screenshots/timeline-details.svg)
+![Memory Lane app UI](docs/screenshots/memory-lane-ui.jpg)
 
 ### Capture & Files Tutorial
 
