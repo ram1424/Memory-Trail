@@ -132,6 +132,19 @@ final class MacCaptureCoordinator {
         enableDetailedAccessibilityIfNeeded(for: application)
 
         let name = application.localizedName ?? "Application"
+        let lowerBundleID = bundleID.lowercased()
+
+        if lowerBundleID == "com.microsoft.outlook" || isTeamsBundleID(lowerBundleID) {
+            lastWindowSignature = ""
+            lastWindowLoggedAt = .distantPast
+
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                self?.pollFocusedWindow()
+            }
+            return
+        }
+
         if let context {
             context.insert(
                 MemoryItem(
@@ -245,8 +258,21 @@ final class MacCaptureCoordinator {
         }
 
         if isTeamsBundleID(lowerBundleID) {
-            if let conversation = teamsSelectedConversationTitle(pid: app.processIdentifier)
-                ?? teamsConversationTitleFromFocusedWindow(pid: app.processIdentifier) {
+            var conversation: String?
+
+            if result == .success,
+               let hitElement,
+               let row = nearestAccessibilityRow(from: hitElement),
+               let parsed = teamsNameFromSelectedElement(row) {
+                conversation = parsed.name
+            }
+
+            if conversation == nil {
+                conversation = teamsSelectedConversationTitle(pid: app.processIdentifier)
+                    ?? teamsConversationTitleFromFocusedWindow(pid: app.processIdentifier)
+            }
+
+            if let conversation {
                 logActivity(
                     title: conversation,
                     sourceURL: nil,
@@ -602,6 +628,12 @@ final class MacCaptureCoordinator {
             return subject
         }
 
+        if let focused = focusedAccessibilityElement(in: appElement),
+           let row = nearestAccessibilityRow(from: focused),
+           let subject = outlookSubjectFromSelectedElement(row, requireStrongSignal: false) {
+            return subject
+        }
+
         // When a message is opened in its own window, Outlook commonly exposes
         // the message subject as the focused window title.
         if let windowTitle = attributeString(window, kAXTitleAttribute as CFString),
@@ -637,6 +669,12 @@ final class MacCaptureCoordinator {
     }
 
     private func outlookSelectedMessageSubject(in root: AXUIElement) -> String? {
+        for selected in selectedAccessibilityRows(in: root) {
+            if let subject = outlookSubjectFromSelectedElement(selected, requireStrongSignal: false) {
+                return subject
+            }
+        }
+
         var queue: [AXUIElement] = [root]
         var index = 0
         var inspected = 0
@@ -722,9 +760,16 @@ final class MacCaptureCoordinator {
             appendChildren(of: element, to: &queue, limit: 30)
         }
 
-        let eligible = requireStrongSignal
-            ? candidates.filter { $0.strong }
-            : candidates.filter { $0.score >= 80 }
+        let eligible: [(subject: String, score: Int, strong: Bool)]
+        if requireStrongSignal {
+            eligible = candidates.filter { $0.strong || $0.score >= 145 }
+        } else {
+            eligible = candidates.filter { candidate in
+                candidate.score >= 75 &&
+                    !looksLikeURL(candidate.subject) &&
+                    !looksLikeTimestampOrDate(candidate.subject)
+            }
+        }
 
         return eligible.max(by: { $0.score < $1.score })?.subject
     }
@@ -781,10 +826,23 @@ final class MacCaptureCoordinator {
         }
 
         let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
+        var candidates: [(name: String, score: Int)] = []
+
+        for selected in selectedAccessibilityRows(in: window) {
+            if let result = teamsNameFromSelectedElement(selected) {
+                candidates.append(result)
+            }
+        }
+
+        if let focused = focusedAccessibilityElement(in: appElement),
+           let row = nearestAccessibilityRow(from: focused),
+           let result = teamsNameFromSelectedElement(row) {
+            candidates.append((result.name, result.score + 25))
+        }
+
         var queue: [AXUIElement] = [window]
         var index = 0
         var inspected = 0
-        var candidates: [(name: String, score: Int)] = []
 
         while index < queue.count, inspected < 500 {
             let element = queue[index]
@@ -1204,6 +1262,71 @@ final class MacCaptureCoordinator {
         }
 
         return ActivityContext(title: best.text, sourceURL: best.url)
+    }
+
+    private func selectedAccessibilityRows(in root: AXUIElement) -> [AXUIElement] {
+        var queue: [AXUIElement] = [root]
+        var index = 0
+        var inspected = 0
+        var rows: [AXUIElement] = []
+
+        while index < queue.count, inspected < 500 {
+            let element = queue[index]
+            index += 1
+            inspected += 1
+
+            var selectedRowsValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXSelectedRowsAttribute as CFString,
+                &selectedRowsValue
+            ) == .success,
+            let selectedRows = selectedRowsValue as? [AXUIElement] {
+                rows.append(contentsOf: selectedRows.prefix(12))
+            }
+
+            appendChildren(of: element, to: &queue, limit: 80)
+        }
+
+        return rows
+    }
+
+    private func focusedAccessibilityElement(in appElement: AXUIElement) -> AXUIElement? {
+        var focusedValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedUIElementAttribute as CFString,
+            &focusedValue
+        ) == .success,
+        let focusedValue,
+        CFGetTypeID(focusedValue) == AXUIElementGetTypeID()
+        else {
+            return nil
+        }
+
+        return unsafeBitCast(focusedValue, to: AXUIElement.self)
+    }
+
+    private func nearestAccessibilityRow(from element: AXUIElement) -> AXUIElement? {
+        var current: AXUIElement? = element
+        var depth = 0
+
+        while let candidate = current, depth < 14 {
+            let role = attributeString(candidate, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+
+            if role.contains("row") ||
+                role.contains("cell") ||
+                role.contains("outline") ||
+                role.contains("list") ||
+                role.contains("group") {
+                return candidate
+            }
+
+            current = parentElement(of: candidate)
+            depth += 1
+        }
+
+        return nil
     }
 
     private func appendChildren(of element: AXUIElement, to queue: inout [AXUIElement], limit: Int) {
