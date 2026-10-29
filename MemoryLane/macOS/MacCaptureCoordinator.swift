@@ -218,18 +218,6 @@ final class MacCaptureCoordinator {
 
         let lowerBundleID = bundleID.lowercased()
 
-        if lowerBundleID == "com.microsoft.outlook" {
-            captureOutlookSelectedSubject(application: app)
-            return
-        }
-
-        if lowerBundleID == "com.apple.safari" ||
-            isTeamsBundleID(lowerBundleID) ||
-            fileAwareBundleIDs.contains(lowerBundleID) {
-            pollFocusedWindow()
-            return
-        }
-
         var hitElement: AXUIElement?
         let systemWide = AXUIElementCreateSystemWide()
         let result = AXUIElementCopyElementAtPosition(
@@ -238,6 +226,42 @@ final class MacCaptureCoordinator {
             Float(point.y),
             &hitElement
         )
+
+        if lowerBundleID == "com.microsoft.outlook" {
+            if result == .success,
+               let hitElement,
+               let subject = outlookSubjectFromClickedElement(hitElement) {
+                logActivity(
+                    title: subject,
+                    sourceURL: nil,
+                    applicationName: app.localizedName ?? "Microsoft Outlook",
+                    bundleID: bundleID
+                )
+                return
+            }
+
+            captureOutlookSelectedSubject(application: app)
+            return
+        }
+
+        if isTeamsBundleID(lowerBundleID) {
+            if let conversation = teamsSelectedConversationTitle(pid: app.processIdentifier)
+                ?? teamsConversationTitleFromFocusedWindow(pid: app.processIdentifier) {
+                logActivity(
+                    title: conversation,
+                    sourceURL: nil,
+                    applicationName: app.localizedName ?? "Microsoft Teams",
+                    bundleID: bundleID
+                )
+            }
+            return
+        }
+
+        if lowerBundleID == "com.apple.safari" ||
+            fileAwareBundleIDs.contains(lowerBundleID) {
+            pollFocusedWindow()
+            return
+        }
 
         guard result == .success, let hitElement else { return }
 
@@ -307,6 +331,22 @@ final class MacCaptureCoordinator {
             guard let subject = outlookSelectedSubject(pid: app.processIdentifier) else { return }
             logActivity(
                 title: subject,
+                sourceURL: nil,
+                applicationName: appName,
+                bundleID: bundleID
+            )
+            return
+        }
+
+        if isTeamsBundleID(lowerBundleID) {
+            guard let conversation = teamsSelectedConversationTitle(pid: app.processIdentifier)
+                ?? teamsConversationTitleFromFocusedWindow(pid: app.processIdentifier)
+            else {
+                return
+            }
+
+            logActivity(
+                title: conversation,
                 sourceURL: nil,
                 applicationName: appName,
                 bundleID: bundleID
@@ -572,6 +612,30 @@ final class MacCaptureCoordinator {
         return nil
     }
 
+    private func outlookSubjectFromClickedElement(_ element: AXUIElement) -> String? {
+        var current: AXUIElement? = element
+        var depth = 0
+
+        while let candidate = current, depth < 12 {
+            let role = attributeString(candidate, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+
+            if role.contains("row") ||
+                role.contains("cell") ||
+                role.contains("outline") ||
+                role.contains("list") ||
+                role.contains("group") {
+                if let subject = outlookSubjectFromSelectedElement(candidate, requireStrongSignal: true) {
+                    return subject
+                }
+            }
+
+            current = parentElement(of: candidate)
+            depth += 1
+        }
+
+        return nil
+    }
+
     private func outlookSelectedMessageSubject(in root: AXUIElement) -> String? {
         var queue: [AXUIElement] = [root]
         var index = 0
@@ -590,7 +654,7 @@ final class MacCaptureCoordinator {
             ) == .success,
             let selectedChildren = selectedChildrenValue as? [AXUIElement] {
                 for selected in selectedChildren.prefix(8) {
-                    if let subject = outlookSubjectFromSelectedElement(selected) {
+                    if let subject = outlookSubjectFromSelectedElement(selected, requireStrongSignal: false) {
                         return subject
                     }
                 }
@@ -599,7 +663,7 @@ final class MacCaptureCoordinator {
             let role = attributeString(element, kAXRoleAttribute as CFString)?.lowercased() ?? ""
             if attributeBool(element, kAXSelectedAttribute as CFString) == true,
                (role.contains("row") || role.contains("cell") || role.contains("outline") || role.contains("list")) {
-                if let subject = outlookSubjectFromSelectedElement(element) {
+                if let subject = outlookSubjectFromSelectedElement(element, requireStrongSignal: false) {
                     return subject
                 }
             }
@@ -610,49 +674,59 @@ final class MacCaptureCoordinator {
         return nil
     }
 
-    private func outlookSubjectFromSelectedElement(_ root: AXUIElement) -> String? {
+    private func outlookSubjectFromSelectedElement(
+        _ root: AXUIElement,
+        requireStrongSignal: Bool
+    ) -> String? {
         var queue: [AXUIElement] = [root]
         var index = 0
         var inspected = 0
-        var candidates: [(subject: String, score: Int)] = []
+        var candidates: [(subject: String, score: Int, strong: Bool)] = []
 
-        while index < queue.count, inspected < 90 {
+        while index < queue.count, inspected < 100 {
             let element = queue[index]
             index += 1
             inspected += 1
 
+            let role = attributeString(element, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+
             for (attribute, baseScore) in [
-                (kAXTitleAttribute as CFString, 80),
-                (kAXDescriptionAttribute as CFString, 65),
-                (kAXValueAttribute as CFString, 45)
+                (kAXDescriptionAttribute as CFString, 100),
+                (kAXTitleAttribute as CFString, 85),
+                (kAXValueAttribute as CFString, 35)
             ] {
                 guard let raw = attributeString(element, attribute) else { continue }
                 guard let subject = sanitizedOutlookSubject(raw) else { continue }
 
-                var score = baseScore
                 let lowerRaw = raw.lowercased()
+                let compositeSignal =
+                    lowerRaw.contains(", sent by ") ||
+                    lowerRaw.contains("; sent by ") ||
+                    (lowerRaw.contains("attachment") && lowerRaw.contains("today")) ||
+                    (lowerRaw.contains("attachment") && lowerRaw.contains("yesterday"))
 
-                // Outlook's message-list accessibility row often exposes a
-                // composite string such as "Subject, sent by Name Today...".
-                // That is the strongest signal because the subject is the
-                // leading component and can be safely extracted.
-                if lowerRaw.contains(", sent by ") || lowerRaw.contains("; sent by ") {
-                    score += 140
-                }
-                if lowerRaw.contains("attachment") {
-                    score += 20
-                }
-                if subject.count >= 5 && subject.count <= 160 {
-                    score += 25
-                }
+                var score = baseScore
+                if compositeSignal { score += 220 }
+                if role.contains("row") || role.contains("cell") { score += 35 }
+                if subject.count >= 5 && subject.count <= 180 { score += 20 }
+                if subject.contains(":") || subject.contains("-") { score += 8 }
 
-                candidates.append((subject, score))
+                // Sender names, dates, and tiny UI labels should not outrank a subject.
+                if looksLikePersonName(subject) && !compositeSignal { score -= 80 }
+                if looksLikeTimestampOrDate(subject) { score -= 160 }
+                if subject.count < 4 { score -= 100 }
+
+                candidates.append((subject, score, compositeSignal))
             }
 
             appendChildren(of: element, to: &queue, limit: 30)
         }
 
-        return candidates.max(by: { $0.score < $1.score })?.subject
+        let eligible = requireStrongSignal
+            ? candidates.filter { $0.strong }
+            : candidates.filter { $0.score >= 80 }
+
+        return eligible.max(by: { $0.score < $1.score })?.subject
     }
 
     private func sanitizedOutlookSubject(_ rawValue: String) -> String? {
@@ -691,52 +765,223 @@ final class MacCaptureCoordinator {
             lowerBundleID.contains("teams")
     }
 
-    private func teamsConversationTitle(from rawTitle: String) -> String? {
-        let cleaned = rawTitle
-            .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+    private func teamsSelectedConversationTitle(pid: pid_t) -> String? {
+        let appElement = AXUIElementCreateApplication(pid)
 
-        guard !cleaned.isEmpty else { return nil }
-
-        let genericParts = Set([
-            "microsoft teams",
-            "teams",
-            "chat",
-            "chats",
-            "activity",
-            "calendar",
-            "calls",
-            "communities",
-            "apps",
-            "settings",
-            "files",
-            "teams and channels"
-        ])
-
-        let parts = cleaned
-            .components(separatedBy: " | ")
-            .flatMap { $0.components(separatedBy: " — ") }
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .filter { !genericParts.contains($0.lowercased()) }
-
-        guard let candidate = parts.first else { return nil }
-        let lower = candidate.lowercased()
-
-        guard candidate.count >= 2, candidate.count <= 120 else { return nil }
-        guard !genericParts.contains(lower) else { return nil }
-
-        // Never log strings that look like message bodies or timestamps.
-        if candidate.contains("\n") ||
-            lower.hasPrefix("you:") ||
-            lower.hasPrefix("me:") ||
-            lower.contains(" sent ") ||
-            lower.contains(" replied ") ||
-            lower.contains(" reacted ") {
+        var focusedWindowValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        ) == .success,
+        let focusedWindowValue,
+        CFGetTypeID(focusedWindowValue) == AXUIElementGetTypeID()
+        else {
             return nil
         }
 
-        return candidate
+        let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
+        var queue: [AXUIElement] = [window]
+        var index = 0
+        var inspected = 0
+        var candidates: [(name: String, score: Int)] = []
+
+        while index < queue.count, inspected < 500 {
+            let element = queue[index]
+            index += 1
+            inspected += 1
+
+            var selectedElements: [AXUIElement] = []
+
+            var selectedChildrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXSelectedChildrenAttribute as CFString,
+                &selectedChildrenValue
+            ) == .success,
+            let selectedChildren = selectedChildrenValue as? [AXUIElement] {
+                selectedElements.append(contentsOf: selectedChildren.prefix(8))
+            }
+
+            if attributeBool(element, kAXSelectedAttribute as CFString) == true {
+                selectedElements.append(element)
+            }
+
+            for selected in selectedElements {
+                if let result = teamsNameFromSelectedElement(selected) {
+                    candidates.append(result)
+                }
+            }
+
+            appendChildren(of: element, to: &queue, limit: 70)
+        }
+
+        return candidates.max(by: { $0.score < $1.score })?.name
+    }
+
+    private func teamsNameFromSelectedElement(_ root: AXUIElement) -> (name: String, score: Int)? {
+        var queue: [AXUIElement] = [root]
+        var index = 0
+        var inspected = 0
+        var candidates: [(name: String, score: Int)] = []
+
+        while index < queue.count, inspected < 70 {
+            let element = queue[index]
+            index += 1
+            inspected += 1
+
+            let role = attributeString(element, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+
+            for (attribute, baseScore) in [
+                (kAXTitleAttribute as CFString, 95),
+                (kAXDescriptionAttribute as CFString, 80),
+                (kAXValueAttribute as CFString, 30)
+            ] {
+                guard let raw = attributeString(element, attribute) else { continue }
+                guard let name = sanitizedTeamsConversationName(raw) else { continue }
+
+                var score = baseScore
+                let lowerRaw = raw.lowercased()
+
+                if lowerRaw.hasPrefix("chat with ") ||
+                    lowerRaw.hasPrefix("conversation with ") ||
+                    lowerRaw.hasPrefix("group chat with ") {
+                    score += 220
+                }
+
+                if role.contains("row") || role.contains("list") || role.contains("cell") {
+                    score += 30
+                }
+
+                if looksLikePersonName(name) { score += 55 }
+                if name.count <= 60 { score += 20 }
+                if name.split(separator: " ").count <= 6 { score += 15 }
+
+                candidates.append((name, score))
+            }
+
+            appendChildren(of: element, to: &queue, limit: 24)
+        }
+
+        return candidates
+            .filter { $0.score >= 100 }
+            .max(by: { $0.score < $1.score })
+    }
+
+    private func teamsConversationTitleFromFocusedWindow(pid: pid_t) -> String? {
+        let appElement = AXUIElementCreateApplication(pid)
+
+        var focusedWindowValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        ) == .success,
+        let focusedWindowValue,
+        CFGetTypeID(focusedWindowValue) == AXUIElementGetTypeID(),
+        let raw = attributeString(
+            unsafeBitCast(focusedWindowValue, to: AXUIElement.self),
+            kAXTitleAttribute as CFString
+        )
+        else {
+            return nil
+        }
+
+        return teamsConversationTitle(from: raw)
+    }
+
+    private func sanitizedTeamsConversationName(_ rawValue: String) -> String? {
+        var value = rawValue
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let prefixes = [
+            "Chat with ",
+            "Conversation with ",
+            "Group chat with "
+        ]
+        for prefix in prefixes {
+            if value.lowercased().hasPrefix(prefix.lowercased()) {
+                value = String(value.dropFirst(prefix.count))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                break
+            }
+        }
+
+        // Strip only known Teams chrome suffixes; never derive a title from body text.
+        for separator in [" | ", " — ", " - "] {
+            let parts = value.components(separatedBy: separator)
+            if parts.count > 1,
+               parts.dropFirst().contains(where: {
+                   let lower = $0.lowercased()
+                   return lower.contains("microsoft teams") || lower == "teams" || lower == "chat"
+               }) {
+                value = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                break
+            }
+        }
+
+        let lower = value.lowercased()
+        let generic = Set([
+            "microsoft teams", "teams", "chat", "chats", "activity",
+            "calendar", "calls", "communities", "apps", "settings",
+            "files", "teams and channels", "new chat", "search"
+        ])
+
+        guard value.count >= 2, value.count <= 100 else { return nil }
+        guard !generic.contains(lower) else { return nil }
+        guard !looksLikeURL(value), !looksLikeTimestampOrDate(value) else { return nil }
+
+        // Reject obvious message/snippet patterns. If uncertain, do not log it.
+        let snippetMarkers = [
+            "you:", "me:", "sent:", "replied:", "reacted:",
+            "typing", "draft", "last message", "message preview",
+            "new message", "unread message"
+        ]
+        if snippetMarkers.contains(where: { lower.contains($0) }) { return nil }
+        if value.contains("\n") { return nil }
+        if value.count > 55 && (value.contains(".") || value.contains("?") || value.contains("!")) {
+            return nil
+        }
+
+        return value
+    }
+
+    private func looksLikeURL(_ value: String) -> Bool {
+        let lower = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return lower.hasPrefix("http://") ||
+            lower.hasPrefix("https://") ||
+            lower.hasPrefix("www.") ||
+            lower.contains("urldefense.com/") ||
+            lower.contains("safelinks.protection.outlook.com/")
+    }
+
+    private func looksLikeTimestampOrDate(_ value: String) -> Bool {
+        let lower = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if ["today", "yesterday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].contains(lower) {
+            return true
+        }
+
+        let pattern = #"^\d{1,2}:\d{2}(\s?[ap]m)?$|^\d{1,2}/\d{1,2}(/\d{2,4})?$"#
+        return lower.range(of: pattern, options: .regularExpression) != nil
+    }
+
+    private func looksLikePersonName(_ value: String) -> Bool {
+        let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let words = cleaned.split(separator: " ")
+        guard (1...5).contains(words.count), cleaned.count <= 60 else { return false }
+
+        let letters = cleaned.unicodeScalars.filter { CharacterSet.letters.contains($0) }.count
+        guard letters >= max(2, cleaned.count / 2) else { return false }
+
+        return !cleaned.contains(":") &&
+            !cleaned.contains("/") &&
+            !cleaned.contains("\\") &&
+            !cleaned.contains("@")
+    }
+
+    private func teamsConversationTitle(from rawTitle: String) -> String? {
+        sanitizedTeamsConversationName(rawTitle)
     }
 
     private func isLikelyOutlookSubject(_ value: String) -> Bool {
