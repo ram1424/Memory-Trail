@@ -72,6 +72,9 @@ final class MemoryItem {
         if lower.hasPrefix("from ") && lower.contains(" to ") && lower.contains(" events") { return true }
         if lower.contains("copyright ©") || lower.contains("all rights reserved") { return true }
         if lower.contains("one apple park way") { return true }
+        if lower.hasPrefix("http://") || lower.hasPrefix("https://") || lower.hasPrefix("www.") { return true }
+        if lower.contains("urldefense.com/") || lower.contains("safelinks.protection.outlook.com/") { return true }
+        if lower.contains("outlook.office.com/") { return true }
 
         return [
             "inbox",

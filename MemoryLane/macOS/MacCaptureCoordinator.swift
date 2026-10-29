@@ -558,23 +558,118 @@ final class MacCaptureCoordinator {
 
         let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
 
-        if let selected = selectedContentContext(in: window),
-           let subject = sanitizedOutlookSubject(selected.title) {
+        if let subject = outlookSelectedMessageSubject(in: window) {
             return subject
         }
 
-        if let focused = focusedContentContext(in: appElement),
-           let subject = sanitizedOutlookSubject(focused.title) {
+        // When a message is opened in its own window, Outlook commonly exposes
+        // the message subject as the focused window title.
+        if let windowTitle = attributeString(window, kAXTitleAttribute as CFString),
+           let subject = sanitizedOutlookSubject(windowTitle) {
             return subject
         }
 
         return nil
     }
 
+    private func outlookSelectedMessageSubject(in root: AXUIElement) -> String? {
+        var queue: [AXUIElement] = [root]
+        var index = 0
+        var inspected = 0
+
+        while index < queue.count, inspected < 450 {
+            let element = queue[index]
+            index += 1
+            inspected += 1
+
+            var selectedChildrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXSelectedChildrenAttribute as CFString,
+                &selectedChildrenValue
+            ) == .success,
+            let selectedChildren = selectedChildrenValue as? [AXUIElement] {
+                for selected in selectedChildren.prefix(8) {
+                    if let subject = outlookSubjectFromSelectedElement(selected) {
+                        return subject
+                    }
+                }
+            }
+
+            let role = attributeString(element, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+            if attributeBool(element, kAXSelectedAttribute as CFString) == true,
+               (role.contains("row") || role.contains("cell") || role.contains("outline") || role.contains("list")) {
+                if let subject = outlookSubjectFromSelectedElement(element) {
+                    return subject
+                }
+            }
+
+            appendChildren(of: element, to: &queue, limit: 80)
+        }
+
+        return nil
+    }
+
+    private func outlookSubjectFromSelectedElement(_ root: AXUIElement) -> String? {
+        var queue: [AXUIElement] = [root]
+        var index = 0
+        var inspected = 0
+        var candidates: [(subject: String, score: Int)] = []
+
+        while index < queue.count, inspected < 90 {
+            let element = queue[index]
+            index += 1
+            inspected += 1
+
+            for (attribute, baseScore) in [
+                (kAXTitleAttribute as CFString, 80),
+                (kAXDescriptionAttribute as CFString, 65),
+                (kAXValueAttribute as CFString, 45)
+            ] {
+                guard let raw = attributeString(element, attribute) else { continue }
+                guard let subject = sanitizedOutlookSubject(raw) else { continue }
+
+                var score = baseScore
+                let lowerRaw = raw.lowercased()
+
+                // Outlook's message-list accessibility row often exposes a
+                // composite string such as "Subject, sent by Name Today...".
+                // That is the strongest signal because the subject is the
+                // leading component and can be safely extracted.
+                if lowerRaw.contains(", sent by ") || lowerRaw.contains("; sent by ") {
+                    score += 140
+                }
+                if lowerRaw.contains("attachment") {
+                    score += 20
+                }
+                if subject.count >= 5 && subject.count <= 160 {
+                    score += 25
+                }
+
+                candidates.append((subject, score))
+            }
+
+            appendChildren(of: element, to: &queue, limit: 30)
+        }
+
+        return candidates.max(by: { $0.score < $1.score })?.subject
+    }
+
     private func sanitizedOutlookSubject(_ rawValue: String) -> String? {
         var value = rawValue
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let initialLower = value.lowercased()
+        if initialLower.hasPrefix("http://") ||
+            initialLower.hasPrefix("https://") ||
+            initialLower.hasPrefix("mailto:") ||
+            initialLower.hasPrefix("outlook://") ||
+            initialLower.hasPrefix("ms-outlook://") ||
+            initialLower.contains("urldefense.com/") ||
+            initialLower.contains("safelinks.protection.outlook.com/") {
+            return nil
+        }
 
         if let range = value.range(of: ", sent by ", options: .caseInsensitive) {
             value = String(value[..<range.lowerBound])
@@ -666,6 +761,10 @@ final class MacCaptureCoordinator {
         if lower.hasPrefix("from ") && lower.contains(" to ") && lower.contains(" events") { return false }
         if lower.contains("copyright ©") || lower.contains("all rights reserved") { return false }
         if lower.contains("one apple park way") { return false }
+        if lower.hasPrefix("http://") || lower.hasPrefix("https://") || lower.hasPrefix("www.") { return false }
+        if lower.contains("urldefense.com/") || lower.contains("safelinks.protection.outlook.com/") { return false }
+        if lower.contains("outlook.office.com/") { return false }
+        if lower.contains("click here") || lower == "view in browser" || lower == "unsubscribe" { return false }
 
         // Accessibility rows often append Outlook UI metadata to a real subject.
         // The AppleScript path above returns only the subject, so reject those
