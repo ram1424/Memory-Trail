@@ -152,9 +152,6 @@ enum SearchService {
         let freeTerms: [String]
         let exactPhrases: [String]
 
-        var hasStructuredTerms: Bool {
-            !senderTerms.isEmpty || !subjectTerms.isEmpty || !exactPhrases.isEmpty
-        }
     }
 
     private struct OutlookRankedItem {
@@ -268,7 +265,7 @@ enum SearchService {
 
             let senderStrict = intent.senderTerms.isEmpty || senderMatches == intent.senderTerms.count
             let subjectStrict = intent.subjectTerms.isEmpty || subjectMatches == intent.subjectTerms.count
-            let freeStrict = intent.freeTerms.isEmpty || freeMatches > 0
+            let freeStrict = intent.freeTerms.isEmpty || freeMatches == intent.freeTerms.count
             let phraseStrict = intent.exactPhrases.isEmpty || intent.exactPhrases.contains {
                 text(subject, matches: $0) || text(sender, matches: $0)
             }
@@ -317,7 +314,7 @@ enum SearchService {
         let structuredTerms = Set(senderTerms + subjectTerms)
 
         let freeTerms = meaningfulTokens(for: lowerQuery)
-            .filter { !structuredTerms.contains($0) }
+            .filter { !structuredTerms.contains($0) && !isClockToken($0) }
 
         return OutlookQueryIntent(
             senderTerms: orderedUnique(senderTerms),
@@ -331,8 +328,16 @@ enum SearchService {
         tokens(for: value).filter { token in
             token.count > 1 &&
             Int(token) == nil &&
+            !isClockToken(token) &&
             !outlookIntentNoise.contains(token)
         }
+    }
+
+    private static func isClockToken(_ token: String) -> Bool {
+        token.range(
+            of: #"^\d{1,2}(?::\d{2})?(?:am|pm)$"#,
+            options: [.regularExpression, .caseInsensitive]
+        ) != nil
     }
 
     private static func quotedPhrases(in query: String) -> [String] {
