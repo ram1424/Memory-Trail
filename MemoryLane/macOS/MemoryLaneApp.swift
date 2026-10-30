@@ -241,7 +241,7 @@ private enum MemoryLaneScreenshotExporter {
 
         let screenshots: [(String, AnyView)] = [
             (
-                "timeline.png",
+                "timeline-ui.png",
                 AnyView(
                     MemoryLaneScreenshotShell(selection: .timeline)
                         .environment(preferences)
@@ -250,7 +250,7 @@ private enum MemoryLaneScreenshotExporter {
                 )
             ),
             (
-                "ask-memory-lane.png",
+                "ask-memory-lane-ui.png",
                 AnyView(
                     MemoryLaneScreenshotShell(selection: .search)
                         .environment(preferences)
@@ -259,7 +259,7 @@ private enum MemoryLaneScreenshotExporter {
                 )
             ),
             (
-                "privacy-general.png",
+                "privacy-general-ui.png",
                 AnyView(
                     MemoryLaneScreenshotShell(selection: .settings)
                         .environment(preferences)

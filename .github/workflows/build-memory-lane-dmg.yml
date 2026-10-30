@@ -100,7 +100,7 @@ jobs:
             exit "$EXPORT_STATUS"
           fi
 
-          for FILE in timeline.png ask-memory-lane.png privacy-general.png; do
+          for FILE in timeline-ui.png ask-memory-lane-ui.png privacy-general-ui.png; do
             if [ ! -s "$OUT/$FILE" ]; then
               ERROR_LINE="Expected real-app screenshot missing: $FILE"
               gh api                 --method POST                 "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"                 -f state=failure                 -f context=memory-lane-screenshot-diagnostics                 -f description="$ERROR_LINE" >/dev/null
@@ -109,21 +109,12 @@ jobs:
             sips -g pixelWidth -g pixelHeight "$OUT/$FILE"
           done
 
-          UNIQUE_SCREENSHOTS="$(shasum -a 256 "$OUT"/timeline.png "$OUT"/ask-memory-lane.png "$OUT"/privacy-general.png | awk '{print $1}' | sort -u | wc -l | tr -d ' ')"
+          UNIQUE_SCREENSHOTS="$(shasum -a 256 "$OUT"/timeline-ui.png "$OUT"/ask-memory-lane-ui.png "$OUT"/privacy-general-ui.png | awk '{print $1}' | sort -u | wc -l | tr -d ' ')"
           if [ "$UNIQUE_SCREENSHOTS" -ne 3 ]; then
             ERROR_LINE="Real-app screenshot export produced duplicate screens."
             gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state=failure -f context=memory-lane-screenshot-diagnostics -f description="$ERROR_LINE" >/dev/null
             exit 1
           fi
-
-          # Temporary visual-QA sidecars. These are small JPEG previews encoded
-          # as UTF-8 text so the private repository screenshots can be inspected.
-          for FILE in timeline.png ask-memory-lane.png privacy-general.png; do
-            NAME="${FILE%.png}"
-            PREVIEW="$RUNNER_TEMP/${NAME}-qa.jpg"
-            sips -Z 720 -s format jpeg -s formatOptions 65 "$OUT/$FILE" --out "$PREVIEW" >/dev/null
-            /usr/bin/base64 -i "$PREVIEW" > "$OUT/qa-${NAME}.jpg.b64.txt"
-          done
 
           gh api             --method POST             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"             -f state=success             -f context=memory-lane-screenshot-diagnostics             -f description="Real Memory Lane UI screenshots rendered successfully." >/dev/null
 
