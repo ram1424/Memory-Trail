@@ -109,6 +109,13 @@ jobs:
             sips -g pixelWidth -g pixelHeight "$OUT/$FILE"
           done
 
+          UNIQUE_SCREENSHOTS="$(shasum -a 256 "$OUT"/timeline.png "$OUT"/ask-memory-lane.png "$OUT"/privacy-general.png | awk '{print $1}' | sort -u | wc -l | tr -d ' ')"
+          if [ "$UNIQUE_SCREENSHOTS" -ne 3 ]; then
+            ERROR_LINE="Real-app screenshot export produced duplicate screens."
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state=failure -f context=memory-lane-screenshot-diagnostics -f description="$ERROR_LINE" >/dev/null
+            exit 1
+          fi
+
           gh api             --method POST             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"             -f state=success             -f context=memory-lane-screenshot-diagnostics             -f description="Real Memory Lane UI screenshots rendered successfully." >/dev/null
 
       - name: Publish refreshed app screenshots

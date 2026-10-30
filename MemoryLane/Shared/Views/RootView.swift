@@ -9,6 +9,7 @@ struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     private let forceMainInterface: Bool
+    private let forcedSelection: SidebarItem?
 
     init(
         initialSelection: SidebarItem? = .timeline,
@@ -16,6 +17,7 @@ struct RootView: View {
     ) {
         _selection = State(initialValue: initialSelection)
         self.forceMainInterface = forceMainInterface
+        self.forcedSelection = forceMainInterface ? initialSelection : nil
     }
 
     var body: some View {
@@ -29,8 +31,16 @@ struct RootView: View {
     }
 
     private var mainInterface: some View {
-        NavigationSplitView {
-            MemoryLaneSidebar(selection: $selection)
+        let sidebarSelection = Binding<SidebarItem?>(
+            get: { forcedSelection ?? selection },
+            set: { newValue in
+                guard forcedSelection == nil else { return }
+                selection = newValue
+            }
+        )
+
+        return NavigationSplitView {
+            MemoryLaneSidebar(selection: sidebarSelection)
                 .environment(preferences)
                 .frame(minWidth: 220, idealWidth: 235, maxWidth: 255)
         } detail: {
@@ -46,7 +56,7 @@ struct RootView: View {
                 .ignoresSafeArea()
 
                 Group {
-                    switch selection ?? .timeline {
+                    switch forcedSelection ?? selection ?? .timeline {
                     case .timeline:
                         TimelineView()
                     case .search:
