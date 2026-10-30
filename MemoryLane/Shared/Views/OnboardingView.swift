@@ -447,6 +447,25 @@ struct OnboardingView: View {
                     .font(.footnote)
                     .foregroundStyle(secondaryText)
                     .multilineTextAlignment(.center)
+
+                if !captureCoordinator.hasAccessibilityPermission {
+                    VStack(alignment: .leading, spacing: 7) {
+                        Label("If Memory Lane does not appear automatically", systemImage: "plus.app.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(primaryText)
+
+                        manualAccessibilityStep(1, "Open System Settings → Privacy & Security → Accessibility.")
+                        manualAccessibilityStep(2, "Click the + button below the app list and authenticate if prompted.")
+                        manualAccessibilityStep(3, "Choose Memory Lane from Applications, then click Open.")
+                        manualAccessibilityStep(4, "Turn Memory Lane on. Relaunch the app if macOS asks you to.")
+                    }
+                    .padding(12)
+                    .background(Color.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 13))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 13)
+                            .stroke(.white.opacity(0.10), lineWidth: 1)
+                    }
+                }
             }
             .frame(maxWidth: 620)
 
@@ -504,6 +523,21 @@ struct OnboardingView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
+        }
+    }
+
+    private func manualAccessibilityStep(_ number: Int, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 9) {
+            Text("\(number)")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 20, height: 20)
+                .background(Color.accentColor, in: Circle())
+
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

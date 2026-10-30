@@ -194,11 +194,14 @@ final class MacCaptureCoordinator {
 
     private func startFocusedWindowCapture() {
         windowTimer?.invalidate()
-        windowTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+
+        let timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.pollFocusedWindow()
             }
         }
+        timer.tolerance = 0.25
+        windowTimer = timer
     }
 
     private func startClickTargetCapture() {
@@ -597,11 +600,13 @@ final class MacCaptureCoordinator {
     }
 
     private func outlookSelectedSubject(pid: pid_t) -> String? {
-        if let subject = outlookSelectedSubjectFromAppleScript() {
+        if let subject = outlookSelectedSubjectFromAccessibility(pid: pid) {
             return subject
         }
 
-        return outlookSelectedSubjectFromAccessibility(pid: pid)
+        // AppleScript is substantially more expensive and synchronous, so use
+        // it only when Outlook does not expose the selected message through AX.
+        return outlookSelectedSubjectFromAppleScript()
     }
 
     private func outlookSelectedSubjectFromAppleScript() -> String? {
@@ -630,10 +635,6 @@ final class MacCaptureCoordinator {
     }
 
     private func outlookSelectedSender(pid: pid_t) -> String? {
-        if let sender = outlookSelectedSenderFromAppleScript() {
-            return sender
-        }
-
         let appElement = AXUIElementCreateApplication(pid)
 
         var focusedWindowValue: CFTypeRef?
@@ -662,7 +663,8 @@ final class MacCaptureCoordinator {
             return sender
         }
 
-        return nil
+        // Preserve the proven AppleScript path as a fallback only.
+        return outlookSelectedSenderFromAppleScript()
     }
 
     private func outlookSelectedSenderFromAppleScript() -> String? {
@@ -2428,9 +2430,12 @@ final class MacCaptureCoordinator {
 
     private func startClipboardCapture() {
         clipboardTimer?.invalidate()
-        clipboardTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+
+        let timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.pollClipboard() }
         }
+        timer.tolerance = 0.30
+        clipboardTimer = timer
     }
 
     private func pollClipboard() {

@@ -17,12 +17,14 @@ struct TimelineView: View {
     @AppStorage("timelineShowsInspector") private var showsInspector = true
 
     var body: some View {
+        let snapshot = makeTimelineSnapshot()
+
         VStack(spacing: 0) {
             timelineToolbar
             filterBar
 
             HStack(spacing: 0) {
-                timelineContent
+                timelineContent(snapshot)
                     .frame(minWidth: 620, maxWidth: .infinity)
 
                 if showsInspector, let item = selectedItem {
@@ -33,7 +35,7 @@ struct TimelineView: View {
                         item: item,
                         previousItem: adjacentItem(to: item, direction: .older),
                         nextItem: adjacentItem(to: item, direction: .newer),
-                        duration: duration(for: item),
+                        duration: snapshot.durations[item.id] ?? durationForItem(item),
                         isActive: isActive(item)
                     )
                     .frame(width: 390)
@@ -240,9 +242,9 @@ struct TimelineView: View {
         }
     }
 
-    private var timelineContent: some View {
-        let visibleItems = filteredItems
-        let durations = durationLookup
+    private func timelineContent(_ snapshot: TimelineSnapshot) -> some View {
+        let visibleItems = snapshot.visibleItems
+        let durations = snapshot.durations
 
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
@@ -267,7 +269,7 @@ struct TimelineView: View {
                 } else {
                     Section {
                         VStack(spacing: 10) {
-                            ActivityHeatmap(items: dayItems, selectedDay: selectedDay, now: now)
+                            ActivityHeatmap(items: snapshot.dayItems, selectedDay: selectedDay, now: now)
                         }
                         .padding(.horizontal, 24)
                         .padding(.top, 12)
@@ -299,14 +301,14 @@ struct TimelineView: View {
                         .padding(.horizontal, 24)
                         .padding(.bottom, 24)
                     } header: {
-                        dayHeader
+                        dayHeader(snapshot)
                     }
                 }
             }
         }
     }
 
-    private var dayHeader: some View {
+    private func dayHeader(_ snapshot: TimelineSnapshot) -> some View {
         HStack(spacing: 12) {
             Text(dayHeaderTitle)
                 .font(.system(size: 13, weight: .bold))
@@ -315,8 +317,8 @@ struct TimelineView: View {
 
             Spacer()
 
-            if !filteredItems.isEmpty {
-                Text(totalVisibleDurationLabel)
+            if !snapshot.visibleItems.isEmpty {
+                Text(snapshot.totalVisibleDurationLabel)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 10)
@@ -343,46 +345,75 @@ struct TimelineView: View {
         return selectedDay.formatted(.dateTime.weekday(.wide).month(.wide).day().year())
     }
 
-    private var dayItems: [MemoryItem] {
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: selectedDay)
-        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return [] }
-
-        return memories.filter { item in
-            item.createdAt >= start && item.createdAt < end
-        }
+    private struct TimelineSnapshot {
+        let dayItems: [MemoryItem]
+        let visibleItems: [MemoryItem]
+        let durations: [UUID: TimeInterval]
+        let totalVisibleDurationLabel: String
     }
 
-    private var filteredItems: [MemoryItem] {
-        let normalizedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func makeTimelineSnapshot() -> TimelineSnapshot {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: selectedDay)
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else {
+            return TimelineSnapshot(
+                dayItems: [],
+                visibleItems: [],
+                durations: [:],
+                totalVisibleDurationLabel: ""
+            )
+        }
 
-        return dayItems.filter { item in
+        // @Query is already newest-first. Stop as soon as we pass the selected
+        // day instead of rescanning the entire history on every SwiftUI redraw.
+        let daySlice = memories
+            .drop(while: { $0.createdAt >= end })
+            .prefix(while: { $0.createdAt >= start })
+        let dayItems = Array(daySlice)
+
+        let normalizedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let visibleItems = dayItems.filter { item in
             guard !item.isCaptureNoise else { return false }
 
             let matchesSearch = normalizedSearch.isEmpty
                 || item.searchableText.localizedCaseInsensitiveContains(normalizedSearch)
             return matchesSearch && filter.matches(item)
         }
-    }
 
-    private var durationLookup: [UUID: TimeInterval] {
-        var result: [UUID: TimeInterval] = [:]
-        result.reserveCapacity(memories.count)
+        var durations: [UUID: TimeInterval] = [:]
+        durations.reserveCapacity(dayItems.count)
 
-        for (index, item) in memories.enumerated() {
+        for (index, item) in dayItems.enumerated() {
             let duration: TimeInterval
 
             if index == 0 {
-                duration = min(max(0, now.timeIntervalSince(item.createdAt)), 60 * 30)
+                if calendar.isDateInToday(start) {
+                    duration = min(max(0, now.timeIntervalSince(item.createdAt)), 60 * 30)
+                } else if let globalIndex = memories.firstIndex(where: { $0.id == item.id }),
+                          globalIndex > 0 {
+                    let newer = memories[globalIndex - 1]
+                    duration = min(max(0, newer.createdAt.timeIntervalSince(item.createdAt)), 60 * 90)
+                } else {
+                    duration = 0
+                }
             } else {
-                let newer = memories[index - 1]
+                let newer = dayItems[index - 1]
                 duration = min(max(0, newer.createdAt.timeIntervalSince(item.createdAt)), 60 * 90)
             }
 
-            result[item.id] = duration
+            durations[item.id] = duration
         }
 
-        return result
+        let totalSeconds = visibleItems.reduce(0.0) { partial, item in
+            partial + (durations[item.id] ?? 0)
+        }
+
+        return TimelineSnapshot(
+            dayItems: dayItems,
+            visibleItems: visibleItems,
+            durations: durations,
+            totalVisibleDurationLabel: Self.durationFormatter.string(from: totalSeconds) ?? ""
+        )
     }
 
     private var selectedItem: MemoryItem? {
@@ -390,16 +421,15 @@ struct TimelineView: View {
         return memories.first { $0.id == selectedMemoryID }
     }
 
-    private var totalVisibleDurationLabel: String {
-        let durations = durationLookup
-        let seconds = filteredItems.reduce(0.0) { partial, item in
-            partial + (durations[item.id] ?? 0)
-        }
-        return Self.durationFormatter.string(from: seconds) ?? ""
-    }
+    private func durationForItem(_ item: MemoryItem) -> TimeInterval {
+        guard let index = memories.firstIndex(where: { $0.id == item.id }) else { return 0 }
 
-    private func duration(for item: MemoryItem) -> TimeInterval {
-        durationLookup[item.id] ?? 0
+        if index == 0 {
+            return min(max(0, now.timeIntervalSince(item.createdAt)), 60 * 30)
+        }
+
+        let newer = memories[index - 1]
+        return min(max(0, newer.createdAt.timeIntervalSince(item.createdAt)), 60 * 90)
     }
 
     private func isActive(_ item: MemoryItem) -> Bool {
