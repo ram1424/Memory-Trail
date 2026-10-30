@@ -115,7 +115,7 @@ struct MemoryLaneApp: App {
                     MemoryLaneScreenshotDemo.seedDemoTimeline(
                         in: container.mainContext
                     )
-                    await MemoryLaneScreenshotDemo.configureLiveWindow()
+                    await MemoryLaneScreenshotDemo.configureLiveWindow(for: selection)
                 }
             } else {
                 ZStack {
@@ -230,7 +230,8 @@ struct MemoryLaneApp: App {
 
 @MainActor
 private enum MemoryLaneScreenshotDemo {
-    private static let demoSize = NSSize(width: 1440, height: 900)
+    private static let standardDemoSize = NSSize(width: 1440, height: 900)
+    private static let settingsDemoSize = NSSize(width: 1440, height: 1020)
 
     static func seedDemoTimeline(in context: ModelContext) {
         let descriptor = FetchDescriptor<MemoryItem>()
@@ -302,14 +303,18 @@ private enum MemoryLaneScreenshotDemo {
         try? context.save()
     }
 
-    static func configureLiveWindow() async {
+    static func configureLiveWindow(for selection: SidebarItem) async {
         NSApplication.shared.appearance = NSAppearance(named: .aqua)
+
+        let size = selection == .settings
+            ? settingsDemoSize
+            : standardDemoSize
 
         for _ in 0..<20 {
             if let window = NSApplication.shared.windows.first(where: {
                 $0.contentView != nil
             }) {
-                window.setContentSize(demoSize)
+                window.setContentSize(size)
                 window.center()
                 window.makeKeyAndOrderFront(nil)
                 NSApplication.shared.activate(ignoringOtherApps: true)
