@@ -20,14 +20,15 @@ struct TimelineView: View {
         VStack(spacing: 0) {
             timelineToolbar
             filterBar
-            Divider()
 
             HStack(spacing: 0) {
                 timelineContent
-                    .frame(minWidth: 560, maxWidth: .infinity)
+                    .frame(minWidth: 620, maxWidth: .infinity)
 
                 if showsInspector, let item = selectedItem {
                     Divider()
+                        .opacity(0.55)
+
                     TimelineInspector(
                         item: item,
                         previousItem: adjacentItem(to: item, direction: .older),
@@ -35,19 +36,28 @@ struct TimelineView: View {
                         duration: duration(for: item),
                         isActive: isActive(item)
                     )
-                    .frame(width: 350)
+                    .frame(width: 390)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
-        .navigationTitle("Timeline")
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(nsColor: .windowBackgroundColor),
+                    Color(nsColor: .controlBackgroundColor).opacity(0.22)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .navigationTitle("")
         .toolbar {
             ToolbarItem {
                 Button(role: .destructive) {
                     showingClearTimelineConfirmation = true
                 } label: {
-                    Label("Clear Timeline", systemImage: "trash")
+                    Image(systemName: "trash")
                 }
                 .disabled(memories.isEmpty)
                 .help("Clear Timeline")
@@ -71,162 +81,163 @@ struct TimelineView: View {
     }
 
     private var timelineToolbar: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 0) {
-                Button {
-                    dayOffset -= 1
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .frame(width: 30, height: 28)
+        VStack(spacing: 14) {
+            HStack(alignment: .center, spacing: 18) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Timeline")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                    Text(selectedDay.formatted(.dateTime.weekday(.wide).month(.wide).day().year()))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
+                .frame(minWidth: 220, alignment: .leading)
 
-                Divider()
-                    .frame(height: 18)
+                HStack(spacing: 9) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
 
-                Button {
-                    if dayOffset < 0 {
-                        dayOffset += 1
+                    TextField("Search your activity…", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 14.5))
+                        .frame(minWidth: 180)
+
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.tertiary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .frame(width: 30, height: 28)
                 }
-                .disabled(dayOffset >= 0)
-            }
-            .buttonStyle(.plain)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 9))
-            .overlay {
-                RoundedRectangle(cornerRadius: 9)
-                    .stroke(.quaternary, lineWidth: 1)
-            }
+                .padding(.horizontal, 13)
+                .frame(height: 40)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(.quaternary, lineWidth: 1)
+                }
 
-            Button {
-                dayOffset = 0
-            } label: {
-                Label(dayOffset == 0 ? "Today" : selectedDay.formatted(date: .abbreviated, time: .omitted), systemImage: "calendar")
+                Spacer(minLength: 0)
+
+                Button {
+                    dayOffset = 0
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "calendar")
+                        Text(dayOffset == 0 ? "Today" : selectedDay.formatted(date: .abbreviated, time: .omitted))
+                            .lineLimit(1)
+                    }
                     .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 10)
-                    .frame(height: 30)
-            }
-            .buttonStyle(.plain)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 9))
-            .overlay {
-                RoundedRectangle(cornerRadius: 9)
-                    .stroke(.quaternary, lineWidth: 1)
-            }
+                    .padding(.horizontal, 13)
+                    .frame(height: 40)
+                }
+                .buttonStyle(.plain)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(.quaternary, lineWidth: 1)
+                }
 
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search your work…", text: $searchText)
-                    .textFieldStyle(.plain)
-                    .frame(minWidth: 180)
-                if !searchText.isEmpty {
+                HStack(spacing: 0) {
                     Button {
-                        searchText = ""
+                        dayOffset -= 1
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.tertiary)
+                        Image(systemName: "chevron.left")
+                            .frame(width: 38, height: 38)
                     }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 11)
-            .frame(height: 32)
-            .background(Color(nsColor: .textBackgroundColor).opacity(0.72), in: RoundedRectangle(cornerRadius: 10))
-            .overlay {
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(.quaternary, lineWidth: 1)
-            }
 
-            Menu {
-                Picker("Activity", selection: $filter) {
-                    ForEach(TimelineFilter.allCases) { option in
-                        Label(option.title, systemImage: option.symbol)
-                            .tag(option)
+                    Divider()
+                        .frame(height: 20)
+
+                    Button {
+                        if dayOffset < 0 {
+                            dayOffset += 1
+                        }
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .frame(width: 38, height: 38)
                     }
+                    .disabled(dayOffset >= 0)
                 }
-            } label: {
-                HStack(spacing: 5) {
-                    Text(filter == .all ? "All Activity" : filter.title)
-                        .lineLimit(1)
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
+                .buttonStyle(.plain)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(.quaternary, lineWidth: 1)
                 }
-                .font(.subheadline)
-                .padding(.horizontal, 9)
-                .frame(minWidth: 112)
-                .frame(height: 30)
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-
-            Spacer(minLength: 8)
-
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(preferences.capturePaused ? .orange : .green)
-                    .frame(width: 8, height: 8)
-                Text(preferences.capturePaused ? "Paused" : "Capturing")
-                    .font(.caption.weight(.medium))
-            }
-            .padding(.horizontal, 10)
-            .frame(height: 30)
-            .background(.thinMaterial, in: Capsule())
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 24)
+        .padding(.top, 18)
+        .padding(.bottom, 12)
     }
 
     private var filterBar: some View {
         HStack(spacing: 8) {
             ForEach(TimelineFilter.quickFilters) { option in
                 Button {
-                    filter = option
+                    withAnimation(.easeOut(duration: 0.14)) {
+                        filter = option
+                    }
                 } label: {
                     Text(option.title)
-                        .font(.caption.weight(filter == option ? .semibold : .medium))
+                        .font(.system(size: 13, weight: filter == option ? .semibold : .medium))
                         .foregroundStyle(filter == option ? Color.white : Color.primary)
-                        .padding(.horizontal, 13)
-                        .frame(height: 28)
+                        .padding(.horizontal, 15)
+                        .frame(height: 34)
                         .background(
-                            filter == option ? Color.accentColor : Color(nsColor: .controlBackgroundColor),
-                            in: RoundedRectangle(cornerRadius: 8)
+                            filter == option
+                                ? Color.accentColor
+                                : Color(nsColor: .controlBackgroundColor).opacity(0.82),
+                            in: Capsule()
                         )
+                        .overlay {
+                            if filter != option {
+                                Capsule()
+                                    .stroke(.quaternary, lineWidth: 1)
+                            }
+                        }
                 }
                 .buttonStyle(.plain)
             }
 
-            Spacer()
+            Spacer(minLength: 14)
 
             Picker("Density", selection: $density) {
-                ForEach(TimelineDensity.allCases) { option in
-                    Text(option.title).tag(option)
-                }
+                Label("List", systemImage: "list.bullet").tag(TimelineDensity.comfortable)
+                Label("Compact", systemImage: "square.grid.2x2").tag(TimelineDensity.compact)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .frame(width: 190)
 
             Button {
-                withAnimation(.easeInOut(duration: 0.16)) {
+                withAnimation(.easeInOut(duration: 0.18)) {
                     showsInspector.toggle()
                 }
             } label: {
-                Image(systemName: showsInspector ? "info.circle.fill" : "info.circle")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 28, height: 26)
+                Image(systemName: showsInspector ? "sidebar.trailing" : "sidebar.trailing")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(showsInspector ? Color.accentColor : Color.secondary)
+                    .frame(width: 34, height: 32)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(showsInspector ? Color.accentColor : Color.secondary)
             .background(
                 showsInspector ? Color.accentColor.opacity(0.10) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 7)
+                in: RoundedRectangle(cornerRadius: 9, style: .continuous)
             )
             .help(showsInspector ? "Hide Details" : "Show Details")
         }
-        .padding(.horizontal, 18)
-        .padding(.bottom, 10)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 14)
+        .overlay(alignment: .bottom) {
+            Divider()
+                .opacity(0.45)
+        }
     }
 
     private var timelineContent: some View {
@@ -258,7 +269,7 @@ struct TimelineView: View {
                         VStack(spacing: 10) {
                             ActivityHeatmap(items: dayItems, selectedDay: selectedDay, now: now)
                         }
-                        .padding(.horizontal, 18)
+                        .padding(.horizontal, 24)
                         .padding(.top, 12)
                         .padding(.bottom, 12)
 
@@ -285,8 +296,8 @@ struct TimelineView: View {
                                 }
                             }
                         }
-                        .padding(.horizontal, 18)
-                        .padding(.bottom, 18)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 24)
                     } header: {
                         dayHeader
                     }
@@ -296,20 +307,24 @@ struct TimelineView: View {
     }
 
     private var dayHeader: some View {
-        HStack {
+        HStack(spacing: 12) {
             Text(dayHeaderTitle)
-                .font(.subheadline.weight(.bold))
+                .font(.system(size: 13, weight: .bold))
                 .textCase(.uppercase)
+                .tracking(0.4)
 
             Spacer()
 
             if !filteredItems.isEmpty {
                 Text(totalVisibleDurationLabel)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .frame(height: 26)
+                    .background(.thinMaterial, in: Capsule())
             }
         }
-        .padding(.horizontal, 22)
+        .padding(.horizontal, 24)
         .padding(.vertical, 11)
         .background(.ultraThinMaterial)
     }
