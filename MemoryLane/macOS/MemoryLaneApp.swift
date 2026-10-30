@@ -95,7 +95,7 @@ struct MemoryLaneApp: App {
                 isLaunching = false
             }
         }
-        .defaultSize(width: 1000, height: 700)
+        .defaultSize(width: 1280, height: 780)
         .commands {
             CommandGroup(replacing: .appInfo) {
                 Button("About Memory Lane") {

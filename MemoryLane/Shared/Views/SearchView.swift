@@ -34,7 +34,7 @@ struct SearchView: View {
             }
             .padding(24)
         }
-        .navigationTitle("Ask Memory Lane")
+        .navigationTitle("")
         .onAppear {
             if query.isEmpty {
                 searchFocused = true
@@ -50,7 +50,7 @@ struct SearchView: View {
                     .foregroundStyle(.tint)
 
                 Text("Ask Memory Lane")
-                    .font(.title2.weight(.semibold))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
             }
 
             Text("Ask about a time, app, page, email, chat, file, or project. Answers are generated locally from your captured timeline.")
@@ -91,9 +91,9 @@ struct SearchView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 14)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(.quaternary, lineWidth: 1)
             }
 
@@ -145,7 +145,7 @@ struct SearchView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 360)
         .padding(30)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private func answerCard(_ answer: MemoryLaneAnswer) -> some View {
@@ -177,9 +177,9 @@ struct SearchView: View {
             }
         }
         .padding(16)
-        .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 16))
+        .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
         }
     }

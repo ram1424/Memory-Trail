@@ -15,7 +15,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Settings")
-                        .font(.title2.weight(.semibold))
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
                     Text("Control what Memory Lane remembers and how it behaves.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -151,7 +151,7 @@ struct SettingsView: View {
             }
             .padding(24)
         }
-        .navigationTitle("Settings")
+        .navigationTitle("")
         .onAppear {
             customExclusions = preferences.customExcludedBundleIDs
             captureCoordinator.refreshAccessibilityStatus()
@@ -189,9 +189,9 @@ struct SettingsView: View {
             content()
         }
         .padding(18)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 18)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(.quaternary, lineWidth: 1)
         }
     }

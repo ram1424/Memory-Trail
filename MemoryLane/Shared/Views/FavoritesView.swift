@@ -11,7 +11,7 @@ struct FavoritesView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Favorites")
-                            .font(.title2.weight(.semibold))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
                         Text("Keep important memories close.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -47,6 +47,6 @@ struct FavoritesView: View {
             }
             .padding(24)
         }
-        .navigationTitle("Favorites")
+        .navigationTitle("")
     }
 }
