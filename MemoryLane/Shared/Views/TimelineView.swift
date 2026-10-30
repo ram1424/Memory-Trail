@@ -456,39 +456,21 @@ private struct TimelineActivityRow: View {
     let density: TimelineDensity
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 14) {
             Text(item.createdAt.formatted(date: .omitted, time: .shortened))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .frame(width: 68, alignment: .trailing)
+                .frame(width: 72, alignment: .trailing)
 
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.22))
-                    .frame(width: 1)
-                Circle()
-                    .fill(isActive ? Color.green : Color.accentColor)
-                    .frame(width: isActive ? 12 : 9, height: isActive ? 12 : 9)
-                    .overlay {
-                        if isActive {
-                            Circle()
-                                .stroke(Color.green.opacity(0.25), lineWidth: 5)
-                        }
-                    }
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.22))
-                    .frame(width: 1)
-            }
-            .frame(width: 20)
-            .frame(minHeight: density.rowHeight)
+            timelineRail
 
-            HStack(spacing: 12) {
+            HStack(spacing: 14) {
                 sourceIcon
 
-                VStack(alignment: .leading, spacing: density == .comfortable ? 4 : 2) {
-                    HStack(spacing: 7) {
+                VStack(alignment: .leading, spacing: density == .comfortable ? 5 : 3) {
+                    HStack(spacing: 8) {
                         Text(primaryTitle)
-                            .font(.system(size: density == .comfortable ? 15 : 14, weight: .semibold))
+                            .font(.system(size: density == .comfortable ? 16 : 14.5, weight: .semibold))
                             .lineLimit(1)
 
                         if item.isFavorite {
@@ -500,7 +482,7 @@ private struct TimelineActivityRow: View {
 
                     if !secondaryTitle.isEmpty {
                         Text(secondaryTitle)
-                            .font(.subheadline)
+                            .font(.system(size: density == .comfortable ? 14.5 : 13.5))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
@@ -510,46 +492,78 @@ private struct TimelineActivityRow: View {
                             Text(item.sourceApp)
                             Text("·")
                             Text(categoryLabel)
+
+                            if duration >= 60 {
+                                Text("·")
+                                Text(Self.durationFormatter.string(from: duration) ?? "")
+                            }
                         }
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                     }
                 }
 
-                Spacer(minLength: 8)
+                Spacer(minLength: 12)
 
-                VStack(alignment: .trailing, spacing: 4) {
-                    if isActive {
-                        Label("Active now", systemImage: "circle.fill")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.green)
-                            .labelStyle(.titleAndIcon)
-                    } else if duration >= 60 {
-                        Text(Self.durationFormatter.string(from: duration) ?? "")
-                            .font(.subheadline.weight(.semibold))
-                    }
-
-                    if density == .comfortable, duration >= 60 {
-                        let end = item.createdAt.addingTimeInterval(duration)
-                        Text("\(item.createdAt.formatted(date: .omitted, time: .shortened)) – \(end.formatted(date: .omitted, time: .shortened))")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
+                if isActive {
+                    Label("Active now", systemImage: "circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.green)
+                        .labelStyle(.titleAndIcon)
+                        .padding(.horizontal, 10)
+                        .frame(height: 28)
+                        .background(Color.green.opacity(0.08), in: Capsule())
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
                 }
             }
-            .padding(.horizontal, density == .comfortable ? 14 : 12)
-            .padding(.vertical, density == .comfortable ? 12 : 8)
+            .padding(.horizontal, density == .comfortable ? 16 : 14)
+            .padding(.vertical, density == .comfortable ? 14 : 10)
             .background(
                 isSelected
-                    ? Color.accentColor.opacity(0.12)
-                    : Color(nsColor: .controlBackgroundColor).opacity(0.72),
-                in: RoundedRectangle(cornerRadius: 14)
+                    ? Color.accentColor.opacity(0.11)
+                    : Color(nsColor: .controlBackgroundColor).opacity(0.86),
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(isSelected ? Color.accentColor.opacity(0.45) : Color.secondary.opacity(0.15), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(
+                        isSelected ? Color.accentColor.opacity(0.42) : Color.secondary.opacity(0.13),
+                        lineWidth: 1
+                    )
             }
+            .shadow(
+                color: Color.black.opacity(isSelected ? 0.07 : 0.035),
+                radius: isSelected ? 8 : 4,
+                y: 2
+            )
         }
+    }
+
+    private var timelineRail: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.16))
+                .frame(width: 1)
+
+            Circle()
+                .fill(isActive ? Color.green : Color.accentColor)
+                .frame(width: isActive ? 12 : 9, height: isActive ? 12 : 9)
+                .overlay {
+                    if isActive {
+                        Circle()
+                            .stroke(Color.green.opacity(0.20), lineWidth: 6)
+                    }
+                }
+
+            Rectangle()
+                .fill(Color.secondary.opacity(0.16))
+                .frame(width: 1)
+        }
+        .frame(width: 20)
+        .frame(minHeight: density.rowHeight + 12)
     }
 
     @ViewBuilder
@@ -560,15 +574,19 @@ private struct TimelineActivityRow: View {
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
-                .frame(width: 34, height: 34)
-                .padding(5)
-                .background(Color(nsColor: .textBackgroundColor).opacity(0.72), in: RoundedRectangle(cornerRadius: 11))
+                .frame(width: density == .comfortable ? 38 : 32, height: density == .comfortable ? 38 : 32)
+                .padding(6)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .stroke(.quaternary, lineWidth: 1)
+                }
         } else {
             Image(systemName: item.sourceKind.symbol)
-                .font(.system(size: 17, weight: .semibold))
-                .frame(width: 44, height: 44)
+                .font(.system(size: 18, weight: .semibold))
+                .frame(width: 50, height: 50)
                 .foregroundStyle(.tint)
-                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 11))
+                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
         }
     }
 
@@ -608,56 +626,81 @@ private struct TimelineInspector: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 20) {
                 inspectorHeader
-
-                Divider()
-
+                activitySummary
                 metadataSection
-
-                if let previousItem {
-                    Divider()
-                    adjacentActivity(title: "Previous Activity", item: previousItem)
-                }
-
-                if let nextItem {
-                    adjacentActivity(title: "Next Activity", item: nextItem)
-                }
-
-                Divider()
-
                 actions
+
+                if previousItem != nil || nextItem != nil {
+                    Divider()
+                        .opacity(0.55)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Related Activity")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        if let previousItem {
+                            adjacentActivity(item: previousItem)
+                        }
+
+                        if let nextItem {
+                            adjacentActivity(item: nextItem)
+                        }
+                    }
+                }
             }
-            .padding(18)
+            .padding(24)
         }
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.36))
+        .background(.ultraThinMaterial)
     }
 
     private var inspectorHeader: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                inspectorIcon
+        HStack(alignment: .center, spacing: 12) {
+            inspectorIcon
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.displayTitle)
-                        .font(.title3.weight(.semibold))
-                        .lineLimit(2)
-                    Text(item.sourceApp)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.sourceApp)
+                    .font(.title3.weight(.semibold))
 
-                Spacer()
-
-                Button {
-                    item.isFavorite.toggle()
-                } label: {
-                    Image(systemName: item.isFavorite ? "star.fill" : "star")
-                        .foregroundStyle(item.isFavorite ? .yellow : .secondary)
-                }
-                .buttonStyle(.plain)
-                .help(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
+                Text(TimelineFilter.category(for: item).title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
+
+            Spacer()
+
+            Button {
+                item.isFavorite.toggle()
+            } label: {
+                Image(systemName: item.isFavorite ? "star.fill" : "star")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(item.isFavorite ? .yellow : .secondary)
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.plain)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .help(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
+        }
+    }
+
+    private var activitySummary: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(item.displayTitle)
+                .font(.system(size: 19, weight: .semibold))
+                .lineLimit(3)
+                .textSelection(.enabled)
+
+            HStack(spacing: 7) {
+                Text(timeValue)
+                if duration >= 60 {
+                    Text("·")
+                    Text(durationLabel)
+                }
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
 
             if isActive {
                 Label("Active now", systemImage: "circle.fill")
@@ -668,50 +711,53 @@ private struct TimelineInspector: View {
     }
 
     private var metadataSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            inspectorRow(symbol: "clock", label: "Time", value: timeValue)
-            inspectorRow(symbol: "hourglass", label: "Duration", value: durationLabel)
-            inspectorRow(symbol: "app", label: "Application", value: item.sourceApp)
-            inspectorRow(symbol: item.sourceKind.symbol, label: "Type", value: item.sourceKind.rawValue)
-
+        VStack(alignment: .leading, spacing: 0) {
             if !item.body.isEmpty {
-                inspectorRow(symbol: "text.alignleft", label: "Details", value: item.body)
+                detailRow(symbol: "text.alignleft", title: "Details", value: item.body)
+                Divider().padding(.leading, 34)
             }
+
+            detailRow(symbol: "app", title: "Application", value: item.sourceApp)
 
             if let sourceURL = item.sourceURL, !sourceURL.isEmpty {
-                inspectorRow(symbol: "link", label: "Source", value: sourceURL)
+                Divider().padding(.leading, 34)
+                detailRow(symbol: "link", title: "Source", value: sourceURL)
             }
+        }
+        .padding(.horizontal, 14)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(.quaternary, lineWidth: 1)
         }
     }
 
     private var actions: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Actions")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-
+        VStack(spacing: 10) {
             if !item.sourceBundleID.isEmpty {
                 Button {
                     openSourceApplication()
                 } label: {
-                    Label("Open App", systemImage: "arrow.up.forward.app")
+                    Label("Open in \(item.sourceApp)", systemImage: "arrow.up.forward.app")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
             }
 
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Button {
                     copyDetails()
                 } label: {
                     Label("Copy", systemImage: "doc.on.doc")
+                        .frame(maxWidth: .infinity)
                 }
 
                 Button {
                     item.isFavorite.toggle()
                 } label: {
                     Label(item.isFavorite ? "Favorited" : "Favorite", systemImage: item.isFavorite ? "star.fill" : "star")
+                        .frame(maxWidth: .infinity)
                 }
             }
             .buttonStyle(.bordered)
@@ -726,64 +772,70 @@ private struct TimelineInspector: View {
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
-                .frame(width: 42, height: 42)
+                .frame(width: 46, height: 46)
                 .padding(6)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 13))
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(.quaternary, lineWidth: 1)
+                }
         } else {
             Image(systemName: item.sourceKind.symbol)
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(.tint)
-                .frame(width: 54, height: 54)
-                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 13))
+                .frame(width: 58, height: 58)
+                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
     }
 
-    private func inspectorRow(symbol: String, label: String, value: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+    private func detailRow(symbol: String, title: String, value: String) -> some View {
+        HStack(alignment: .top, spacing: 11) {
             Image(systemName: symbol)
                 .foregroundStyle(.secondary)
-                .frame(width: 18)
+                .frame(width: 20)
 
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(width: 72, alignment: .leading)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            Text(value)
-                .font(.subheadline)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private func adjacentActivity(title: String, item: MemoryItem) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 9) {
-                if item.sourceKind == .appActivity,
-                   let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
-                    Image(nsImage: icon)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 24, height: 24)
-                } else {
-                    Image(systemName: item.sourceKind.symbol)
-                        .frame(width: 24)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.title)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(1)
-                    Text(item.createdAt.formatted(date: .omitted, time: .shortened))
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
+                Text(value)
+                    .font(.subheadline)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .padding(.vertical, 12)
+    }
+
+    private func adjacentActivity(item: MemoryItem) -> some View {
+        HStack(spacing: 10) {
+            if item.sourceKind == .appActivity,
+               let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
+                Image(nsImage: icon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 28, height: 28)
+            } else {
+                Image(systemName: item.sourceKind.symbol)
+                    .frame(width: 28)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.displayTitle)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+
+                Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+        }
+        .padding(10)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var timeValue: String {
@@ -996,8 +1048,8 @@ private enum TimelineDensity: String, CaseIterable, Identifiable, Hashable {
 
     var id: String { rawValue }
     var title: String { rawValue.capitalized }
-    var rowHeight: CGFloat { self == .comfortable ? 78 : 58 }
-    var rowSpacing: CGFloat { self == .comfortable ? 8 : 5 }
+    var rowHeight: CGFloat { self == .comfortable ? 84 : 62 }
+    var rowSpacing: CGFloat { self == .comfortable ? 10 : 6 }
 }
 
 private enum AdjacentDirection {
