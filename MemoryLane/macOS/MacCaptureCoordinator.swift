@@ -1142,7 +1142,9 @@ final class MacCaptureCoordinator {
                     if parsed.directConversationSignal { score += 180 }
                     if parsed.strongSignal { score += 120 }
                     if parsed.name.lowercased().hasPrefix("chat with ") ||
-                    parsed.name.lowercased().hasPrefix("conversation with ") { score += 50 }
+                        parsed.name.lowercased().hasPrefix("conversation with ") {
+                        score += 50
+                    }
                     candidates.append((parsed.name, score))
                 }
 
@@ -1170,7 +1172,9 @@ final class MacCaptureCoordinator {
                             if parsed.directConversationSignal { score += 180 }
                             if parsed.strongSignal { score += 120 }
                             if parsed.name.lowercased().hasPrefix("chat with ") ||
-                    parsed.name.lowercased().hasPrefix("conversation with ") { score += 50 }
+                        parsed.name.lowercased().hasPrefix("conversation with ") {
+                        score += 50
+                    }
                             candidates.append((parsed.name, score))
                         }
                     }
@@ -1656,7 +1660,7 @@ final class MacCaptureCoordinator {
         guard let cleaned = sanitizedTeamsPeopleLabel(value) else { return nil }
 
         if looksLikeTeamsDisplayName(cleaned) {
-            return "Conversation with \(cleaned)"
+            return "Chat with \(cleaned)"
         }
 
         return cleaned
