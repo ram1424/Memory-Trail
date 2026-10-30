@@ -261,6 +261,8 @@ final class MacCaptureCoordinator {
         if isTeamsBundleID(lowerBundleID) {
             guard let conversation = teamsSelectedConversationTitle(
                 pid: app.processIdentifier
+            ) ?? teamsConversationHeaderTitle(
+                pid: app.processIdentifier
             ) else {
                 return
             }
@@ -1004,6 +1006,122 @@ final class MacCaptureCoordinator {
 
         return candidates
             .filter { $0.score >= 180 }
+            .max(by: { $0.score < $1.score })?
+            .name
+    }
+
+    private func teamsConversationHeaderTitle(pid: pid_t) -> String? {
+        let appElement = AXUIElementCreateApplication(pid)
+
+        var focusedWindowValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        ) == .success,
+        let focusedWindowValue,
+        CFGetTypeID(focusedWindowValue) == AXUIElementGetTypeID()
+        else {
+            return nil
+        }
+
+        let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
+        var queue: [(element: AXUIElement, depth: Int)] = [(window, 0)]
+        var index = 0
+        var inspected = 0
+        var candidates: [(name: String, score: Int)] = []
+
+        while index < queue.count, inspected < 360 {
+            let entry = queue[index]
+            index += 1
+            inspected += 1
+
+            let element = entry.element
+            let depth = entry.depth
+
+            let role = attributeString(element, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+            let roleDescription = attributeString(element, kAXRoleDescriptionAttribute as CFString)?.lowercased() ?? ""
+            let identifier = attributeString(element, kAXIdentifierAttribute as CFString)?.lowercased() ?? ""
+
+            let headerSemantic =
+                role.contains("heading") ||
+                roleDescription.contains("heading") ||
+                identifier.contains("chat-title") ||
+                identifier.contains("chat_title") ||
+                identifier.contains("conversation-title") ||
+                identifier.contains("conversation_title") ||
+                identifier.contains("chat-header") ||
+                identifier.contains("chat_header") ||
+                identifier.contains("conversation-header") ||
+                identifier.contains("conversation_header")
+
+            if headerSemantic {
+                for (attribute, baseScore) in [
+                    (kAXTitleAttribute as CFString, 180),
+                    (kAXDescriptionAttribute as CFString, 150),
+                    (kAXValueAttribute as CFString, 90)
+                ] {
+                    guard let raw = attributeString(element, attribute),
+                          !isGenericTeamsUIValue(raw),
+                          let parsed = parsedTeamsConversationCandidate(raw)
+                    else {
+                        continue
+                    }
+
+                    var score = baseScore
+                    if parsed.directConversationSignal { score += 180 }
+                    if parsed.strongSignal { score += 120 }
+                    if parsed.name.lowercased().hasPrefix("conversation with ") { score += 50 }
+                    candidates.append((parsed.name, score))
+                }
+
+                var childrenValue: CFTypeRef?
+                if AXUIElementCopyAttributeValue(
+                    element,
+                    kAXChildrenAttribute as CFString,
+                    &childrenValue
+                ) == .success,
+                let children = childrenValue as? [AXUIElement] {
+                    for child in children.prefix(12) {
+                        for (attribute, baseScore) in [
+                            (kAXTitleAttribute as CFString, 150),
+                            (kAXDescriptionAttribute as CFString, 125),
+                            (kAXValueAttribute as CFString, 75)
+                        ] {
+                            guard let raw = attributeString(child, attribute),
+                                  !isGenericTeamsUIValue(raw),
+                                  let parsed = parsedTeamsConversationCandidate(raw)
+                            else {
+                                continue
+                            }
+
+                            var score = baseScore
+                            if parsed.directConversationSignal { score += 180 }
+                            if parsed.strongSignal { score += 120 }
+                            if parsed.name.lowercased().hasPrefix("conversation with ") { score += 50 }
+                            candidates.append((parsed.name, score))
+                        }
+                    }
+                }
+            }
+
+            guard depth < 6 else { continue }
+
+            var childrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXChildrenAttribute as CFString,
+                &childrenValue
+            ) == .success,
+            let children = childrenValue as? [AXUIElement] {
+                for child in children.prefix(70) {
+                    queue.append((child, depth + 1))
+                }
+            }
+        }
+
+        return candidates
+            .filter { $0.score >= 160 }
             .max(by: { $0.score < $1.score })?
             .name
     }
