@@ -145,9 +145,9 @@ jobs:
 
           capture_screen timeline timeline-ui.png
           capture_screen ask ask-memory-lane-ui.png
-          capture_screen privacy privacy-general-ui.png
+          capture_screen favorites favorites-ui.png
 
-          for FILE in timeline-ui.png ask-memory-lane-ui.png privacy-general-ui.png; do
+          for FILE in timeline-ui.png ask-memory-lane-ui.png favorites-ui.png; do
             WIDTH="$(sips -g pixelWidth "$OUT/$FILE" | awk '/pixelWidth/ {print $2}')"
             HEIGHT="$(sips -g pixelHeight "$OUT/$FILE" | awk '/pixelHeight/ {print $2}')"
             echo "$FILE: ${WIDTH}x${HEIGHT}"
@@ -162,7 +162,7 @@ jobs:
             /usr/bin/base64 -i "$PREVIEW" > "$OUT/qa-${NAME}.jpg.b64.txt"
           done
 
-          UNIQUE="$(shasum -a 256 "$OUT"/timeline-ui.png "$OUT"/ask-memory-lane-ui.png "$OUT"/privacy-general-ui.png | awk '{print $1}' | sort -u | wc -l | tr -d ' ')"
+          UNIQUE="$(shasum -a 256 "$OUT"/timeline-ui.png "$OUT"/ask-memory-lane-ui.png "$OUT"/favorites-ui.png | awk '{print $1}' | sort -u | wc -l | tr -d ' ')"
           test "$UNIQUE" -eq 3
 
       - name: Publish refreshed app screenshots

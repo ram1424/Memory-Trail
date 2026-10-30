@@ -18,9 +18,9 @@ Memory Lane is designed to preserve recognizable context rather than rewrite you
 
 ![Ask Memory Lane](docs/screenshots/ask-memory-lane-ui.png)
 
-### Privacy & General
+### Favorites
 
-![Memory Lane Privacy and Accessibility Tutorial](docs/screenshots/privacy-general-ui.png)
+![Memory Lane Favorites](docs/screenshots/favorites-ui.png)
 
 _All screenshots use generic demo data._
 

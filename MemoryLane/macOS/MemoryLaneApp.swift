@@ -22,6 +22,8 @@ struct MemoryLaneApp: App {
             return .timeline
         case "ask":
             return .search
+        case "favorites":
+            return .favorites
         case "privacy":
             return .settings
         default:
