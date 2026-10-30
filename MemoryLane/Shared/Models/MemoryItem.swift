@@ -113,7 +113,10 @@ final class MemoryItem {
             normalized.contains("post a message") ||
             normalized.contains("message list") ||
             normalized.contains("chat list") ||
-            normalized.contains("conversation list") {
+            normalized.contains("conversation list") ||
+            normalized.contains("more chat options") ||
+            normalized.contains("chat options") ||
+            normalized.contains("conversation options") {
             return true
         }
 

@@ -259,21 +259,11 @@ final class MacCaptureCoordinator {
         }
 
         if isTeamsBundleID(lowerBundleID) {
-            var conversation: String?
-
-            if result == .success, let hitElement {
-                conversation = teamsConversationFromClickedElement(hitElement)
+            guard let conversation = teamsSelectedConversationTitle(
+                pid: app.processIdentifier
+            ) else {
+                return
             }
-
-            if conversation == nil {
-                conversation = teamsSelectedConversationTitle(pid: app.processIdentifier)
-            }
-
-            if conversation == nil {
-                conversation = teamsConversationTitleFromFocusedWindow(pid: app.processIdentifier)
-            }
-
-            guard let conversation else { return }
 
             logActivity(
                 title: conversation,
@@ -1085,6 +1075,17 @@ final class MacCaptureCoordinator {
                 }
             }
 
+            if attributeBool(element, kAXSelectedAttribute as CFString) == true {
+                let containerScore = teamsConversationContainerScore(element)
+                if containerScore > 0,
+                   let result = teamsNameFromSelectedElement(element) {
+                    candidates.append((
+                        result.name,
+                        result.score + containerScore + 75
+                    ))
+                }
+            }
+
             appendChildren(of: element, to: &queue, limit: 65)
         }
 
@@ -1179,9 +1180,18 @@ final class MacCaptureCoordinator {
         }
 
         var score = 0
+        let isSelected = attributeBool(element, kAXSelectedAttribute as CFString) == true
 
         if role.contains("row") || role.contains("cell") {
             score += 85
+        }
+
+        if isSelected &&
+            (role.contains("row") ||
+             role.contains("cell") ||
+             role.contains("group") ||
+             role.contains("listitem")) {
+            score += 120
         }
         if role.contains("listitem") || roleDescription.contains("list item") {
             score += 75
@@ -1209,7 +1219,7 @@ final class MacCaptureCoordinator {
         // chat/conversation content. This prevents navigation groups such as
         // Favorites, Copilot, and Message List from becoming fake chats.
         if role.contains("group") && score == 0 {
-            return -50
+            return isSelected ? 95 : -50
         }
 
         if role.contains("button") ||
@@ -1551,6 +1561,9 @@ final class MacCaptureCoordinator {
             "toolbar",
             "more",
             "more options",
+            "more chat options",
+            "chat options",
+            "conversation options",
             "type a message",
             "send a message",
             "post a message",
@@ -1565,6 +1578,9 @@ final class MacCaptureCoordinator {
             "message list",
             "chat list",
             "conversation list",
+            "more chat options",
+            "chat options",
+            "conversation options",
             "navigation pane",
             "type a message",
             "send a message",
