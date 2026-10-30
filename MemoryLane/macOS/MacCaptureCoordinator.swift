@@ -226,10 +226,18 @@ final class MacCaptureCoordinator {
             guard AXIsProcessTrusted(), let point = event.cgEvent?.location else { return }
 
             Task { @MainActor in
-                guard let self else { return }
-                if let app = NSWorkspace.shared.frontmostApplication {
-                    self.enableDetailedAccessibilityIfNeeded(for: app)
+                guard let self,
+                      let app = NSWorkspace.shared.frontmostApplication
+                else {
+                    return
                 }
+
+                let bundleID = app.bundleIdentifier ?? ""
+                guard bundleID != Bundle.main.bundleIdentifier else {
+                    return
+                }
+
+                self.enableDetailedAccessibilityIfNeeded(for: app)
 
                 try? await Task.sleep(nanoseconds: 220_000_000)
                 self.captureClickedContext(at: point)

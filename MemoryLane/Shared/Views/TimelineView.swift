@@ -286,15 +286,15 @@ struct TimelineView: View {
                                 )
                                 .contentShape(Rectangle())
                                 .onTapGesture(count: 2) {
-                                    withAnimation(.easeInOut(duration: 0.16)) {
-                                        selectedMemoryID = item.id
-                                        showsInspector = true
+                                    selectedMemoryID = item.id
+                                    if !showsInspector {
+                                        withAnimation(.easeInOut(duration: 0.16)) {
+                                            showsInspector = true
+                                        }
                                     }
                                 }
                                 .onTapGesture {
-                                    withAnimation(.easeInOut(duration: 0.16)) {
-                                        selectedMemoryID = item.id
-                                    }
+                                    selectedMemoryID = item.id
                                 }
                             }
                         }
@@ -565,9 +565,9 @@ private struct TimelineActivityRow: View {
                     )
             }
             .shadow(
-                color: Color.black.opacity(isSelected ? 0.07 : 0.035),
-                radius: isSelected ? 8 : 4,
-                y: 2
+                color: isSelected ? Color.black.opacity(0.07) : .clear,
+                radius: isSelected ? 8 : 0,
+                y: isSelected ? 2 : 0
             )
         }
     }
@@ -606,10 +606,13 @@ private struct TimelineActivityRow: View {
                 .scaledToFit()
                 .frame(width: density == .comfortable ? 38 : 32, height: density == .comfortable ? 38 : 32)
                 .padding(6)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .background(
+                    Color(nsColor: .controlBackgroundColor).opacity(0.88),
+                    in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+                )
                 .overlay {
                     RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .stroke(.quaternary, lineWidth: 1)
+                        .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
                 }
         } else {
             Image(systemName: item.sourceKind.symbol)
@@ -928,8 +931,8 @@ private struct ActivityHeatmap: View {
         let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? selectedDay
 
         let relevant = items
+            .reversed()
             .filter { $0.sourceKind == .appActivity || $0.sourceKind == .file || $0.sourceKind == .link }
-            .sorted { $0.createdAt < $1.createdAt }
 
         for (index, item) in relevant.enumerated() {
             let nextDate: Date
