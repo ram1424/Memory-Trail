@@ -188,12 +188,6 @@ Download the latest build from:
 
 ---
 
-## Website
-
-**[Memory Lane on GitHub Pages](https://ram1424.github.io/Memory-Lane/)**
-
----
-
 ## Building From Source
 
 1. Clone this repository.
