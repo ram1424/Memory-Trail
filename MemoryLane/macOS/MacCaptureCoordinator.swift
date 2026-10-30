@@ -10,16 +10,18 @@ import SwiftData
 final class MacCaptureCoordinator {
     static let shared = MacCaptureCoordinator()
 
-    private var appObserver: NSObjectProtocol?
-    private var clipboardTimer: Timer?
-    private var windowTimer: Timer?
-    private var mouseMonitor: Any?
-    private var lastClipboardChangeCount = NSPasteboard.general.changeCount
-    private var lastWindowSignature = ""
-    private var lastWindowLoggedAt = Date.distantPast
-    private var enhancedAccessibilityPIDs: Set<pid_t> = []
-    private weak var context: ModelContext?
-    private var didRequestAccessibilityThisLaunch = false
+    @ObservationIgnored private var appObserver: NSObjectProtocol?
+    @ObservationIgnored private var clipboardTimer: Timer?
+    @ObservationIgnored private var windowTimer: Timer?
+    @ObservationIgnored private var mouseMonitor: Any?
+    @ObservationIgnored private var lastClipboardChangeCount = NSPasteboard.general.changeCount
+    @ObservationIgnored private var lastWindowSignature = ""
+    @ObservationIgnored private var lastWindowLoggedAt = Date.distantPast
+    @ObservationIgnored private var lastExpensiveWindowPollAt = Date.distantPast
+    @ObservationIgnored private var enhancedAccessibilityPIDs: Set<pid_t> = []
+    @ObservationIgnored private var teamsGroupExpansionCache: [String: TeamsGroupExpansionCacheEntry] = [:]
+    @ObservationIgnored private weak var context: ModelContext?
+    @ObservationIgnored private var didRequestAccessibilityThisLaunch = false
     private(set) var accessibilityTrusted = AXIsProcessTrusted()
 
     private let fileAwareBundleIDs: Set<String> = [
@@ -80,10 +82,14 @@ final class MacCaptureCoordinator {
 
     func refreshAccessibilityStatus() {
         let trusted = AXIsProcessTrusted()
-        if trusted && !accessibilityTrusted {
+        guard trusted != accessibilityTrusted else { return }
+
+        if trusted {
             lastWindowSignature = ""
             lastWindowLoggedAt = .distantPast
+            lastExpensiveWindowPollAt = .distantPast
         }
+
         accessibilityTrusted = trusted
     }
 
@@ -95,6 +101,8 @@ final class MacCaptureCoordinator {
     func clearRuntimeCache() {
         lastWindowSignature = ""
         lastWindowLoggedAt = .distantPast
+        lastExpensiveWindowPollAt = .distantPast
+        teamsGroupExpansionCache.removeAll(keepingCapacity: true)
         lastClipboardChangeCount = NSPasteboard.general.changeCount
         didRequestAccessibilityThisLaunch = false
         enhancedAccessibilityPIDs.removeAll(keepingCapacity: true)
@@ -130,6 +138,8 @@ final class MacCaptureCoordinator {
 
         enhancedAccessibilityPIDs.remove(application.processIdentifier)
         enableDetailedAccessibilityIfNeeded(for: application)
+        lastExpensiveWindowPollAt = .distantPast
+        teamsGroupExpansionCache.removeAll(keepingCapacity: true)
 
         let name = application.localizedName ?? "Application"
         let lowerBundleID = bundleID.lowercased()
@@ -142,7 +152,7 @@ final class MacCaptureCoordinator {
 
             Task { @MainActor [weak self] in
                 try? await Task.sleep(nanoseconds: 350_000_000)
-                self?.pollFocusedWindow()
+                self?.pollFocusedWindow(forceExpensiveApps: true)
             }
             return
         }
@@ -161,6 +171,11 @@ final class MacCaptureCoordinator {
         }
 
         lastWindowSignature = ""
+
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            self?.pollFocusedWindow(forceExpensiveApps: true)
+        }
     }
 
     private func enableDetailedAccessibilityIfNeeded(for application: NSRunningApplication) {
@@ -195,12 +210,12 @@ final class MacCaptureCoordinator {
     private func startFocusedWindowCapture() {
         windowTimer?.invalidate()
 
-        let timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+        let timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.pollFocusedWindow()
             }
         }
-        timer.tolerance = 0.25
+        timer.tolerance = 0.60
         windowTimer = timer
     }
 
@@ -341,7 +356,7 @@ final class MacCaptureCoordinator {
         )
     }
 
-    private func pollFocusedWindow() {
+    private func pollFocusedWindow(forceExpensiveApps: Bool = false) {
         let prefs = RecallPreferences.shared
         guard !prefs.capturePaused, prefs.captureAppActivity else { return }
 
@@ -350,6 +365,7 @@ final class MacCaptureCoordinator {
             if trusted {
                 lastWindowSignature = ""
                 lastWindowLoggedAt = .distantPast
+                lastExpensiveWindowPollAt = .distantPast
             }
             accessibilityTrusted = trusted
         }
@@ -369,6 +385,20 @@ final class MacCaptureCoordinator {
 
         let appName = app.localizedName ?? "Application"
         let lowerBundleID = bundleID.lowercased()
+
+        let isExpensiveAccessibilityApp =
+            lowerBundleID == "com.microsoft.outlook" ||
+            isTeamsBundleID(lowerBundleID)
+
+        if isExpensiveAccessibilityApp && !forceExpensiveApps {
+            let now = Date()
+            guard now.timeIntervalSince(lastExpensiveWindowPollAt) >= 9.0 else {
+                return
+            }
+            lastExpensiveWindowPollAt = now
+        } else if isExpensiveAccessibilityApp {
+            lastExpensiveWindowPollAt = Date()
+        }
 
         if lowerBundleID == "com.microsoft.outlook" {
             guard let subject = outlookSelectedSubject(pid: app.processIdentifier) else { return }
@@ -1590,6 +1620,11 @@ final class MacCaptureCoordinator {
         return expandedTeamsGroupConversationTitle(parsed, pid: pid)
     }
 
+    private struct TeamsGroupExpansionCacheEntry {
+        let title: String
+        let expiresAt: Date
+    }
+
     private struct CollapsedTeamsGroupChat {
         let firstName: String
         let additionalCount: Int
@@ -1598,6 +1633,14 @@ final class MacCaptureCoordinator {
     private func expandedTeamsGroupConversationTitle(_ title: String, pid: pid_t) -> String {
         guard let collapsed = collapsedTeamsGroupChat(from: title) else {
             return title
+        }
+
+        let cacheKey = "\(pid)|\(title.lowercased())"
+        let now = Date()
+
+        if let cached = teamsGroupExpansionCache[cacheKey],
+           cached.expiresAt > now {
+            return cached.title
         }
 
         let targetCount = collapsed.additionalCount + 1
@@ -1699,9 +1742,20 @@ final class MacCaptureCoordinator {
 
         // Only replace +N when Teams actually exposed enough individual names.
         // This prevents Memory Lane from inventing or partially guessing members.
-        guard names.count == targetCount else { return title }
+        guard names.count == targetCount else {
+            teamsGroupExpansionCache[cacheKey] = TeamsGroupExpansionCacheEntry(
+                title: title,
+                expiresAt: now.addingTimeInterval(6)
+            )
+            return title
+        }
 
-        return "Chat with " + naturalTeamsNameList(names)
+        let expanded = "Chat with " + naturalTeamsNameList(names)
+        teamsGroupExpansionCache[cacheKey] = TeamsGroupExpansionCacheEntry(
+            title: expanded,
+            expiresAt: now.addingTimeInterval(5 * 60)
+        )
+        return expanded
     }
 
     private func collapsedTeamsGroupChat(from rawTitle: String) -> CollapsedTeamsGroupChat? {
@@ -2691,10 +2745,10 @@ final class MacCaptureCoordinator {
     private func startClipboardCapture() {
         clipboardTimer?.invalidate()
 
-        let timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+        let timer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.pollClipboard() }
         }
-        timer.tolerance = 0.30
+        timer.tolerance = 0.60
         clipboardTimer = timer
     }
 

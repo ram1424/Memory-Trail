@@ -375,10 +375,28 @@ struct OnboardingView: View {
                 privacyRow(icon: "externaldrive.fill", title: "Local Storage", text: "Timeline history is stored locally using SwiftData.", tint: .purple)
                 privacyRow(icon: "trash.slash.fill", title: "Clear App Cache", text: "Reset cached capture state and preferences without deleting Timeline history.", tint: .pink)
 
+                VStack(alignment: .leading, spacing: 5) {
+                    Label("If Memory Lane is missing from Accessibility", systemImage: "plus.app.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(primaryText)
+
+                    Text("1. Open System Settings → Privacy & Security → Accessibility.")
+                    Text("2. Click +, choose Applications → Memory Lane, then click Open.")
+                    Text("3. Turn Memory Lane on and relaunch it if macOS asks.")
+                }
+                .font(.caption2)
+                .foregroundStyle(secondaryText)
+                .padding(10)
+                .background(Color.black.opacity(0.16), in: RoundedRectangle(cornerRadius: 11))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 11)
+                        .stroke(.white.opacity(0.09), lineWidth: 1)
+                }
+
                 Text("You can replay this tutorial anytime from Settings → Help.")
                     .font(.footnote)
                     .foregroundStyle(tertiaryText)
-                    .padding(.top, 2)
+                    .padding(.top, 1)
             }
             .frame(maxWidth: 390)
         }

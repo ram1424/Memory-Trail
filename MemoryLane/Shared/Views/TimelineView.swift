@@ -275,7 +275,7 @@ struct TimelineView: View {
                         .padding(.top, 12)
                         .padding(.bottom, 12)
 
-                        VStack(spacing: density.rowSpacing) {
+                        LazyVStack(spacing: density.rowSpacing) {
                             ForEach(visibleItems) { item in
                                 TimelineActivityRow(
                                     item: item,

@@ -33,7 +33,7 @@ struct FavoritesView: View {
                     .frame(maxWidth: .infinity, minHeight: 420)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
                 } else {
-                    VStack(spacing: 8) {
+                    LazyVStack(spacing: 8) {
                         ForEach(favorites) { item in
                             NavigationLink {
                                 MemoryDetailView(item: item)
