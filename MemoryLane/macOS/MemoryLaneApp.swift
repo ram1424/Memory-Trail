@@ -243,7 +243,7 @@ private enum MemoryLaneScreenshotExporter {
             (
                 "timeline.png",
                 AnyView(
-                    RootView(initialSelection: .timeline, forceMainInterface: true)
+                    MemoryLaneScreenshotShell(selection: .timeline)
                         .environment(preferences)
                         .modelContainer(container)
                         .preferredColorScheme(.light)
@@ -252,7 +252,7 @@ private enum MemoryLaneScreenshotExporter {
             (
                 "ask-memory-lane.png",
                 AnyView(
-                    RootView(initialSelection: .search, forceMainInterface: true)
+                    MemoryLaneScreenshotShell(selection: .search)
                         .environment(preferences)
                         .modelContainer(container)
                         .preferredColorScheme(.light)
@@ -261,7 +261,7 @@ private enum MemoryLaneScreenshotExporter {
             (
                 "privacy-general.png",
                 AnyView(
-                    RootView(initialSelection: .settings, forceMainInterface: true)
+                    MemoryLaneScreenshotShell(selection: .settings)
                         .environment(preferences)
                         .modelContainer(container)
                         .preferredColorScheme(.light)

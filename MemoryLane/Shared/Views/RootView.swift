@@ -86,7 +86,7 @@ struct RootView: View {
     }
 }
 
-private struct MemoryLaneSidebar: View {
+struct MemoryLaneSidebar: View {
     @Environment(RecallPreferences.self) private var preferences
     @Binding var selection: SidebarItem?
 
@@ -220,6 +220,57 @@ private struct MemoryLaneSidebar: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(.quaternary, lineWidth: 1)
         }
+    }
+}
+
+
+struct MemoryLaneScreenshotShell: View {
+    @Environment(RecallPreferences.self) private var preferences
+
+    let selection: SidebarItem
+
+    var body: some View {
+        HStack(spacing: 0) {
+            MemoryLaneSidebar(selection: screenshotSelection)
+                .environment(preferences)
+                .frame(width: 235)
+
+            Divider()
+
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(nsColor: .windowBackgroundColor),
+                        Color(nsColor: .controlBackgroundColor).opacity(0.28)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+
+                Group {
+                    switch selection {
+                    case .timeline:
+                        TimelineView()
+                    case .search:
+                        SearchView()
+                    case .favorites:
+                        FavoritesView()
+                    case .settings:
+                        SettingsView()
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var screenshotSelection: Binding<SidebarItem?> {
+        Binding(
+            get: { selection },
+            set: { _ in }
+        )
     }
 }
 
