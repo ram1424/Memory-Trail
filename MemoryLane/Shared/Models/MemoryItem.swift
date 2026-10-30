@@ -102,9 +102,18 @@ final class MemoryItem {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
 
-        if lower.contains("type a message") ||
-            lower.contains("send a message") ||
-            lower.contains("post a message") {
+        var normalized = lower
+        if normalized.hasPrefix("conversation with ") {
+            normalized = String(normalized.dropFirst("conversation with ".count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        if normalized.contains("type a message") ||
+            normalized.contains("send a message") ||
+            normalized.contains("post a message") ||
+            normalized.contains("message list") ||
+            normalized.contains("chat list") ||
+            normalized.contains("conversation list") {
             return true
         }
 
@@ -115,8 +124,28 @@ final class MemoryItem {
             "chats",
             "message",
             "reply",
-            "compose"
-        ].contains(lower)
+            "compose",
+            "favorites",
+            "copilot",
+            "message list",
+            "chat list",
+            "conversation list",
+            "recent",
+            "recent chats",
+            "pinned",
+            "discover",
+            "activity",
+            "calendar",
+            "calls",
+            "communities",
+            "apps",
+            "settings",
+            "files",
+            "teams and channels",
+            "new chat",
+            "new message",
+            "search"
+        ].contains(normalized)
     }
 
     var isCaptureNoise: Bool {

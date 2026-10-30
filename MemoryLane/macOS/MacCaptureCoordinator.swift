@@ -998,9 +998,14 @@ final class MacCaptureCoordinator {
         var candidates: [(name: String, score: Int)] = []
 
         while let candidate = current, depth < 18 {
-            if let parsed = teamsNameFromSelectedElement(candidate) {
-                let adjustedScore = parsed.score - (depth * 5)
-                candidates.append((parsed.name, adjustedScore))
+            let containerScore = teamsConversationContainerScore(candidate)
+
+            if containerScore > 0,
+               let parsed = teamsNameFromSelectedElement(candidate) {
+                candidates.append((
+                    parsed.name,
+                    parsed.score + containerScore - (depth * 6)
+                ))
             }
 
             current = parentElement(of: candidate)
@@ -1008,7 +1013,7 @@ final class MacCaptureCoordinator {
         }
 
         return candidates
-            .filter { $0.score >= 105 }
+            .filter { $0.score >= 180 }
             .max(by: { $0.score < $1.score })?
             .name
     }
@@ -1031,21 +1036,29 @@ final class MacCaptureCoordinator {
         let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
         var candidates: [(name: String, score: Int)] = []
 
-        // Preferred path: Teams exposes the selected chat as AXSelectedRows.
+        // Preferred path: selected rows in the Teams chat list.
         for selected in selectedAccessibilityRows(in: window) {
-            if let result = teamsNameFromSelectedElement(selected) {
-                candidates.append((result.name, result.score + 80))
+            let containerScore = teamsConversationContainerScore(selected)
+            guard containerScore > 0,
+                  let result = teamsNameFromSelectedElement(selected)
+            else {
+                continue
             }
+
+            candidates.append((
+                result.name,
+                result.score + containerScore + 90
+            ))
         }
 
-        // Secondary path: some Teams builds use AXSelectedChildren/AXSelected
-        // rather than AXSelectedRows. Only inspect selected containers; never
-        // the focused text area, which is commonly the message composer.
+        // Some Teams builds expose selected chat containers through
+        // AXSelectedChildren instead of AXSelectedRows. Only accept containers
+        // that independently look like a chat/conversation row.
         var queue: [AXUIElement] = [window]
         var index = 0
         var inspected = 0
 
-        while index < queue.count, inspected < 500 {
+        while index < queue.count, inspected < 450 {
             let element = queue[index]
             index += 1
             inspected += 1
@@ -1058,33 +1071,39 @@ final class MacCaptureCoordinator {
             ) == .success,
             let selectedChildren = selectedChildrenValue as? [AXUIElement] {
                 for selected in selectedChildren.prefix(8) {
-                    if let result = teamsNameFromSelectedElement(selected) {
-                        candidates.append((result.name, result.score + 55))
+                    let containerScore = teamsConversationContainerScore(selected)
+                    guard containerScore > 0,
+                          let result = teamsNameFromSelectedElement(selected)
+                    else {
+                        continue
                     }
+
+                    candidates.append((
+                        result.name,
+                        result.score + containerScore + 55
+                    ))
                 }
             }
 
-            if attributeBool(element, kAXSelectedAttribute as CFString) == true,
-               let result = teamsNameFromSelectedElement(element) {
-                candidates.append((result.name, result.score + 35))
-            }
-
-            appendChildren(of: element, to: &queue, limit: 70)
+            appendChildren(of: element, to: &queue, limit: 65)
         }
 
         return candidates
-            .filter { $0.score >= 115 }
+            .filter { $0.score >= 190 }
             .max(by: { $0.score < $1.score })?
             .name
     }
 
     private func teamsNameFromSelectedElement(_ root: AXUIElement) -> (name: String, score: Int)? {
+        let rootContainerScore = teamsConversationContainerScore(root)
+        guard rootContainerScore > 0 else { return nil }
+
         var queue: [(element: AXUIElement, depth: Int)] = [(root, 0)]
         var index = 0
         var inspected = 0
         var candidates: [(name: String, score: Int)] = []
 
-        while index < queue.count, inspected < 42 {
+        while index < queue.count, inspected < 38 {
             let entry = queue[index]
             index += 1
             inspected += 1
@@ -1096,41 +1115,29 @@ final class MacCaptureCoordinator {
             for (attribute, baseScore) in [
                 (kAXTitleAttribute as CFString, 120),
                 (kAXDescriptionAttribute as CFString, 105),
-                (kAXValueAttribute as CFString, 45),
-                ("AXHelp" as CFString, 70)
+                ("AXHelp" as CFString, 85),
+                (kAXValueAttribute as CFString, 35)
             ] {
                 guard let raw = attributeString(element, attribute) else { continue }
-                guard let name = sanitizedTeamsConversationName(raw) else { continue }
+                guard !isGenericTeamsUIValue(raw) else { continue }
+                guard let parsed = parsedTeamsConversationCandidate(raw) else { continue }
 
-                let lowerRaw = raw.lowercased()
                 var score = baseScore - (depth * 12)
-
-                if lowerRaw.hasPrefix("chat with ") ||
-                    lowerRaw.hasPrefix("conversation with ") ||
-                    lowerRaw.hasPrefix("group chat with ") {
-                    score += 240
-                }
+                if parsed.strongSignal { score += 180 }
+                if parsed.directConversationSignal { score += 220 }
 
                 if role.contains("row") ||
-                    role.contains("list") ||
                     role.contains("cell") ||
+                    role.contains("list") ||
                     role.contains("group") {
                     score += 25
                 }
 
-                if looksLikeTeamsDisplayName(name) {
-                    score += 70
+                if parsed.name.lowercased().hasPrefix("conversation with ") {
+                    score += 55
                 }
 
-                if name.lowercased().hasPrefix("conversation with ") {
-                    score += 65
-                }
-
-                if name.count <= 70 {
-                    score += 18
-                }
-
-                candidates.append((name, score))
+                candidates.append((parsed.name, score))
             }
 
             guard depth < 2 else { continue }
@@ -1142,15 +1149,159 @@ final class MacCaptureCoordinator {
                 &childrenValue
             ) == .success,
             let children = childrenValue as? [AXUIElement] {
-                for child in children.prefix(depth == 0 ? 20 : 12) {
+                for child in children.prefix(depth == 0 ? 18 : 10) {
                     queue.append((child, depth + 1))
                 }
             }
         }
 
         return candidates
-            .filter { $0.score >= 105 }
+            .filter { $0.score >= 145 }
             .max(by: { $0.score < $1.score })
+    }
+
+    private func teamsConversationContainerScore(_ element: AXUIElement) -> Int {
+        let role = attributeString(element, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+        let roleDescription = attributeString(element, kAXRoleDescriptionAttribute as CFString)?.lowercased() ?? ""
+        let identifier = attributeString(element, kAXIdentifierAttribute as CFString)?.lowercased() ?? ""
+        let help = attributeString(element, "AXHelp" as CFString)?.lowercased() ?? ""
+        let title = attributeString(element, kAXTitleAttribute as CFString)?.lowercased() ?? ""
+        let description = attributeString(element, kAXDescriptionAttribute as CFString)?.lowercased() ?? ""
+
+        let metadata = [role, roleDescription, identifier, help, title, description]
+            .joined(separator: " ")
+
+        if isGenericTeamsUIValue(metadata) {
+            return -300
+        }
+
+        var score = 0
+
+        if role.contains("row") || role.contains("cell") {
+            score += 85
+        }
+        if role.contains("listitem") || roleDescription.contains("list item") {
+            score += 75
+        }
+        if identifier.contains("chat") ||
+            identifier.contains("conversation") ||
+            roleDescription.contains("chat") ||
+            roleDescription.contains("conversation") {
+            score += 125
+        }
+        if metadata.contains("chat item") ||
+            metadata.contains("conversation item") ||
+            metadata.contains("recent chat") {
+            score += 120
+        }
+
+        // A generic AXGroup is only eligible when Teams itself labels it as
+        // chat/conversation content. This prevents navigation groups such as
+        // Favorites, Copilot, and Message List from becoming fake chats.
+        if role.contains("group") && score == 0 {
+            return -50
+        }
+
+        if role.contains("button") ||
+            role.contains("toolbar") ||
+            role.contains("navigation") ||
+            role.contains("textfield") ||
+            role.contains("textarea") {
+            score -= 140
+        }
+
+        return score
+    }
+
+    private struct TeamsConversationCandidate {
+        let name: String
+        let strongSignal: Bool
+        let directConversationSignal: Bool
+    }
+
+    private func parsedTeamsConversationCandidate(_ rawValue: String) -> TeamsConversationCandidate? {
+        let raw = rawValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !raw.isEmpty, !isGenericTeamsUIValue(raw) else { return nil }
+
+        let lower = raw.lowercased()
+        let directPrefixes = [
+            "chat with ",
+            "conversation with ",
+            "group chat with "
+        ]
+
+        for prefix in directPrefixes where lower.hasPrefix(prefix) {
+            let people = String(raw.dropFirst(prefix.count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard let cleaned = sanitizedTeamsPeopleLabel(people),
+                  !isGenericTeamsUIValue(cleaned)
+            else {
+                return nil
+            }
+
+            return TeamsConversationCandidate(
+                name: "Conversation with \(cleaned)",
+                strongSignal: true,
+                directConversationSignal: true
+            )
+        }
+
+        // Chat-list rows often expose identity + presence/time/message metadata.
+        let separators = [", ", "; "]
+        for separator in separators {
+            let parts = raw
+                .components(separatedBy: separator)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+            guard parts.count >= 2 else { continue }
+
+            let trailing = parts.dropFirst().joined(separator: " ").lowercased()
+            let metadataMarkers = [
+                "available", "busy", "away", "offline", "online",
+                "do not disturb", "last message", "last activity",
+                "unread", "muted", "pinned", "external", "guest",
+                "today", "yesterday", " am", " pm", "minutes ago",
+                "hours ago"
+            ]
+
+            guard metadataMarkers.contains(where: { trailing.contains($0) }),
+                  let first = parts.first,
+                  let cleaned = sanitizedTeamsPeopleLabel(first),
+                  !isGenericTeamsUIValue(cleaned)
+            else {
+                continue
+            }
+
+            let name = looksLikeTeamsDisplayName(cleaned)
+                ? "Conversation with \(cleaned)"
+                : cleaned
+
+            return TeamsConversationCandidate(
+                name: name,
+                strongSignal: true,
+                directConversationSignal: false
+            )
+        }
+
+        // Bare names are accepted only inside a container already identified
+        // as an actual Teams chat row; they are never sufficient by themselves.
+        guard let cleaned = sanitizedTeamsPeopleLabel(raw),
+              !isGenericTeamsUIValue(cleaned)
+        else {
+            return nil
+        }
+
+        return TeamsConversationCandidate(
+            name: looksLikeTeamsDisplayName(cleaned)
+                ? "Conversation with \(cleaned)"
+                : cleaned,
+            strongSignal: false,
+            directConversationSignal: false
+        )
     }
 
     private func teamsConversationTitleFromFocusedWindow(pid: pid_t) -> String? {
@@ -1172,7 +1323,17 @@ final class MacCaptureCoordinator {
             return nil
         }
 
-        return teamsConversationTitle(from: raw)
+        let lower = raw.lowercased()
+        guard lower.contains("microsoft teams") ||
+              lower.hasPrefix("chat with ") ||
+              lower.hasPrefix("conversation with ") ||
+              lower.hasPrefix("group chat with ")
+        else {
+            return nil
+        }
+
+        guard !isGenericTeamsUIValue(raw) else { return nil }
+        return parsedTeamsConversationCandidate(raw)?.name
     }
 
     private func sanitizedTeamsConversationName(_ rawValue: String) -> String? {
@@ -1332,6 +1493,91 @@ final class MacCaptureCoordinator {
         }
 
         return meaningfulWords >= 1
+    }
+
+    private func isGenericTeamsUIValue(_ rawValue: String) -> Bool {
+        var value = rawValue
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        if value.hasPrefix("conversation with ") {
+            value = String(value.dropFirst("conversation with ".count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        let exactGeneric = Set([
+            "favorites",
+            "copilot",
+            "message list",
+            "messages",
+            "chat list",
+            "conversation list",
+            "recent",
+            "recent chats",
+            "pinned",
+            "discover",
+            "activity",
+            "chat",
+            "chats",
+            "teams",
+            "microsoft teams",
+            "calendar",
+            "calls",
+            "communities",
+            "apps",
+            "apps and agents",
+            "settings",
+            "files",
+            "teams and channels",
+            "new chat",
+            "new message",
+            "search",
+            "search teams",
+            "notifications",
+            "profile",
+            "navigation",
+            "navigation pane",
+            "toolbar",
+            "more",
+            "more options",
+            "type a message",
+            "send a message",
+            "post a message",
+            "compose",
+            "format",
+            "reply"
+        ])
+
+        if exactGeneric.contains(value) { return true }
+
+        let genericFragments = [
+            "message list",
+            "chat list",
+            "conversation list",
+            "navigation pane",
+            "type a message",
+            "send a message",
+            "post a message",
+            "press enter to send",
+            "press enter to open"
+        ]
+
+        if genericFragments.contains(where: { value.contains($0) }) {
+            return true
+        }
+
+        let genericSuffixes = [
+            " button",
+            " menu",
+            " toolbar",
+            " navigation",
+            " navigation pane",
+            " list",
+            " tab"
+        ]
+
+        return genericSuffixes.contains(where: { value.hasSuffix($0) })
     }
 
     private func looksLikeURL(_ value: String) -> Bool {
