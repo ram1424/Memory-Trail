@@ -47,11 +47,28 @@ final class MemoryItem {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             let lower = value.lowercased()
 
+            let pipeParts = value
+                .components(separatedBy: " | ")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+            if pipeParts.count >= 2, pipeParts[0].lowercased() == "chat" {
+                return "Chat with \(pipeParts[1])"
+            }
+
+            if lower.hasPrefix("conversation with ") {
+                let name = String(value.dropFirst("conversation with ".count))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty {
+                    return "Chat with \(name)"
+                }
+            }
+
             for prefix in ["group chat with ", "group chat "] where lower.hasPrefix(prefix) {
                 let name = String(value.dropFirst(prefix.count))
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 if !name.isEmpty {
-                    return "Conversation with \(name)"
+                    return "Chat with \(name)"
                 }
             }
 
@@ -120,9 +137,10 @@ final class MemoryItem {
             .lowercased()
 
         var normalized = lower
-        if normalized.hasPrefix("conversation with ") {
-            normalized = String(normalized.dropFirst("conversation with ".count))
+        for prefix in ["chat with ", "conversation with "] where normalized.hasPrefix(prefix) {
+            normalized = String(normalized.dropFirst(prefix.count))
                 .trimmingCharacters(in: .whitespacesAndNewlines)
+            break
         }
 
         if normalized.contains("type a message") ||

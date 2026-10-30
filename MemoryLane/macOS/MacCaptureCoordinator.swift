@@ -1141,7 +1141,8 @@ final class MacCaptureCoordinator {
                     var score = baseScore
                     if parsed.directConversationSignal { score += 180 }
                     if parsed.strongSignal { score += 120 }
-                    if parsed.name.lowercased().hasPrefix("conversation with ") { score += 50 }
+                    if parsed.name.lowercased().hasPrefix("chat with ") ||
+                    parsed.name.lowercased().hasPrefix("conversation with ") { score += 50 }
                     candidates.append((parsed.name, score))
                 }
 
@@ -1168,7 +1169,8 @@ final class MacCaptureCoordinator {
                             var score = baseScore
                             if parsed.directConversationSignal { score += 180 }
                             if parsed.strongSignal { score += 120 }
-                            if parsed.name.lowercased().hasPrefix("conversation with ") { score += 50 }
+                            if parsed.name.lowercased().hasPrefix("chat with ") ||
+                    parsed.name.lowercased().hasPrefix("conversation with ") { score += 50 }
                             candidates.append((parsed.name, score))
                         }
                     }
@@ -1323,7 +1325,8 @@ final class MacCaptureCoordinator {
                     score += 25
                 }
 
-                if parsed.name.lowercased().hasPrefix("conversation with ") {
+                if parsed.name.lowercased().hasPrefix("chat with ") ||
+                    parsed.name.lowercased().hasPrefix("conversation with ") {
                     score += 55
                 }
 
@@ -1434,6 +1437,26 @@ final class MacCaptureCoordinator {
         guard !raw.isEmpty, !isGenericTeamsUIValue(raw) else { return nil }
 
         let lower = raw.lowercased()
+
+        // New Teams commonly exposes the focused chat window as:
+        // "Chat | Person Name | Tenant | account@domain".
+        // The second pipe-delimited field is the actual conversation name.
+        let pipeParts = raw
+            .components(separatedBy: " | ")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if pipeParts.count >= 2,
+           pipeParts[0].lowercased() == "chat",
+           let cleaned = sanitizedTeamsPeopleLabel(pipeParts[1]),
+           !isGenericTeamsUIValue(cleaned) {
+            return TeamsConversationCandidate(
+                name: "Chat with \(cleaned)",
+                strongSignal: true,
+                directConversationSignal: true
+            )
+        }
+
         let directPrefixes = [
             "group chat with ",
             "conversation with ",
@@ -1452,7 +1475,7 @@ final class MacCaptureCoordinator {
             }
 
             return TeamsConversationCandidate(
-                name: "Conversation with \(cleaned)",
+                name: "Chat with \(cleaned)",
                 strongSignal: true,
                 directConversationSignal: true
             )
@@ -1486,7 +1509,7 @@ final class MacCaptureCoordinator {
             }
 
             let name = looksLikeTeamsDisplayName(cleaned)
-                ? "Conversation with \(cleaned)"
+                ? "Chat with \(cleaned)"
                 : cleaned
 
             return TeamsConversationCandidate(
@@ -1506,7 +1529,7 @@ final class MacCaptureCoordinator {
 
         return TeamsConversationCandidate(
             name: looksLikeTeamsDisplayName(cleaned)
-                ? "Conversation with \(cleaned)"
+                ? "Chat with \(cleaned)"
                 : cleaned,
             strongSignal: false,
             directConversationSignal: false
@@ -1534,6 +1557,7 @@ final class MacCaptureCoordinator {
 
         let lower = raw.lowercased()
         guard lower.contains("microsoft teams") ||
+              lower.hasPrefix("chat | ") ||
               lower.hasPrefix("chat with ") ||
               lower.hasPrefix("conversation with ") ||
               lower.hasPrefix("group chat with ")
@@ -1558,6 +1582,17 @@ final class MacCaptureCoordinator {
 
         let lowerOriginal = value.lowercased()
 
+        let pipeParts = value
+            .components(separatedBy: " | ")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if pipeParts.count >= 2,
+           pipeParts[0].lowercased() == "chat",
+           let cleaned = sanitizedTeamsPeopleLabel(pipeParts[1]) {
+            return "Chat with \(cleaned)"
+        }
+
         let directChatPrefixes = [
             "Group chat with ",
             "Conversation with ",
@@ -1570,7 +1605,7 @@ final class MacCaptureCoordinator {
                 let people = String(value.dropFirst(prefix.count))
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 guard let cleanedPeople = sanitizedTeamsPeopleLabel(people) else { return nil }
-                return "Conversation with \(cleanedPeople)"
+                return "Chat with \(cleanedPeople)"
             }
         }
 
@@ -1597,7 +1632,7 @@ final class MacCaptureCoordinator {
                    let first = parts.first,
                    let cleaned = sanitizedTeamsPeopleLabel(first) {
                     return looksLikeTeamsDisplayName(cleaned)
-                        ? "Conversation with \(cleaned)"
+                        ? "Chat with \(cleaned)"
                         : cleaned
                 }
             }
@@ -1707,10 +1742,12 @@ final class MacCaptureCoordinator {
     private func looksLikeTeamsDisplayName(_ value: String) -> Bool {
         var cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let prefix = "Conversation with "
-        if cleaned.lowercased().hasPrefix(prefix.lowercased()) {
-            cleaned = String(cleaned.dropFirst(prefix.count))
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+        for prefix in ["Chat with ", "Conversation with "] {
+            if cleaned.lowercased().hasPrefix(prefix.lowercased()) {
+                cleaned = String(cleaned.dropFirst(prefix.count))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                break
+            }
         }
 
         let words = cleaned
@@ -1745,9 +1782,10 @@ final class MacCaptureCoordinator {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
 
-        if value.hasPrefix("conversation with ") {
-            value = String(value.dropFirst("conversation with ".count))
+        for prefix in ["chat with ", "conversation with "] where value.hasPrefix(prefix) {
+            value = String(value.dropFirst(prefix.count))
                 .trimmingCharacters(in: .whitespacesAndNewlines)
+            break
         }
 
         let exactGeneric = Set([
