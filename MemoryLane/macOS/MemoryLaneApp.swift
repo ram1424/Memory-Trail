@@ -10,17 +10,42 @@ struct MemoryLaneApp: App {
     @State private var preferences = RecallPreferences.shared
     @State private var isLaunching = true
 
-    private static let screenshotOutputDirectory: URL? = {
-        let prefix = "--export-screenshots="
-        guard let argument = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix(prefix) }) else {
+    private struct ScreenshotRequest {
+        let selection: SidebarItem
+        let outputURL: URL
+    }
+
+    private static let screenshotRequest: ScreenshotRequest? = {
+        let args = ProcessInfo.processInfo.arguments
+
+        guard let screenArg = args.first(where: { $0.hasPrefix("--screenshot=") }),
+              let outputArg = args.first(where: { $0.hasPrefix("--screenshot-output=") })
+        else {
             return nil
         }
 
-        let path = String(argument.dropFirst(prefix.count))
-        guard !path.isEmpty else { return nil }
-        return URL(fileURLWithPath: path, isDirectory: true)
-    }()
+        let screen = String(screenArg.dropFirst("--screenshot=".count))
+        let outputPath = String(outputArg.dropFirst("--screenshot-output=".count))
 
+        let selection: SidebarItem
+        switch screen {
+        case "timeline":
+            selection = .timeline
+        case "ask":
+            selection = .search
+        case "privacy":
+            selection = .settings
+        default:
+            return nil
+        }
+
+        guard !outputPath.isEmpty else { return nil }
+
+        return ScreenshotRequest(
+            selection: selection,
+            outputURL: URL(fileURLWithPath: outputPath)
+        )
+    }()
 
     private static let brandIcon: NSImage = {
         if let image = NSImage(named: "OnboardingIcon") {
@@ -78,7 +103,7 @@ struct MemoryLaneApp: App {
 
     init() {
         do {
-            if Self.screenshotOutputDirectory != nil {
+            if Self.screenshotRequest != nil {
                 let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
                 container = try ModelContainer(
                     for: MemoryItem.self,
@@ -96,23 +121,29 @@ struct MemoryLaneApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if let outputDirectory = Self.screenshotOutputDirectory {
-                Color(nsColor: .windowBackgroundColor)
-                    .frame(width: 1, height: 1)
-                    .task {
-                        do {
-                            try await MemoryLaneScreenshotExporter.export(
-                                to: outputDirectory,
-                                container: container,
-                                preferences: preferences
-                            )
-                        } catch {
-                            fputs("Screenshot export failed: \(error)\n", stderr)
-                            exit(EXIT_FAILURE)
-                        }
+            if let request = Self.screenshotRequest {
+                RootView(
+                    initialSelection: request.selection,
+                    forceMainInterface: true
+                )
+                .environment(preferences)
+                .modelContainer(container)
+                .preferredColorScheme(.light)
+                .task {
+                    MemoryLaneScreenshotCapture.seedDemoTimeline(
+                        in: container.mainContext
+                    )
 
+                    do {
+                        try await MemoryLaneScreenshotCapture.captureLiveWindow(
+                            to: request.outputURL
+                        )
                         NSApplication.shared.terminate(nil)
+                    } catch {
+                        fputs("Screenshot capture failed: \(error)\n", stderr)
+                        exit(EXIT_FAILURE)
                     }
+                }
             } else {
                 ZStack {
                     if isLaunching {
@@ -222,62 +253,16 @@ struct MemoryLaneApp: App {
     }
 }
 
+
 @MainActor
-private enum MemoryLaneScreenshotExporter {
-    private static let size = NSSize(width: 1440, height: 900)
+private enum MemoryLaneScreenshotCapture {
+    private static let captureSize = NSSize(width: 1440, height: 900)
 
-    static func export(
-        to directory: URL,
-        container: ModelContainer,
-        preferences: RecallPreferences
-    ) async throws {
-        try FileManager.default.createDirectory(
-            at: directory,
-            withIntermediateDirectories: true
-        )
-
-        seedDemoTimeline(in: container.mainContext)
-        NSApplication.shared.appearance = NSAppearance(named: .aqua)
-
-        let screenshots: [(String, AnyView)] = [
-            (
-                "timeline-ui.png",
-                AnyView(
-                    MemoryLaneScreenshotShell(selection: .timeline)
-                        .environment(preferences)
-                        .modelContainer(container)
-                        .preferredColorScheme(.light)
-                )
-            ),
-            (
-                "ask-memory-lane-ui.png",
-                AnyView(
-                    MemoryLaneScreenshotShell(selection: .search)
-                        .environment(preferences)
-                        .modelContainer(container)
-                        .preferredColorScheme(.light)
-                )
-            ),
-            (
-                "privacy-general-ui.png",
-                AnyView(
-                    MemoryLaneScreenshotShell(selection: .settings)
-                        .environment(preferences)
-                        .modelContainer(container)
-                        .preferredColorScheme(.light)
-                )
-            )
-        ]
-
-        for (filename, view) in screenshots {
-            try await render(
-                view,
-                to: directory.appendingPathComponent(filename)
-            )
+    static func seedDemoTimeline(in context: ModelContext) {
+        guard (try? context.fetch(FetchDescriptor<MemoryItem>()))?.isEmpty != false else {
+            return
         }
-    }
 
-    private static func seedDemoTimeline(in context: ModelContext) {
         let now = Date()
         let demoItems = [
             MemoryItem(
@@ -325,13 +310,6 @@ private enum MemoryLaneScreenshotExporter {
                 body: "Follow up on the project review notes",
                 sourceApp: "Clipboard",
                 sourceKind: .clipboard
-            ),
-            MemoryItem(
-                createdAt: now.addingTimeInterval(-102 * 60),
-                title: "Release Notes",
-                sourceApp: "Preview",
-                sourceBundleID: "com.apple.Preview",
-                sourceKind: .appActivity
             )
         ]
 
@@ -342,50 +320,59 @@ private enum MemoryLaneScreenshotExporter {
         try? context.save()
     }
 
-    private static func render(
-        _ view: AnyView,
-        to url: URL
-    ) async throws {
-        let content = AnyView(
-            view
-                .frame(width: size.width, height: size.height)
-                .background(Color(nsColor: .windowBackgroundColor))
-        )
+    static func captureLiveWindow(to url: URL) async throws {
+        NSApplication.shared.appearance = NSAppearance(named: .aqua)
 
-        // ImageRenderer does not fully realize ScrollView/@Query-backed macOS
-        // content offscreen. NSHostingView runs the actual AppKit/SwiftUI layout
-        // pipeline, which matches what the user sees in the application.
-        let hostingView = NSHostingView(rootView: content)
-        hostingView.frame = NSRect(origin: .zero, size: size)
-        hostingView.wantsLayer = true
+        // Wait for the WindowGroup to create a real NSWindow and for SwiftUI,
+        // SwiftData @Query, NavigationSplitView, materials, and scroll views to
+        // finish their normal on-screen layout.
+        try await Task.sleep(nanoseconds: 900_000_000)
 
-        // Give SwiftData queries, ScrollViews, and material-backed views time to
-        // resolve before capturing the backing view.
-        hostingView.layoutSubtreeIfNeeded()
-        hostingView.displayIfNeeded()
-        try await Task.sleep(nanoseconds: 400_000_000)
-        hostingView.layoutSubtreeIfNeeded()
-        hostingView.displayIfNeeded()
-
-        let bounds = hostingView.bounds
-        guard bounds.width > 0,
-              bounds.height > 0,
-              let bitmap = hostingView.bitmapImageRepForCachingDisplay(in: bounds)
+        guard let window = NSApplication.shared.windows.first(where: {
+            $0.isVisible && $0.contentView != nil
+        }) ?? NSApplication.shared.windows.first(where: { $0.contentView != nil })
         else {
-            throw ScreenshotExportError.unableToCreateBitmap
+            throw ScreenshotCaptureError.windowNotFound
         }
 
-        hostingView.cacheDisplay(in: bounds, to: bitmap)
+        window.setContentSize(captureSize)
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+
+        try await Task.sleep(nanoseconds: 800_000_000)
+
+        guard let contentView = window.contentView else {
+            throw ScreenshotCaptureError.contentViewNotFound
+        }
+
+        contentView.layoutSubtreeIfNeeded()
+        contentView.displayIfNeeded()
+
+        let bounds = contentView.bounds
+        guard bounds.width >= captureSize.width - 2,
+              bounds.height >= captureSize.height - 2,
+              let bitmap = contentView.bitmapImageRepForCachingDisplay(in: bounds)
+        else {
+            throw ScreenshotCaptureError.invalidContentBounds
+        }
+
+        contentView.cacheDisplay(in: bounds, to: bitmap)
 
         guard let png = bitmap.representation(using: .png, properties: [:]) else {
-            throw ScreenshotExportError.unableToEncodePNG
+            throw ScreenshotCaptureError.unableToEncodePNG
         }
 
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
         try png.write(to: url, options: .atomic)
     }
 
-    private enum ScreenshotExportError: Error {
-        case unableToCreateBitmap
+    private enum ScreenshotCaptureError: Error {
+        case windowNotFound
+        case contentViewNotFound
+        case invalidContentBounds
         case unableToEncodePNG
     }
 }
