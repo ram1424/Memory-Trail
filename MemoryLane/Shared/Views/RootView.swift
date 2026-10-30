@@ -4,13 +4,23 @@ import SwiftData
 
 struct RootView: View {
     @Environment(RecallPreferences.self) private var preferences
-    @State private var selection: SidebarItem? = .timeline
+    @State private var selection: SidebarItem?
     @State private var showingAddMemory = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
+    private let forceMainInterface: Bool
+
+    init(
+        initialSelection: SidebarItem? = .timeline,
+        forceMainInterface: Bool = false
+    ) {
+        _selection = State(initialValue: initialSelection)
+        self.forceMainInterface = forceMainInterface
+    }
+
     var body: some View {
         Group {
-            if hasCompletedOnboarding {
+            if forceMainInterface || hasCompletedOnboarding {
                 mainInterface
             } else {
                 OnboardingView()

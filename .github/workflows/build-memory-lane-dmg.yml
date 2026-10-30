@@ -73,6 +73,46 @@ jobs:
             -f context=memory-lane-build-diagnostics \
             -f description="Memory Lane Xcode build passed." >/dev/null
 
+      - name: Render screenshots from the real app UI
+        run: |
+          set -euo pipefail
+          APP="$PWD/build/Build/Products/Release/Memory Lane.app"
+          OUT="$PWD/docs/screenshots"
+
+          test -x "$APP/Contents/MacOS/Memory Lane"
+          mkdir -p "$OUT"
+          rm -f "$OUT"/*.svg "$OUT"/*.png
+
+          "$APP/Contents/MacOS/Memory Lane" "--export-screenshots=$OUT"
+
+          for FILE in timeline.png ask-memory-lane.png privacy-general.png; do
+            test -s "$OUT/$FILE"
+            sips -g pixelWidth -g pixelHeight "$OUT/$FILE"
+          done
+
+      - name: Publish refreshed app screenshots
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+
+          REMOTE_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [ "$REMOTE_SHA" != "$GITHUB_SHA" ]; then
+            echo "main advanced while this build was running; skipping screenshot commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots
+
+          if git diff --cached --quiet; then
+            echo "Screenshots are already current."
+            exit 0
+          fi
+
+          git commit -m "Refresh screenshots from real app UI"
+          git push origin HEAD:main
+
       - name: Sign Memory Lane
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}

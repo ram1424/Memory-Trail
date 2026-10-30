@@ -12,15 +12,15 @@ Memory Lane is designed to preserve recognizable context rather than rewrite you
 
 ### Timeline
 
-![Memory Lane Timeline](docs/screenshots/timeline-overview.svg)
+![Memory Lane Timeline](docs/screenshots/timeline.png)
 
 ### Ask Memory Lane
 
-![Ask Memory Lane](docs/screenshots/ask-memory-lane.svg)
+![Ask Memory Lane](docs/screenshots/ask-memory-lane.png)
 
-### Privacy & Accessibility
+### Privacy & General
 
-![Memory Lane Privacy and Accessibility Tutorial](docs/screenshots/privacy-accessibility.svg)
+![Memory Lane Privacy and Accessibility Tutorial](docs/screenshots/privacy-general.png)
 
 _All screenshots use generic demo data._
 
