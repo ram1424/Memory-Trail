@@ -259,13 +259,25 @@ final class MacCaptureCoordinator {
         }
 
         if isTeamsBundleID(lowerBundleID) {
-            guard let conversation = teamsSelectedConversationTitle(
-                pid: app.processIdentifier
-            ) ?? teamsConversationHeaderTitle(
-                pid: app.processIdentifier
-            ) else {
-                return
+            var conversation: String?
+
+            if result == .success, let hitElement {
+                conversation = teamsConversationFromClickedElement(hitElement)
             }
+
+            if conversation == nil {
+                conversation = teamsSelectedConversationTitle(
+                    pid: app.processIdentifier
+                )
+            }
+
+            if conversation == nil {
+                conversation = teamsConversationHeaderTitle(
+                    pid: app.processIdentifier
+                )
+            }
+
+            guard let conversation else { return }
 
             logActivity(
                 title: conversation,
@@ -987,25 +999,86 @@ final class MacCaptureCoordinator {
     private func teamsConversationFromClickedElement(_ element: AXUIElement) -> String? {
         var current: AXUIElement? = element
         var depth = 0
-        var candidates: [(name: String, score: Int)] = []
+        var strongCandidates: [(name: String, score: Int)] = []
+        var contextualCandidates: [(name: String, score: Int)] = []
 
-        while let candidate = current, depth < 18 {
+        while let candidate = current, depth < 16 {
+            // First inspect the ancestor itself plus a small number of direct
+            // children. This is where New Teams often exposes labels such as
+            // "Group chat Ashar" even when the AX role is only AXGroup.
+            var elements: [(element: AXUIElement, childDepth: Int)] = [(candidate, 0)]
+
+            var childrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                candidate,
+                kAXChildrenAttribute as CFString,
+                &childrenValue
+            ) == .success,
+            let children = childrenValue as? [AXUIElement] {
+                for child in children.prefix(16) {
+                    elements.append((child, 1))
+                }
+            }
+
             let containerScore = teamsConversationContainerScore(candidate)
 
-            if containerScore > 0,
-               let parsed = teamsNameFromSelectedElement(candidate) {
-                candidates.append((
-                    parsed.name,
-                    parsed.score + containerScore - (depth * 6)
-                ))
+            for entry in elements {
+                let role = attributeString(
+                    entry.element,
+                    kAXRoleAttribute as CFString
+                )?.lowercased() ?? ""
+
+                for (attribute, baseScore) in [
+                    (kAXTitleAttribute as CFString, 150),
+                    (kAXDescriptionAttribute as CFString, 135),
+                    ("AXHelp" as CFString, 100),
+                    (kAXValueAttribute as CFString, 55)
+                ] {
+                    guard let raw = attributeString(entry.element, attribute) else { continue }
+                    guard !isGenericTeamsUIValue(raw) else { continue }
+                    guard let parsed = parsedTeamsConversationCandidate(raw) else { continue }
+
+                    var score = baseScore
+                    score -= depth * 5
+                    score -= entry.childDepth * 8
+
+                    if parsed.directConversationSignal {
+                        score += 300
+                        strongCandidates.append((parsed.name, score))
+                        continue
+                    }
+
+                    if parsed.strongSignal {
+                        score += 220
+                        strongCandidates.append((parsed.name, score))
+                        continue
+                    }
+
+                    // Bare names are accepted only when the ancestor itself
+                    // looks like an actual Teams chat/conversation container.
+                    if containerScore > 0 {
+                        var contextualScore = score + min(containerScore, 120)
+                        if role.contains("row") ||
+                            role.contains("cell") ||
+                            role.contains("list") ||
+                            role.contains("group") {
+                            contextualScore += 20
+                        }
+                        contextualCandidates.append((parsed.name, contextualScore))
+                    }
+                }
             }
 
             current = parentElement(of: candidate)
             depth += 1
         }
 
-        return candidates
-            .filter { $0.score >= 180 }
+        if let bestStrong = strongCandidates.max(by: { $0.score < $1.score }) {
+            return bestStrong.name
+        }
+
+        return contextualCandidates
+            .filter { $0.score >= 185 }
             .max(by: { $0.score < $1.score })?
             .name
     }
@@ -1729,6 +1802,15 @@ final class MacCaptureCoordinator {
             "more chat options",
             "chat options",
             "conversation options",
+            "unread",
+            "read",
+            "available",
+            "busy",
+            "away",
+            "offline",
+            "online",
+            "do not disturb",
+            "muted",
             "type a message",
             "send a message",
             "post a message",
