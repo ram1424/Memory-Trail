@@ -83,7 +83,7 @@ jobs:
 
           test -x "$BIN"
           mkdir -p "$OUT"
-          rm -f "$OUT"/*.png "$OUT"/qa-*.jpg.b64.txt
+          rm -f "$OUT"/*.png
 
           cat > "$FIND_WINDOW" <<'SWIFT'
           import CoreGraphics
@@ -156,10 +156,6 @@ jobs:
               exit 1
             fi
 
-            NAME="${FILE%.png}"
-            PREVIEW="$RUNNER_TEMP/${NAME}-qa.jpg"
-            sips -Z 720 -s format jpeg -s formatOptions 70 "$OUT/$FILE" --out "$PREVIEW" >/dev/null
-            /usr/bin/base64 -i "$PREVIEW" > "$OUT/qa-${NAME}.jpg.b64.txt"
           done
 
           UNIQUE="$(shasum -a 256 "$OUT"/timeline-ui.png "$OUT"/ask-memory-lane-ui.png "$OUT"/favorites-ui.png | awk '{print $1}' | sort -u | wc -l | tr -d ' ')"
