@@ -73,38 +73,97 @@ jobs:
             -f context=memory-lane-build-diagnostics \
             -f description="Memory Lane Xcode build passed." >/dev/null
 
-      - name: Render screenshots from live Memory Lane windows
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Capture screenshots from real Memory Lane windows
         run: |
           set -euo pipefail
           APP="$PWD/build/Build/Products/Release/Memory Lane.app"
           BIN="$APP/Contents/MacOS/Memory Lane"
           OUT="$PWD/docs/screenshots"
+          FIND_WINDOW="$RUNNER_TEMP/find-memory-lane-window.swift"
 
           test -x "$BIN"
           mkdir -p "$OUT"
-          rm -f "$OUT"/*.png "$OUT"/*.svg
+          rm -f "$OUT"/*.png "$OUT"/qa-*.jpg.b64.txt
 
-          "$BIN" --screenshot=timeline --screenshot-output="$OUT/timeline-ui.png"
-          "$BIN" --screenshot=ask --screenshot-output="$OUT/ask-memory-lane-ui.png"
-          "$BIN" --screenshot=privacy --screenshot-output="$OUT/privacy-general-ui.png"
+          cat > "$FIND_WINDOW" <<'SWIFT'
+          import CoreGraphics
+          import Foundation
+
+          let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+          guard let windows = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
+              exit(2)
+          }
+
+          for window in windows {
+              let owner = window[kCGWindowOwnerName as String] as? String ?? ""
+              let layer = window[kCGWindowLayer as String] as? Int ?? -1
+              let bounds = window[kCGWindowBounds as String] as? [String: Any] ?? [:]
+              let width = bounds["Width"] as? Double ?? 0
+              let height = bounds["Height"] as? Double ?? 0
+
+              if owner == "Memory Lane", layer == 0, width > 900, height > 600,
+                 let number = window[kCGWindowNumber as String] as? Int {
+                  print(number)
+                  exit(0)
+              }
+          }
+
+          exit(1)
+          SWIFT
+
+          capture_screen() {
+            SCREEN="$1"
+            FILE="$2"
+            LOG="$RUNNER_TEMP/memory-lane-$SCREEN.log"
+
+            "$BIN" "--screenshot-demo=$SCREEN" >"$LOG" 2>&1 &
+            APP_PID=$!
+
+            WINDOW_ID=""
+            for ATTEMPT in $(seq 1 30); do
+              WINDOW_ID="$(xcrun swift "$FIND_WINDOW" 2>/dev/null || true)"
+              if [ -n "$WINDOW_ID" ]; then
+                break
+              fi
+              sleep 0.25
+            done
+
+            if [ -z "$WINDOW_ID" ]; then
+              cat "$LOG" || true
+              kill "$APP_PID" 2>/dev/null || true
+              echo "Could not find the visible Memory Lane window for $SCREEN."
+              exit 1
+            fi
+
+            sleep 1.5
+            screencapture -x -l "$WINDOW_ID" "$OUT/$FILE"
+            kill "$APP_PID" 2>/dev/null || true
+            wait "$APP_PID" 2>/dev/null || true
+
+            test -s "$OUT/$FILE"
+          }
+
+          capture_screen timeline timeline-ui.png
+          capture_screen ask ask-memory-lane-ui.png
+          capture_screen privacy privacy-general-ui.png
 
           for FILE in timeline-ui.png ask-memory-lane-ui.png privacy-general-ui.png; do
-            test -s "$OUT/$FILE"
             WIDTH="$(sips -g pixelWidth "$OUT/$FILE" | awk '/pixelWidth/ {print $2}')"
             HEIGHT="$(sips -g pixelHeight "$OUT/$FILE" | awk '/pixelHeight/ {print $2}')"
             echo "$FILE: ${WIDTH}x${HEIGHT}"
-            if [ "$WIDTH" -lt 1400 ] || [ "$HEIGHT" -lt 860 ]; then
+            if [ "$WIDTH" -lt 1200 ] || [ "$HEIGHT" -lt 720 ]; then
               echo "Screenshot dimensions are too small: $FILE"
               exit 1
             fi
+
+            NAME="${FILE%.png}"
+            PREVIEW="$RUNNER_TEMP/${NAME}-qa.jpg"
+            sips -Z 720 -s format jpeg -s formatOptions 70 "$OUT/$FILE" --out "$PREVIEW" >/dev/null
+            /usr/bin/base64 -i "$PREVIEW" > "$OUT/qa-${NAME}.jpg.b64.txt"
           done
 
           UNIQUE="$(shasum -a 256 "$OUT"/timeline-ui.png "$OUT"/ask-memory-lane-ui.png "$OUT"/privacy-general-ui.png | awk '{print $1}' | sort -u | wc -l | tr -d ' ')"
           test "$UNIQUE" -eq 3
-
-          gh api             --method POST             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"             -f state=success             -f context=memory-lane-screenshot-diagnostics             -f description="Live-window Memory Lane screenshots captured successfully." >/dev/null
 
       - name: Publish refreshed app screenshots
         if: github.event_name == 'push'
