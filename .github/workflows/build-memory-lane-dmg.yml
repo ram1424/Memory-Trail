@@ -116,6 +116,15 @@ jobs:
             exit 1
           fi
 
+          # Temporary visual-QA sidecars. These are small JPEG previews encoded
+          # as UTF-8 text so the private repository screenshots can be inspected.
+          for FILE in timeline.png ask-memory-lane.png privacy-general.png; do
+            NAME="${FILE%.png}"
+            PREVIEW="$RUNNER_TEMP/${NAME}-qa.jpg"
+            sips -Z 720 -s format jpeg -s formatOptions 65 "$OUT/$FILE" --out "$PREVIEW" >/dev/null
+            /usr/bin/base64 -i "$PREVIEW" > "$OUT/qa-${NAME}.jpg.b64.txt"
+          done
+
           gh api             --method POST             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"             -f state=success             -f context=memory-lane-screenshot-diagnostics             -f description="Real Memory Lane UI screenshots rendered successfully." >/dev/null
 
       - name: Publish refreshed app screenshots
