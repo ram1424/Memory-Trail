@@ -11,8 +11,8 @@ struct SearchView: View {
 
     private let examples = [
         "What was I doing around 10:30 AM?",
-        "What did I view before opening Teams?",
-        "Find the Outlook email I viewed today",
+        "Find the Outlook email from Laura about CA3",
+        "Find the Outlook email with incident update in the subject",
         "Find a file I worked on yesterday"
     ]
 
