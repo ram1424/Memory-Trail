@@ -68,7 +68,7 @@ final class MemoryItem {
         let value = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let lower = value.lowercased()
 
-        if lower.hasPrefix("inbox;") && lower.contains("unread message") { return true }
+        if lower.contains("unread message") { return true }
         if lower.hasPrefix("from ") && lower.contains(" to ") && lower.contains(" events") { return true }
         if lower.contains("copyright ©") || lower.contains("all rights reserved") { return true }
         if lower.contains("one apple park way") { return true }
@@ -83,9 +83,52 @@ final class MemoryItem {
             "people",
             "contacts",
             "tasks",
+            "drafts",
+            "sent",
+            "sent items",
+            "deleted items",
+            "junk email",
+            "archive",
+            "follow-ups",
             "microsoft outlook",
             "outlook"
         ].contains(lower)
+    }
+
+    var isTeamsCaptureNoise: Bool {
+        guard isTeamsActivity else { return false }
+
+        let lower = title
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        if lower.contains("type a message") ||
+            lower.contains("send a message") ||
+            lower.contains("post a message") {
+            return true
+        }
+
+        return [
+            "microsoft teams",
+            "teams",
+            "chat",
+            "chats",
+            "message",
+            "reply",
+            "compose"
+        ].contains(lower)
+    }
+
+    var isCaptureNoise: Bool {
+        isOutlookCaptureNoise || isTeamsCaptureNoise
+    }
+
+    private var isTeamsActivity: Bool {
+        let bundle = sourceBundleID.lowercased()
+        return bundle == "com.microsoft.teams2"
+            || bundle.contains("msteams")
+            || bundle.contains("teams")
+            || sourceApp.lowercased().contains("teams")
     }
 
     private var isOutlookActivity: Bool {

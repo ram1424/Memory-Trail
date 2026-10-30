@@ -135,13 +135,10 @@ final class MacCaptureCoordinator {
         let lowerBundleID = bundleID.lowercased()
 
         if lowerBundleID == "com.microsoft.outlook" || isTeamsBundleID(lowerBundleID) {
+            // Outlook and Teams are interaction-only. Do not log merely because
+            // the app became active or a previously selected item is visible.
             lastWindowSignature = ""
             lastWindowLoggedAt = .distantPast
-
-            Task { @MainActor [weak self] in
-                try? await Task.sleep(nanoseconds: 350_000_000)
-                self?.pollFocusedWindow()
-            }
             return
         }
 
@@ -256,33 +253,26 @@ final class MacCaptureCoordinator {
                 return
             }
 
-            captureOutlookSelectedSubject(application: app)
+            // If the actual clicked Outlook element is not an email row,
+            // do not infer activity from whatever message happens to be selected.
             return
         }
 
         if isTeamsBundleID(lowerBundleID) {
-            var conversation: String?
-
-            if result == .success,
-               let hitElement,
-               let row = nearestAccessibilityRow(from: hitElement),
-               let parsed = teamsNameFromSelectedElement(row) {
-                conversation = parsed.name
+            guard result == .success,
+                  let hitElement,
+                  let row = nearestAccessibilityRow(from: hitElement),
+                  let parsed = teamsNameFromSelectedElement(row)
+            else {
+                return
             }
 
-            if conversation == nil {
-                conversation = teamsSelectedConversationTitle(pid: app.processIdentifier)
-                    ?? teamsConversationTitleFromFocusedWindow(pid: app.processIdentifier)
-            }
-
-            if let conversation {
-                logActivity(
-                    title: conversation,
-                    sourceURL: nil,
-                    applicationName: app.localizedName ?? "Microsoft Teams",
-                    bundleID: bundleID
-                )
-            }
+            logActivity(
+                title: parsed.name,
+                sourceURL: nil,
+                applicationName: app.localizedName ?? "Microsoft Teams",
+                bundleID: bundleID
+            )
             return
         }
 
@@ -355,6 +345,13 @@ final class MacCaptureCoordinator {
 
         let appName = app.localizedName ?? "Application"
         let lowerBundleID = bundleID.lowercased()
+
+        // Outlook and Teams are deliberately click-driven only. Periodic
+        // polling can surface folder counters, compose controls, or stale
+        // selections that the user never actively opened.
+        if lowerBundleID == "com.microsoft.outlook" || isTeamsBundleID(lowerBundleID) {
+            return
+        }
 
         if lowerBundleID == "com.microsoft.outlook" {
             guard let subject = outlookSelectedSubject(pid: app.processIdentifier) else { return }
@@ -1164,7 +1161,9 @@ final class MacCaptureCoordinator {
         let generic = Set([
             "microsoft teams", "teams", "chat", "chats", "activity",
             "calendar", "calls", "communities", "apps", "settings",
-            "files", "teams and channels", "new chat", "search"
+            "files", "teams and channels", "new chat", "search",
+            "type a message", "send a message", "message", "reply",
+            "post a message", "compose", "format"
         ])
 
         guard value.count >= 2, value.count <= 100 else { return nil }
@@ -1178,6 +1177,11 @@ final class MacCaptureCoordinator {
             "new message", "unread message"
         ]
         if snippetMarkers.contains(where: { lower.contains($0) }) { return nil }
+        if lower.contains("type a message") ||
+            lower.contains("send a message") ||
+            lower.contains("post a message") {
+            return nil
+        }
         if value.contains("\n") { return nil }
         if value.count > 80 { return nil }
         if value.contains("\n") { return nil }
@@ -1240,12 +1244,19 @@ final class MacCaptureCoordinator {
             "people",
             "contacts",
             "tasks",
+            "drafts",
+            "sent",
+            "sent items",
+            "deleted items",
+            "junk email",
+            "archive",
+            "follow-ups",
             "microsoft outlook",
             "outlook"
         ])
 
         if exactGeneric.contains(lower) { return false }
-        if lower.contains("unread message") && lower.hasPrefix("inbox") { return false }
+        if lower.contains("unread message") { return false }
         if lower.hasPrefix("from ") && lower.contains(" to ") && lower.contains(" events") { return false }
         if lower.contains("copyright ©") || lower.contains("all rights reserved") { return false }
         if lower.contains("one apple park way") { return false }

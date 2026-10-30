@@ -357,7 +357,7 @@ struct TimelineView: View {
         let normalizedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return dayItems.filter { item in
-            guard !item.isOutlookCaptureNoise else { return false }
+            guard !item.isCaptureNoise else { return false }
 
             let matchesSearch = normalizedSearch.isEmpty
                 || item.searchableText.localizedCaseInsensitiveContains(normalizedSearch)
