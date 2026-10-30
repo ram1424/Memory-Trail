@@ -135,10 +135,15 @@ final class MacCaptureCoordinator {
         let lowerBundleID = bundleID.lowercased()
 
         if lowerBundleID == "com.microsoft.outlook" || isTeamsBundleID(lowerBundleID) {
-            // Outlook and Teams are interaction-only. Do not log merely because
-            // the app became active or a previously selected item is visible.
+            // Restore the previously reliable behavior: after Outlook or Teams
+            // becomes active, let the UI settle and then read the selected item.
             lastWindowSignature = ""
             lastWindowLoggedAt = .distantPast
+
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                self?.pollFocusedWindow()
+            }
             return
         }
 
@@ -261,20 +266,19 @@ final class MacCaptureCoordinator {
         if isTeamsBundleID(lowerBundleID) {
             var conversation: String?
 
-            if result == .success, let hitElement {
-                conversation = teamsConversationFromClickedElement(hitElement)
+            // Use the clicked chat row first, matching the older working path.
+            if result == .success,
+               let hitElement,
+               let row = nearestAccessibilityRow(from: hitElement),
+               let parsed = teamsNameFromSelectedElement(row) {
+                conversation = parsed.name
             }
 
+            // New Teams does not always expose the clicked row consistently,
+            // so fall back to the selected conversation or focused window title.
             if conversation == nil {
-                conversation = teamsSelectedConversationTitle(
-                    pid: app.processIdentifier
-                )
-            }
-
-            if conversation == nil {
-                conversation = teamsConversationHeaderTitle(
-                    pid: app.processIdentifier
-                )
+                conversation = teamsSelectedConversationTitle(pid: app.processIdentifier)
+                    ?? teamsConversationTitleFromFocusedWindow(pid: app.processIdentifier)
             }
 
             guard let conversation else { return }
@@ -357,13 +361,6 @@ final class MacCaptureCoordinator {
 
         let appName = app.localizedName ?? "Application"
         let lowerBundleID = bundleID.lowercased()
-
-        // Outlook and Teams are deliberately click-driven only. Periodic
-        // polling can surface folder counters, compose controls, or stale
-        // selections that the user never actively opened.
-        if lowerBundleID == "com.microsoft.outlook" || isTeamsBundleID(lowerBundleID) {
-            return
-        }
 
         if lowerBundleID == "com.microsoft.outlook" {
             guard let subject = outlookSelectedSubject(pid: app.processIdentifier) else { return }
