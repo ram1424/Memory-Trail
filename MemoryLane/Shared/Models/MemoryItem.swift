@@ -41,6 +41,23 @@ final class MemoryItem {
     }
 
     var displayTitle: String {
+        if isTeamsActivity {
+            let value = title
+                .replacingOccurrences(of: "\n", with: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let lower = value.lowercased()
+
+            for prefix in ["group chat with ", "group chat "] where lower.hasPrefix(prefix) {
+                let name = String(value.dropFirst(prefix.count))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !name.isEmpty {
+                    return "Conversation with \(name)"
+                }
+            }
+
+            return value
+        }
+
         guard isOutlookActivity else { return title }
 
         let value = title
@@ -131,6 +148,17 @@ final class MemoryItem {
             "favorites",
             "copilot",
             "message list",
+            "unread",
+            "read",
+            "available",
+            "busy",
+            "away",
+            "offline",
+            "online",
+            "do not disturb",
+            "muted",
+            "external",
+            "guest",
             "chat list",
             "conversation list",
             "recent",

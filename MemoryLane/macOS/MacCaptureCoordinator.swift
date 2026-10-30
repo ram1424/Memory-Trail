@@ -1365,9 +1365,10 @@ final class MacCaptureCoordinator {
 
         let lower = raw.lowercased()
         let directPrefixes = [
-            "chat with ",
+            "group chat with ",
             "conversation with ",
-            "group chat with "
+            "chat with ",
+            "group chat "
         ]
 
         for prefix in directPrefixes where lower.hasPrefix(prefix) {
@@ -1488,9 +1489,10 @@ final class MacCaptureCoordinator {
         let lowerOriginal = value.lowercased()
 
         let directChatPrefixes = [
-            "Chat with ",
+            "Group chat with ",
             "Conversation with ",
-            "Group chat with "
+            "Chat with ",
+            "Group chat "
         ]
 
         for prefix in directChatPrefixes {
@@ -1556,9 +1558,37 @@ final class MacCaptureCoordinator {
     }
 
     private func sanitizedTeamsPeopleLabel(_ rawValue: String) -> String? {
-        let value = rawValue
+        var value = rawValue
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !value.isEmpty else { return nil }
+
+        // Teams often appends row metadata after the actual chat/person name.
+        // Example: "Ashar, Unread" or "Billy Smith; Available".
+        for separator in [", ", "; "] {
+            let parts = value
+                .components(separatedBy: separator)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+            if parts.count >= 2 {
+                let trailing = parts.dropFirst().joined(separator: " ").lowercased()
+                let metadataMarkers = [
+                    "unread", "read", "available", "busy", "away",
+                    "offline", "online", "do not disturb", "muted",
+                    "pinned", "external", "guest", "last message",
+                    "last activity", "today", "yesterday", " am", " pm",
+                    "minutes ago", "hours ago"
+                ]
+
+                if metadataMarkers.contains(where: { trailing.contains($0) }),
+                   let first = parts.first {
+                    value = first
+                    break
+                }
+            }
+        }
 
         let lower = value.lowercased()
         let generic = Set([
@@ -1567,7 +1597,13 @@ final class MacCaptureCoordinator {
             "files", "teams and channels", "new chat", "search",
             "type a message", "send a message", "message", "reply",
             "post a message", "compose", "format", "new message",
-            "chat list", "conversation", "conversation list"
+            "chat list", "conversation", "conversation list",
+            "favorites", "copilot", "message list", "recent",
+            "recent chats", "pinned", "discover",
+            "unread", "read", "available", "busy", "away",
+            "offline", "online", "do not disturb", "muted",
+            "external", "guest", "more chat options", "chat options",
+            "conversation options"
         ])
 
         guard value.count >= 2, value.count <= 100 else { return nil }
@@ -1579,7 +1615,7 @@ final class MacCaptureCoordinator {
             "typing", "draft", "last message", "message preview",
             "new message", "unread message", "type a message",
             "send a message", "post a message", "press enter to send",
-            "press enter to open", "more options"
+            "press enter to open", "more options", "more chat options"
         ]
         if snippetMarkers.contains(where: { lower.contains($0) }) { return nil }
 
@@ -1648,6 +1684,17 @@ final class MacCaptureCoordinator {
             "favorites",
             "copilot",
             "message list",
+            "unread",
+            "read",
+            "available",
+            "busy",
+            "away",
+            "offline",
+            "online",
+            "do not disturb",
+            "muted",
+            "external",
+            "guest",
             "messages",
             "chat list",
             "conversation list",
@@ -1691,6 +1738,13 @@ final class MacCaptureCoordinator {
         ])
 
         if exactGeneric.contains(value) { return true }
+        if value.hasSuffix(" unread") || value.hasSuffix(" read") {
+            let prefix = value
+                .replacingOccurrences(of: " unread", with: "")
+                .replacingOccurrences(of: " read", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if Int(prefix) != nil { return true }
+        }
 
         let genericFragments = [
             "message list",
