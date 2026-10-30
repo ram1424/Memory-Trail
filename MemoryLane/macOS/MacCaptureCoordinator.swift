@@ -244,11 +244,14 @@ final class MacCaptureCoordinator {
             if result == .success,
                let hitElement,
                let subject = outlookSubjectFromClickedElement(hitElement) {
+                let sender = outlookSenderFromElement(hitElement)
+                    ?? outlookSelectedSender(pid: app.processIdentifier)
                 logActivity(
                     title: subject,
                     sourceURL: nil,
                     applicationName: app.localizedName ?? "Microsoft Outlook",
-                    bundleID: bundleID
+                    bundleID: bundleID,
+                    baseDetail: sender.map { "From: \($0)" }
                 )
                 return
             }
@@ -355,11 +358,13 @@ final class MacCaptureCoordinator {
 
         if lowerBundleID == "com.microsoft.outlook" {
             guard let subject = outlookSelectedSubject(pid: app.processIdentifier) else { return }
+            let sender = outlookSelectedSender(pid: app.processIdentifier)
             logActivity(
                 title: subject,
                 sourceURL: nil,
                 applicationName: appName,
-                bundleID: bundleID
+                bundleID: bundleID,
+                baseDetail: sender.map { "From: \($0)" }
             )
             return
         }
@@ -412,7 +417,8 @@ final class MacCaptureCoordinator {
         title: String,
         sourceURL: String?,
         applicationName: String,
-        bundleID: String
+        bundleID: String,
+        baseDetail: String? = nil
     ) {
         let signature = [
             bundleID.lowercased(),
@@ -429,15 +435,23 @@ final class MacCaptureCoordinator {
 
         guard let context else { return }
 
+        let lowerBundleID = bundleID.lowercased()
+        let storedBody: String
+
+        if lowerBundleID == "com.microsoft.outlook" {
+            storedBody = baseDetail ?? ""
+        } else if isTeamsBundleID(lowerBundleID) {
+            storedBody = ""
+        } else {
+            // App activity is intentionally minimal: title + app identity +
+            // optional source URL/path are enough to retrace the work.
+            storedBody = ""
+        }
+
         context.insert(
             MemoryItem(
                 title: title,
-                body: detailedBody(
-                    for: title,
-                    applicationName: applicationName,
-                    bundleID: bundleID,
-                    sourceURL: sourceURL
-                ),
+                body: storedBody,
                 sourceApp: applicationName,
                 sourceBundleID: bundleID,
                 sourceKind: sourceKind(bundleID: bundleID, sourceURL: sourceURL),
@@ -565,12 +579,14 @@ final class MacCaptureCoordinator {
     private func captureOutlookSelectedSubject(application: NSRunningApplication) {
         guard let subject = outlookSelectedSubject(pid: application.processIdentifier) else { return }
 
+        let sender = outlookSelectedSender(pid: application.processIdentifier)
         let appName = application.localizedName ?? "Microsoft Outlook"
         logActivity(
             title: subject,
             sourceURL: nil,
             applicationName: appName,
-            bundleID: application.bundleIdentifier ?? "com.microsoft.outlook"
+            bundleID: application.bundleIdentifier ?? "com.microsoft.outlook",
+            baseDetail: sender.map { "From: \($0)" }
         )
     }
 
@@ -605,6 +621,167 @@ final class MacCaptureCoordinator {
         guard error == nil else { return nil }
 
         return sanitizedOutlookSubject(result.stringValue ?? "")
+    }
+
+    private func outlookSelectedSender(pid: pid_t) -> String? {
+        if let sender = outlookSelectedSenderFromAppleScript() {
+            return sender
+        }
+
+        let appElement = AXUIElementCreateApplication(pid)
+
+        var focusedWindowValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        ) == .success,
+        let focusedWindowValue,
+        CFGetTypeID(focusedWindowValue) == AXUIElementGetTypeID()
+        else {
+            return nil
+        }
+
+        let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
+
+        for selected in selectedAccessibilityRows(in: window) {
+            if let sender = outlookSenderFromElement(selected) {
+                return sender
+            }
+        }
+
+        if let focused = focusedAccessibilityElement(in: appElement),
+           let row = nearestAccessibilityRow(from: focused),
+           let sender = outlookSenderFromElement(row) {
+            return sender
+        }
+
+        return nil
+    }
+
+    private func outlookSelectedSenderFromAppleScript() -> String? {
+        let source = """
+        tell application "Microsoft Outlook"
+            try
+                set selectedItems to selected objects
+                if (count of selectedItems) is greater than 0 then
+                    set theItem to item 1 of selectedItems
+                    try
+                        set senderValue to sender of theItem
+                        try
+                            return name of senderValue as text
+                        end try
+                        return senderValue as text
+                    end try
+                end if
+            end try
+        end tell
+        return ""
+        """
+
+        guard let script = NSAppleScript(source: source) else { return nil }
+
+        var error: NSDictionary?
+        let result = script.executeAndReturnError(&error)
+        guard error == nil else { return nil }
+
+        return sanitizedOutlookSender(result.stringValue ?? "")
+    }
+
+    private func outlookSenderFromElement(_ root: AXUIElement) -> String? {
+        var current: AXUIElement? = root
+        var depth = 0
+
+        while let element = current, depth < 10 {
+            for attribute in [
+                kAXDescriptionAttribute as CFString,
+                kAXTitleAttribute as CFString,
+                kAXValueAttribute as CFString
+            ] {
+                if let raw = attributeString(element, attribute),
+                   let sender = parseOutlookSender(from: raw) {
+                    return sender
+                }
+            }
+
+            var queue: [AXUIElement] = [element]
+            var index = 0
+            var inspected = 0
+
+            while index < queue.count, inspected < 45 {
+                let child = queue[index]
+                index += 1
+                inspected += 1
+
+                for attribute in [
+                    kAXDescriptionAttribute as CFString,
+                    kAXTitleAttribute as CFString,
+                    kAXValueAttribute as CFString
+                ] {
+                    if let raw = attributeString(child, attribute),
+                       let sender = parseOutlookSender(from: raw) {
+                        return sender
+                    }
+                }
+
+                appendChildren(of: child, to: &queue, limit: 18)
+            }
+
+            current = parentElement(of: element)
+            depth += 1
+        }
+
+        return nil
+    }
+
+    private func parseOutlookSender(from rawValue: String) -> String? {
+        let normalized = rawValue
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let lower = normalized.lowercased()
+        let markers = [", sent by ", "; sent by ", " sent by "]
+
+        guard let marker = markers.first(where: { lower.contains($0) }),
+              let range = lower.range(of: marker)
+        else {
+            return nil
+        }
+
+        var sender = String(normalized[range.upperBound...])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let terminators = [
+            " today", " yesterday", " monday", " tuesday", " wednesday",
+            " thursday", " friday", " saturday", " sunday",
+            "; has ", ", has ", " at ", "; received ", ", received "
+        ]
+
+        let lowerSender = sender.lowercased()
+        if let end = terminators.compactMap({ lowerSender.range(of: $0)?.lowerBound }).min() {
+            sender = String(sender[..<end])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return sanitizedOutlookSender(sender)
+    }
+
+    private func sanitizedOutlookSender(_ rawValue: String) -> String? {
+        let sender = rawValue
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard sender.count >= 2, sender.count <= 120 else { return nil }
+        guard !looksLikeURL(sender), !looksLikeTimestampOrDate(sender) else { return nil }
+
+        let lower = sender.lowercased()
+        let generic = Set([
+            "microsoft outlook", "outlook", "inbox", "mail",
+            "sender", "from", "unknown"
+        ])
+        guard !generic.contains(lower) else { return nil }
+
+        return sender
     }
 
     private func outlookSelectedSubjectFromAccessibility(pid: pid_t) -> String? {
@@ -878,22 +1055,27 @@ final class MacCaptureCoordinator {
     }
 
     private func teamsNameFromSelectedElement(_ root: AXUIElement) -> (name: String, score: Int)? {
-        var queue: [AXUIElement] = [root]
-        var index = 0
-        var inspected = 0
+        var elements: [AXUIElement] = [root]
+
+        var childrenValue: CFTypeRef?
+        if AXUIElementCopyAttributeValue(
+            root,
+            kAXChildrenAttribute as CFString,
+            &childrenValue
+        ) == .success,
+        let children = childrenValue as? [AXUIElement] {
+            elements.append(contentsOf: children.prefix(16))
+        }
+
         var candidates: [(name: String, score: Int)] = []
 
-        while index < queue.count, inspected < 70 {
-            let element = queue[index]
-            index += 1
-            inspected += 1
-
+        for element in elements {
             let role = attributeString(element, kAXRoleAttribute as CFString)?.lowercased() ?? ""
 
             for (attribute, baseScore) in [
-                (kAXTitleAttribute as CFString, 95),
-                (kAXDescriptionAttribute as CFString, 80),
-                (kAXValueAttribute as CFString, 30)
+                (kAXTitleAttribute as CFString, 110),
+                (kAXDescriptionAttribute as CFString, 85),
+                (kAXValueAttribute as CFString, 25)
             ] {
                 guard let raw = attributeString(element, attribute) else { continue }
                 guard let name = sanitizedTeamsConversationName(raw) else { continue }
@@ -911,18 +1093,15 @@ final class MacCaptureCoordinator {
                     score += 30
                 }
 
-                if looksLikePersonName(name) { score += 55 }
-                if name.count <= 60 { score += 20 }
-                if name.split(separator: " ").count <= 6 { score += 15 }
+                if name.lowercased().hasPrefix("conversation with ") { score += 60 }
+                if name.count <= 80 { score += 20 }
 
                 candidates.append((name, score))
             }
-
-            appendChildren(of: element, to: &queue, limit: 24)
         }
 
         return candidates
-            .filter { $0.score >= 100 }
+            .filter { $0.score >= 115 }
             .max(by: { $0.score < $1.score })
     }
 
@@ -953,15 +1132,17 @@ final class MacCaptureCoordinator {
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let prefixes = [
+        let directChatPrefixes = [
             "Chat with ",
             "Conversation with ",
             "Group chat with "
         ]
-        for prefix in prefixes {
+        for prefix in directChatPrefixes {
             if value.lowercased().hasPrefix(prefix.lowercased()) {
-                value = String(value.dropFirst(prefix.count))
+                let people = String(value.dropFirst(prefix.count))
                     .trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !people.isEmpty else { return nil }
+                value = "Conversation with \(people)"
                 break
             }
         }
@@ -998,7 +1179,11 @@ final class MacCaptureCoordinator {
         ]
         if snippetMarkers.contains(where: { lower.contains($0) }) { return nil }
         if value.contains("\n") { return nil }
-        if value.count > 55 && (value.contains(".") || value.contains("?") || value.contains("!")) {
+        if value.count > 80 { return nil }
+        if value.contains("\n") { return nil }
+
+        let sentencePunctuation = value.filter { ".?!".contains($0) }.count
+        if sentencePunctuation > 0 && !lower.hasPrefix("conversation with ") {
             return nil
         }
 
@@ -1472,52 +1657,6 @@ final class MacCaptureCoordinator {
         }
 
         return fileAwareBundleIDs.contains(bundleID.lowercased()) ? .file : .appActivity
-    }
-
-    private func detailedBody(
-        for title: String,
-        applicationName: String,
-        bundleID: String,
-        sourceURL: String?
-    ) -> String {
-        let lower = bundleID.lowercased()
-
-        if let sourceURL,
-           let url = URL(string: sourceURL),
-           url.isFileURL {
-            let path = url.path(percentEncoded: false)
-            switch lower {
-            case "com.apple.finder":
-                return "Finder location viewed: \(title) — \(path)"
-            case "com.microsoft.word":
-                return "Word document viewed: \(title) — \(path)"
-            case "com.microsoft.excel":
-                return "Excel workbook viewed: \(title) — \(path)"
-            case "com.microsoft.powerpoint":
-                return "PowerPoint presentation viewed: \(title) — \(path)"
-            case "com.apple.preview":
-                return "Preview file viewed: \(title) — \(path)"
-            default:
-                return "File viewed in \(applicationName): \(title) — \(path)"
-            }
-        }
-
-        switch lower {
-        case "com.apple.mail":
-            return "Mail item viewed: \(title)"
-        case "com.microsoft.outlook":
-            return "Outlook item viewed: \(title)"
-        case "com.microsoft.teams2":
-            return "Teams conversation: \(title)"
-        case "com.microsoft.onenote.mac", "com.microsoft.onenote":
-            return "OneNote page viewed: \(title)"
-        case "com.apple.safari":
-            return sourceURL.map { "Safari page viewed: \(title) — \($0)" } ?? "Safari page viewed: \(title)"
-        case "com.google.chrome":
-            return sourceURL.map { "Chrome page viewed: \(title) — \($0)" } ?? "Chrome page viewed: \(title)"
-        default:
-            return "Focused window in \(applicationName): \(title)"
-        }
     }
 
     private func urlDisplayTitle(_ value: String) -> String {
