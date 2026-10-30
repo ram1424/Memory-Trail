@@ -151,7 +151,7 @@ jobs:
             WIDTH="$(sips -g pixelWidth "$OUT/$FILE" | awk '/pixelWidth/ {print $2}')"
             HEIGHT="$(sips -g pixelHeight "$OUT/$FILE" | awk '/pixelHeight/ {print $2}')"
             echo "$FILE: ${WIDTH}x${HEIGHT}"
-            if [ "$WIDTH" -lt 1200 ] || [ "$HEIGHT" -lt 720 ]; then
+            if [ "$WIDTH" -lt 1200 ] || [ "$HEIGHT" -lt 850 ]; then
               echo "Screenshot dimensions are too small: $FILE"
               exit 1
             fi

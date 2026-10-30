@@ -232,7 +232,7 @@ struct MemoryLaneApp: App {
 
 @MainActor
 private enum MemoryLaneScreenshotDemo {
-    private static let standardDemoSize = NSSize(width: 1440, height: 900)
+    private static let standardDemoSize = NSSize(width: 1440, height: 980)
     private static let settingsDemoSize = NSSize(width: 1440, height: 1020)
 
     static func seedDemoTimeline(in context: ModelContext) {
@@ -248,7 +248,8 @@ private enum MemoryLaneScreenshotDemo {
                 title: "Chat with Alex Morgan, Priya Shah, and Jordan Lee",
                 sourceApp: "Microsoft Teams",
                 sourceBundleID: "com.microsoft.teams2",
-                sourceKind: .appActivity
+                sourceKind: .appActivity,
+                isFavorite: true
             ),
             MemoryItem(
                 createdAt: now.addingTimeInterval(-16 * 60),
@@ -265,7 +266,8 @@ private enum MemoryLaneScreenshotDemo {
                 sourceApp: "Safari",
                 sourceBundleID: "com.apple.Safari",
                 sourceKind: .appActivity,
-                sourceURL: "https://example.com/docs"
+                sourceURL: "https://example.com/docs",
+                isFavorite: true
             ),
             MemoryItem(
                 createdAt: now.addingTimeInterval(-47 * 60),
@@ -288,13 +290,6 @@ private enum MemoryLaneScreenshotDemo {
                 body: "Follow up on the project review notes",
                 sourceApp: "Clipboard",
                 sourceKind: .clipboard
-            ),
-            MemoryItem(
-                createdAt: now.addingTimeInterval(-96 * 60),
-                title: "Release Notes.pdf",
-                sourceApp: "Preview",
-                sourceBundleID: "com.apple.Preview",
-                sourceKind: .appActivity
             )
         ]
 
