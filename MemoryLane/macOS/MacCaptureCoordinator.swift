@@ -286,8 +286,13 @@ final class MacCaptureCoordinator {
 
             guard let conversation else { return }
 
+            let expandedConversation = expandedTeamsGroupConversationTitle(
+                conversation,
+                pid: app.processIdentifier
+            )
+
             logActivity(
-                title: conversation,
+                title: expandedConversation,
                 sourceURL: nil,
                 applicationName: app.localizedName ?? "Microsoft Teams",
                 bundleID: bundleID
@@ -1285,10 +1290,15 @@ final class MacCaptureCoordinator {
             appendChildren(of: element, to: &queue, limit: 65)
         }
 
-        return candidates
-            .filter { $0.score >= 190 }
+        guard let best = candidates
+            .filter({ $0.score >= 190 })
             .max(by: { $0.score < $1.score })?
             .name
+        else {
+            return nil
+        }
+
+        return expandedTeamsGroupConversationTitle(best, pid: pid)
     }
 
     private func teamsNameFromSelectedElement(_ root: AXUIElement) -> (name: String, score: Int)? {
@@ -1571,8 +1581,258 @@ final class MacCaptureCoordinator {
             return nil
         }
 
-        guard !isGenericTeamsUIValue(raw) else { return nil }
-        return parsedTeamsConversationCandidate(raw)?.name
+        guard !isGenericTeamsUIValue(raw),
+              let parsed = parsedTeamsConversationCandidate(raw)?.name
+        else {
+            return nil
+        }
+
+        return expandedTeamsGroupConversationTitle(parsed, pid: pid)
+    }
+
+    private struct CollapsedTeamsGroupChat {
+        let firstName: String
+        let additionalCount: Int
+    }
+
+    private func expandedTeamsGroupConversationTitle(_ title: String, pid: pid_t) -> String {
+        guard let collapsed = collapsedTeamsGroupChat(from: title) else {
+            return title
+        }
+
+        let targetCount = collapsed.additionalCount + 1
+        guard targetCount > 1 else { return title }
+
+        let appElement = AXUIElementCreateApplication(pid)
+
+        var focusedWindowValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        ) == .success,
+        let focusedWindowValue,
+        CFGetTypeID(focusedWindowValue) == AXUIElementGetTypeID()
+        else {
+            return title
+        }
+
+        let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
+        var names = [collapsed.firstName]
+        var seen = Set([collapsed.firstName.lowercased()])
+
+        var queue: [(element: AXUIElement, depth: Int)] = [(window, 0)]
+        var index = 0
+        var inspected = 0
+
+        while index < queue.count, inspected < 420, names.count < targetCount {
+            let entry = queue[index]
+            index += 1
+            inspected += 1
+
+            let element = entry.element
+            let depth = entry.depth
+
+            let role = attributeString(element, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+            let roleDescription = attributeString(element, kAXRoleDescriptionAttribute as CFString)?.lowercased() ?? ""
+            let identifier = attributeString(element, kAXIdentifierAttribute as CFString)?.lowercased() ?? ""
+            let help = attributeString(element, "AXHelp" as CFString)?.lowercased() ?? ""
+
+            let semanticText = [role, roleDescription, identifier, help]
+                .joined(separator: " ")
+
+            let participantSemantic =
+                semanticText.contains("participant") ||
+                semanticText.contains("member") ||
+                semanticText.contains("avatar") ||
+                semanticText.contains("profile") ||
+                semanticText.contains("people") ||
+                semanticText.contains("person") ||
+                semanticText.contains("chat header") ||
+                semanticText.contains("conversation header") ||
+                identifier.contains("chat-title") ||
+                identifier.contains("chat_title") ||
+                identifier.contains("conversation-title") ||
+                identifier.contains("conversation_title")
+
+            if participantSemantic {
+                for attribute in [
+                    kAXTitleAttribute as CFString,
+                    kAXDescriptionAttribute as CFString,
+                    kAXValueAttribute as CFString,
+                    "AXHelp" as CFString
+                ] {
+                    guard let raw = attributeString(element, attribute) else { continue }
+
+                    for candidate in teamsParticipantNames(from: raw) {
+                        let key = candidate.lowercased()
+                        guard !seen.contains(key) else { continue }
+
+                        seen.insert(key)
+                        names.append(candidate)
+
+                        if names.count >= targetCount {
+                            break
+                        }
+                    }
+
+                    if names.count >= targetCount {
+                        break
+                    }
+                }
+            }
+
+            guard depth < 7 else { continue }
+
+            var childrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXChildrenAttribute as CFString,
+                &childrenValue
+            ) == .success,
+            let children = childrenValue as? [AXUIElement] {
+                for child in children.prefix(70) {
+                    queue.append((child, depth + 1))
+                }
+            }
+        }
+
+        // Only replace +N when Teams actually exposed enough individual names.
+        // This prevents Memory Lane from inventing or partially guessing members.
+        guard names.count == targetCount else { return title }
+
+        return "Chat with " + naturalTeamsNameList(names)
+    }
+
+    private func collapsedTeamsGroupChat(from rawTitle: String) -> CollapsedTeamsGroupChat? {
+        var value = rawTitle
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        for prefix in ["Chat with ", "Conversation with "] {
+            if value.lowercased().hasPrefix(prefix.lowercased()) {
+                value = String(value.dropFirst(prefix.count))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                break
+            }
+        }
+
+        let pattern = #"^(.+?)\s+\+(\d+)$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(
+                in: value,
+                range: NSRange(value.startIndex..., in: value)
+              ),
+              match.numberOfRanges == 3,
+              let nameRange = Range(match.range(at: 1), in: value),
+              let countRange = Range(match.range(at: 2), in: value),
+              let count = Int(value[countRange]),
+              count > 0
+        else {
+            return nil
+        }
+
+        let firstName = String(value[nameRange])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard looksLikeTeamsDisplayName(firstName) else { return nil }
+
+        return CollapsedTeamsGroupChat(
+            firstName: firstName,
+            additionalCount: count
+        )
+    }
+
+    private func teamsParticipantNames(from rawValue: String) -> [String] {
+        var value = rawValue
+            .replacingOccurrences(of: "\n", with: ", ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !value.isEmpty else { return [] }
+
+        let lower = value.lowercased()
+        if lower.contains("type a message") ||
+            lower.contains("last message") ||
+            lower.contains("message preview") ||
+            lower.contains("more chat options") {
+            return []
+        }
+
+        let prefixes = [
+            "participants:",
+            "participants",
+            "members:",
+            "members",
+            "people:",
+            "people",
+            "profile picture of",
+            "profile photo of",
+            "avatar of",
+            "person:"
+        ]
+
+        for prefix in prefixes where value.lowercased().hasPrefix(prefix) {
+            value = String(value.dropFirst(prefix.count))
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ":,-")))
+            break
+        }
+
+        // Do not treat the same collapsed Teams label as a real participant name.
+        if collapsedTeamsGroupChat(from: "Chat with \(value)") != nil {
+            return []
+        }
+
+        let parts = value
+            .components(separatedBy: CharacterSet(charactersIn: ",;•"))
+            .map {
+                $0.trimmingCharacters(
+                    in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ":"))
+                )
+            }
+            .filter { !$0.isEmpty }
+
+        var results: [String] = []
+        var seen = Set<String>()
+
+        for part in parts {
+            var candidate = part
+
+            for suffix in [
+                " (guest)", " (external)", " guest", " external",
+                ", available", ", busy", ", away", ", offline"
+            ] {
+                if candidate.lowercased().hasSuffix(suffix) {
+                    candidate = String(candidate.dropLast(suffix.count))
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+
+            guard looksLikeTeamsDisplayName(candidate),
+                  !isGenericTeamsUIValue(candidate)
+            else {
+                continue
+            }
+
+            let key = candidate.lowercased()
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            results.append(candidate)
+        }
+
+        return results
+    }
+
+    private func naturalTeamsNameList(_ names: [String]) -> String {
+        switch names.count {
+        case 0:
+            return ""
+        case 1:
+            return names[0]
+        case 2:
+            return "\(names[0]) and \(names[1])"
+        default:
+            return names.dropLast().joined(separator: ", ") + ", and " + names.last!
+        }
     }
 
     private func sanitizedTeamsConversationName(_ rawValue: String) -> String? {
