@@ -352,23 +352,30 @@ private enum MemoryLaneScreenshotExporter {
                 .background(Color(nsColor: .windowBackgroundColor))
         )
 
-        let renderer = ImageRenderer(content: content)
-        renderer.proposedSize = ProposedViewSize(
-            width: size.width,
-            height: size.height
-        )
-        renderer.scale = 2
+        // ImageRenderer does not fully realize ScrollView/@Query-backed macOS
+        // content offscreen. NSHostingView runs the actual AppKit/SwiftUI layout
+        // pipeline, which matches what the user sees in the application.
+        let hostingView = NSHostingView(rootView: content)
+        hostingView.frame = NSRect(origin: .zero, size: size)
+        hostingView.wantsLayer = true
 
-        // Give @Query-backed SwiftUI content a turn on the main actor before
-        // asking ImageRenderer for the final bitmap.
-        await Task.yield()
+        // Give SwiftData queries, ScrollViews, and material-backed views time to
+        // resolve before capturing the backing view.
+        hostingView.layoutSubtreeIfNeeded()
+        hostingView.displayIfNeeded()
+        try await Task.sleep(nanoseconds: 400_000_000)
+        hostingView.layoutSubtreeIfNeeded()
+        hostingView.displayIfNeeded()
 
-        guard let cgImage = renderer.cgImage else {
+        let bounds = hostingView.bounds
+        guard bounds.width > 0,
+              bounds.height > 0,
+              let bitmap = hostingView.bitmapImageRepForCachingDisplay(in: bounds)
+        else {
             throw ScreenshotExportError.unableToCreateBitmap
         }
 
-        let bitmap = NSBitmapImageRep(cgImage: cgImage)
-        bitmap.size = size
+        hostingView.cacheDisplay(in: bounds, to: bitmap)
 
         guard let png = bitmap.representation(using: .png, properties: [:]) else {
             throw ScreenshotExportError.unableToEncodePNG
