@@ -346,55 +346,38 @@ private enum MemoryLaneScreenshotExporter {
         _ view: AnyView,
         to url: URL
     ) async throws {
-        let framedView = AnyView(
+        let content = AnyView(
             view
                 .frame(width: size.width, height: size.height)
                 .background(Color(nsColor: .windowBackgroundColor))
         )
 
-        let hostingController = NSHostingController(rootView: framedView)
-        let window = NSWindow(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
+        let renderer = ImageRenderer(content: content)
+        renderer.proposedSize = ProposedViewSize(
+            width: size.width,
+            height: size.height
         )
+        renderer.scale = 2
 
-        window.isOpaque = true
-        window.backgroundColor = .windowBackgroundColor
-        window.contentViewController = hostingController
-        window.setContentSize(size)
-        window.orderFrontRegardless()
+        // Give @Query-backed SwiftUI content a turn on the main actor before
+        // asking ImageRenderer for the final bitmap.
+        await Task.yield()
 
-        try await Task.sleep(nanoseconds: 650_000_000)
-
-        guard let contentView = window.contentView else {
-            window.close()
-            throw ScreenshotExportError.missingContentView
-        }
-
-        contentView.layoutSubtreeIfNeeded()
-
-        let bounds = contentView.bounds
-        guard let bitmap = contentView.bitmapImageRepForCachingDisplay(in: bounds) else {
-            window.close()
+        guard let cgImage = renderer.cgImage else {
             throw ScreenshotExportError.unableToCreateBitmap
         }
 
-        contentView.cacheDisplay(in: bounds, to: bitmap)
+        let bitmap = NSBitmapImageRep(cgImage: cgImage)
+        bitmap.size = size
 
         guard let png = bitmap.representation(using: .png, properties: [:]) else {
-            window.close()
             throw ScreenshotExportError.unableToEncodePNG
         }
 
         try png.write(to: url, options: .atomic)
-        window.orderOut(nil)
-        window.close()
     }
 
     private enum ScreenshotExportError: Error {
-        case missingContentView
         case unableToCreateBitmap
         case unableToEncodePNG
     }
