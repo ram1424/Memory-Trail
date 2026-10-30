@@ -1,5 +1,6 @@
 #if os(macOS)
 import AppKit
+import Darwin
 import SwiftUI
 import SwiftData
 
@@ -107,6 +108,7 @@ struct MemoryLaneApp: App {
                             )
                         } catch {
                             fputs("Screenshot export failed: \(error)\n", stderr)
+                            exit(EXIT_FAILURE)
                         }
 
                         NSApplication.shared.terminate(nil)

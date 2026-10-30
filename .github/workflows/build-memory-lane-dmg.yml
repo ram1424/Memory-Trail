@@ -74,21 +74,42 @@ jobs:
             -f description="Memory Lane Xcode build passed." >/dev/null
 
       - name: Render screenshots from the real app UI
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           APP="$PWD/build/Build/Products/Release/Memory Lane.app"
           OUT="$PWD/docs/screenshots"
+          LOG="$PWD/screenshot-export.log"
 
           test -x "$APP/Contents/MacOS/Memory Lane"
           mkdir -p "$OUT"
           rm -f "$OUT"/*.svg "$OUT"/*.png
 
-          "$APP/Contents/MacOS/Memory Lane" "--export-screenshots=$OUT"
+          set +e
+          "$APP/Contents/MacOS/Memory Lane" "--export-screenshots=$OUT" >"$LOG" 2>&1
+          EXPORT_STATUS=$?
+          set -e
+
+          cat "$LOG" || true
+
+          if [ "$EXPORT_STATUS" -ne 0 ]; then
+            ERROR_LINE="$(tail -n 8 "$LOG" | tr '\n' ' ' | sed 's/[[:space:]][[:space:]]*/ /g' | cut -c1-135)"
+            [ -n "$ERROR_LINE" ] || ERROR_LINE="Real-app screenshot exporter exited with status $EXPORT_STATUS."
+            gh api               --method POST               "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"               -f state=failure               -f context=memory-lane-screenshot-diagnostics               -f description="$ERROR_LINE" >/dev/null
+            exit "$EXPORT_STATUS"
+          fi
 
           for FILE in timeline.png ask-memory-lane.png privacy-general.png; do
-            test -s "$OUT/$FILE"
+            if [ ! -s "$OUT/$FILE" ]; then
+              ERROR_LINE="Expected real-app screenshot missing: $FILE"
+              gh api                 --method POST                 "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"                 -f state=failure                 -f context=memory-lane-screenshot-diagnostics                 -f description="$ERROR_LINE" >/dev/null
+              exit 1
+            fi
             sips -g pixelWidth -g pixelHeight "$OUT/$FILE"
           done
+
+          gh api             --method POST             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"             -f state=success             -f context=memory-lane-screenshot-diagnostics             -f description="Real Memory Lane UI screenshots rendered successfully." >/dev/null
 
       - name: Publish refreshed app screenshots
         if: github.event_name == 'push'
