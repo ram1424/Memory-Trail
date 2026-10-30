@@ -1123,6 +1123,7 @@ final class MacCaptureCoordinator {
                 guard let parsed = parsedTeamsConversationCandidate(raw) else { continue }
 
                 var score = baseScore - (depth * 12)
+                score += min(rootContainerScore, 120)
                 if parsed.strongSignal { score += 180 }
                 if parsed.directConversationSignal { score += 220 }
 
@@ -1171,7 +1172,9 @@ final class MacCaptureCoordinator {
         let metadata = [role, roleDescription, identifier, help, title, description]
             .joined(separator: " ")
 
-        if isGenericTeamsUIValue(metadata) {
+        if isGenericTeamsUIValue(title) ||
+            isGenericTeamsUIValue(description) ||
+            isGenericTeamsUIValue(help) {
             return -300
         }
 
@@ -1193,6 +1196,13 @@ final class MacCaptureCoordinator {
             metadata.contains("conversation item") ||
             metadata.contains("recent chat") {
             score += 120
+        }
+        if identifier.contains("chat-list") ||
+            identifier.contains("chat_list") ||
+            identifier.contains("conversation-list") ||
+            roleDescription.contains("chat list") ||
+            roleDescription.contains("conversation list") {
+            score += 110
         }
 
         // A generic AXGroup is only eligible when Teams itself labels it as
