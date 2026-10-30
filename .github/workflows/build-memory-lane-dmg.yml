@@ -14,6 +14,8 @@ on:
 permissions:
   contents: write
   statuses: write
+  pages: write
+  id-token: write
 
 jobs:
   build-dmg:
@@ -205,3 +207,30 @@ jobs:
               --title "Memory Lane 1.0" \
               --notes "Memory Lane 1.0 macOS DMG. This automated build uses ad-hoc signing and is not notarized."
           fi
+
+
+  deploy-pages:
+    if: github.event_name == 'push'
+    needs: build-dmg
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Check out latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
