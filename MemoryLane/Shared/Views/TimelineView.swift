@@ -104,7 +104,7 @@ struct TimelineView: View {
                 category = .allApps
             }
         }
-        .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { value in
+        .onReceive(Timer.publish(every: 15, on: .main, in: .common).autoconnect()) { value in
             now = value
         }
     }
@@ -313,6 +313,7 @@ struct TimelineView: View {
                     item: item,
                     duration: durations[item.id] ?? 0,
                     isSelected: selectedMemoryID == item.id,
+                    latestBadge: latestBadge(for: item),
                     timelineTint: .blue,
                     onSelect: {
                         selectedMemoryID = item.id
@@ -380,6 +381,21 @@ struct TimelineView: View {
         }
     }
 
+    private func latestBadge(for item: MemoryItem) -> LatestActivityBadge? {
+        guard dayOffset == 0,
+              item.id == itemsForSelectedDay.first?.id
+        else {
+            return nil
+        }
+
+        let age = max(0, now.timeIntervalSince(item.createdAt))
+        if age <= 2 * 60 {
+            return .live
+        }
+
+        return .latest
+    }
+
     private func durationLookup(for items: [MemoryItem]) -> [UUID: TimeInterval] {
         var result: [UUID: TimeInterval] = [:]
         result.reserveCapacity(items.count)
@@ -436,10 +452,30 @@ struct TimelineView: View {
     }
 }
 
+private enum LatestActivityBadge {
+    case live
+    case latest
+
+    var title: String {
+        switch self {
+        case .live: "Live Activity"
+        case .latest: "Latest"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .live: .green
+        case .latest: .blue
+        }
+    }
+}
+
 private struct BrightTimelineRow: View {
     let item: MemoryItem
     let duration: TimeInterval
     let isSelected: Bool
+    let latestBadge: LatestActivityBadge?
     let timelineTint: Color
     let onSelect: () -> Void
     let onFavorite: () -> Void
@@ -466,9 +502,26 @@ private struct BrightTimelineRow: View {
             sourceIcon
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(item.sourceApp)
-                    .font(.system(size: 14.5, weight: .semibold))
-                    .lineLimit(1)
+                HStack(spacing: 7) {
+                    Text(item.sourceApp)
+                        .font(.system(size: 14.5, weight: .semibold))
+                        .lineLimit(1)
+
+                    if let latestBadge {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(latestBadge.tint)
+                                .frame(width: 6, height: 6)
+
+                            Text(latestBadge.title)
+                                .font(.system(size: 10.5, weight: .semibold))
+                        }
+                        .foregroundStyle(latestBadge.tint)
+                        .padding(.horizontal, 7)
+                        .frame(height: 20)
+                        .background(latestBadge.tint.opacity(0.12), in: Capsule())
+                    }
+                }
 
                 Text(item.displayTitle)
                     .font(.system(size: 12.5))
@@ -850,19 +903,35 @@ private struct TimelineSummaryColumn: View {
 
     private var activeTimeLabel: String {
         guard dayItems.count > 1 else {
-            return dayItems.isEmpty ? "0m" : "1m"
+            return "0m"
         }
 
+        // Active Time measures observed elapsed work, not the number of events.
+        // Consecutive records belong to the same active session only when they
+        // are close together. Clicking several times in a few seconds therefore
+        // adds only those few seconds instead of a forced minute per click.
+        let inactivityThreshold: TimeInterval = 5 * 60
         let ascending = dayItems.sorted { $0.createdAt < $1.createdAt }
         var seconds: TimeInterval = 0
 
         for index in 0..<(ascending.count - 1) {
             let gap = ascending[index + 1].createdAt.timeIntervalSince(ascending[index].createdAt)
-            seconds += min(max(gap, 60), 20 * 60)
+
+            if gap > 0, gap <= inactivityThreshold {
+                seconds += gap
+            }
         }
 
-        let hours = Int(seconds) / 3600
-        let minutes = (Int(seconds) % 3600) / 60
+        let totalSeconds = max(0, Int(seconds))
+        if totalSeconds == 0 {
+            return "0m"
+        }
+        if totalSeconds < 60 {
+            return "<1m"
+        }
+
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
         return hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m"
     }
 
