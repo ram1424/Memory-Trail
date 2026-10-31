@@ -66,8 +66,8 @@ struct TimelineView: View {
         .background(
             LinearGradient(
                 colors: [
-                    Color.white,
-                    Color(red: 0.965, green: 0.98, blue: 1.0)
+                    MemoryLanePalette.canvasTop,
+                    MemoryLanePalette.canvasBottom
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -138,7 +138,7 @@ struct TimelineView: View {
             }
             .padding(.horizontal, 14)
             .frame(height: 46)
-            .background(Color.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+            .background(MemoryLanePalette.elevatedStrong.opacity(0.94), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 15, style: .continuous)
                     .stroke(Color.secondary.opacity(0.14), lineWidth: 1)
@@ -153,7 +153,7 @@ struct TimelineView: View {
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
-            .background(Color.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 13))
+            .background(MemoryLanePalette.elevatedStrong.opacity(0.94), in: RoundedRectangle(cornerRadius: 13))
             .overlay {
                 RoundedRectangle(cornerRadius: 13)
                     .stroke(Color.secondary.opacity(0.14), lineWidth: 1)
@@ -188,7 +188,7 @@ struct TimelineView: View {
                     .background(
                         category == option
                             ? Color.accentColor
-                            : Color.white.opacity(0.80),
+                            : MemoryLanePalette.elevated.opacity(0.92),
                         in: Capsule()
                     )
                     .overlay {
@@ -213,7 +213,7 @@ struct TimelineView: View {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 14, weight: .bold))
                     .frame(width: 34, height: 34)
-                    .background(Color.white.opacity(0.80), in: Circle())
+                    .background(MemoryLanePalette.elevated.opacity(0.92), in: Circle())
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
@@ -253,7 +253,7 @@ struct TimelineView: View {
                 .disabled(dayOffset >= 0)
             }
             .buttonStyle(.plain)
-            .background(Color.white.opacity(0.84), in: RoundedRectangle(cornerRadius: 11))
+            .background(MemoryLanePalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 11))
             .overlay {
                 RoundedRectangle(cornerRadius: 11)
                     .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
@@ -371,7 +371,7 @@ struct TimelineView: View {
                 : "Try a different filter, search term, or day.")
         )
         .frame(maxWidth: .infinity, minHeight: 460)
-        .background(Color.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 22))
+        .background(MemoryLanePalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 22))
     }
 
     private var selectedDay: Date {
@@ -516,13 +516,13 @@ private enum DayPeriod: String, CaseIterable {
     var background: Color {
         switch self {
         case .morning:
-            Color(red: 1.0, green: 0.975, blue: 0.91)
+            Color(red: 0.965, green: 0.925, blue: 0.82)
         case .afternoon:
-            Color(red: 0.93, green: 0.975, blue: 1.0)
+            Color(red: 0.84, green: 0.92, blue: 0.985)
         case .evening:
-            Color(red: 0.965, green: 0.94, blue: 1.0)
+            Color(red: 0.90, green: 0.86, blue: 0.97)
         case .night:
-            Color(red: 0.94, green: 0.95, blue: 1.0)
+            Color(red: 0.86, green: 0.88, blue: 0.96)
         }
     }
 
@@ -626,7 +626,7 @@ private struct BrightTimelineRow: View {
         .background(
             isSelected
                 ? Color.accentColor.opacity(0.08)
-                : Color.white.opacity(0.82),
+                : MemoryLanePalette.elevated.opacity(0.96),
             in: RoundedRectangle(cornerRadius: 13, style: .continuous)
         )
         .overlay {
@@ -754,12 +754,12 @@ private struct TimelineSummaryColumn: View {
                         description: Text("Choose an item in the timeline to see its details.")
                     )
                     .frame(maxWidth: .infinity, minHeight: 280)
-                    .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 18))
+                    .background(MemoryLanePalette.elevated.opacity(0.90), in: RoundedRectangle(cornerRadius: 18))
                 }
             }
             .padding(14)
         }
-        .background(Color(red: 0.965, green: 0.98, blue: 1.0))
+        .background(MemoryLanePalette.surface)
     }
 
     private var statusBar: some View {
@@ -821,7 +821,7 @@ private struct TimelineSummaryColumn: View {
             }
         }
         .padding(16)
-        .background(Color.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .background(MemoryLanePalette.elevatedStrong.opacity(0.94), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 19, style: .continuous)
                 .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
@@ -910,7 +910,7 @@ private struct TimelineSummaryColumn: View {
             .buttonStyle(.bordered)
         }
         .padding(16)
-        .background(Color.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .background(MemoryLanePalette.elevatedStrong.opacity(0.96), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 19, style: .continuous)
                 .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
@@ -1113,7 +1113,7 @@ struct MemoryRow: View {
             }
         }
         .padding(13)
-        .background(Color.white.opacity(0.84), in: RoundedRectangle(cornerRadius: 15))
+        .background(MemoryLanePalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 15))
         .overlay {
             RoundedRectangle(cornerRadius: 15)
                 .stroke(Color.secondary.opacity(0.10), lineWidth: 1)

@@ -34,6 +34,13 @@ struct SearchView: View {
             }
             .padding(24)
         }
+        .background(
+            LinearGradient(
+                colors: [MemoryLanePalette.canvasTop, MemoryLanePalette.canvasBottom],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .navigationTitle("")
         .onAppear {
             if query.isEmpty {
@@ -91,7 +98,7 @@ struct SearchView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(.quaternary, lineWidth: 1)
@@ -108,7 +115,7 @@ struct SearchView: View {
                                 .font(.caption)
                                 .padding(.horizontal, 11)
                                 .frame(height: 28)
-                                .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
+                                .background(MemoryLanePalette.surface, in: Capsule())
                         }
                         .buttonStyle(.plain)
                     }
@@ -145,7 +152,7 @@ struct SearchView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 360)
         .padding(30)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(MemoryLanePalette.surface.opacity(0.95), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private func answerCard(_ answer: MemoryLaneAnswer) -> some View {

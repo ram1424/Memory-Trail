@@ -2,6 +2,18 @@ import AppKit
 import SwiftUI
 import SwiftData
 
+enum MemoryLanePalette {
+    static let canvasTop = Color(red: 0.91, green: 0.935, blue: 0.975)
+    static let canvasBottom = Color(red: 0.86, green: 0.90, blue: 0.955)
+    static let sidebarTop = Color(red: 0.89, green: 0.92, blue: 0.97)
+    static let sidebarBottom = Color(red: 0.82, green: 0.87, blue: 0.94)
+    static let surface = Color(red: 0.92, green: 0.945, blue: 0.975)
+    static let elevated = Color(red: 0.965, green: 0.975, blue: 0.99)
+    static let elevatedStrong = Color(red: 0.985, green: 0.99, blue: 1.0)
+    static let border = Color(red: 0.39, green: 0.48, blue: 0.61).opacity(0.16)
+    static let divider = Color(red: 0.42, green: 0.50, blue: 0.62).opacity(0.22)
+}
+
 struct RootView: View {
     @Environment(RecallPreferences.self) private var preferences
     @State private var selection: SidebarItem?
@@ -54,8 +66,8 @@ struct RootView: View {
             ZStack {
                 LinearGradient(
                     colors: [
-                        Color(nsColor: .windowBackgroundColor),
-                        Color(red: 0.96, green: 0.98, blue: 1.0)
+                        MemoryLanePalette.canvasTop,
+                        MemoryLanePalette.canvasBottom
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -90,7 +102,7 @@ struct RootView: View {
                 }
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(MemoryLanePalette.canvasTop)
         .sheet(isPresented: $showingAddMemory) {
             AddMemoryView()
         }
@@ -158,8 +170,8 @@ struct MemoryLaneSidebar: View {
         .background(
             LinearGradient(
                 colors: [
-                    Color(red: 0.97, green: 0.985, blue: 1.0),
-                    Color(red: 0.94, green: 0.965, blue: 0.995)
+                    MemoryLanePalette.sidebarTop,
+                    MemoryLanePalette.sidebarBottom
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -242,7 +254,7 @@ struct MemoryLaneSidebar: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 7)
                     .frame(minWidth: 26, minHeight: 22)
-                    .background(Color.white.opacity(0.72), in: Capsule())
+                    .background(MemoryLanePalette.elevated.opacity(0.90), in: Capsule())
             }
             .foregroundStyle(Color.primary)
             .padding(.horizontal, 10)
@@ -281,7 +293,7 @@ struct MemoryLaneSidebar: View {
                     .foregroundStyle(.tertiary)
             }
             .padding(11)
-            .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .background(MemoryLanePalette.elevated.opacity(0.90), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 13, style: .continuous)
                     .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
@@ -312,8 +324,8 @@ struct MemoryLaneScreenshotShell: View {
             ZStack {
                 LinearGradient(
                     colors: [
-                        Color(nsColor: .windowBackgroundColor),
-                        Color(red: 0.96, green: 0.98, blue: 1.0)
+                        MemoryLanePalette.canvasTop,
+                        MemoryLanePalette.canvasBottom
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -338,7 +350,7 @@ struct MemoryLaneScreenshotShell: View {
                 }
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(MemoryLanePalette.canvasTop)
     }
 }
 
@@ -372,7 +384,7 @@ struct ClipboardHistoryView: View {
                 }
                 .padding(.horizontal, 14)
                 .frame(height: 44)
-                .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 13))
+                .background(MemoryLanePalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
                 .overlay {
                     RoundedRectangle(cornerRadius: 13)
                         .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
@@ -463,7 +475,7 @@ struct InsightsView: View {
                     }
                 }
                 .padding(18)
-                .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 18))
+                .background(MemoryLanePalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 18))
                 .overlay {
                     RoundedRectangle(cornerRadius: 18)
                         .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
@@ -499,7 +511,7 @@ private struct InsightMetricCard: View {
             Spacer()
         }
         .padding(18)
-        .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 18))
+        .background(MemoryLanePalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 18))
         .overlay {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(tint.opacity(0.14), lineWidth: 1)

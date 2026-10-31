@@ -21,7 +21,7 @@ struct FavoritesView: View {
                         .font(.system(size: 26))
                         .foregroundStyle(.yellow)
                         .padding(12)
-                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        .background(MemoryLanePalette.elevated, in: RoundedRectangle(cornerRadius: 16))
                 }
 
                 if favorites.isEmpty {
@@ -31,7 +31,7 @@ struct FavoritesView: View {
                         description: Text("Favorite an important memory to keep it close.")
                     )
                     .frame(maxWidth: .infinity, minHeight: 420)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
+                    .background(MemoryLanePalette.surface, in: RoundedRectangle(cornerRadius: 22))
                 } else {
                     LazyVStack(spacing: 8) {
                         ForEach(favorites) { item in
@@ -47,6 +47,13 @@ struct FavoritesView: View {
             }
             .padding(24)
         }
+        .background(
+            LinearGradient(
+                colors: [MemoryLanePalette.canvasTop, MemoryLanePalette.canvasBottom],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .navigationTitle("")
     }
 }

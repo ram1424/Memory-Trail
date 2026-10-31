@@ -151,6 +151,13 @@ struct SettingsView: View {
             }
             .padding(24)
         }
+        .background(
+            LinearGradient(
+                colors: [MemoryLanePalette.canvasTop, MemoryLanePalette.canvasBottom],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .navigationTitle("")
         .onAppear {
             customExclusions = preferences.customExcludedBundleIDs
@@ -189,7 +196,7 @@ struct SettingsView: View {
             content()
         }
         .padding(18)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(.quaternary, lineWidth: 1)
