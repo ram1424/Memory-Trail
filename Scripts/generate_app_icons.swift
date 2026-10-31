@@ -63,138 +63,239 @@ func drawCard(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat, accent: NSColor, m
 func drawIcon(size: Int) -> NSImage {
     let image = NSImage(size: NSSize(width: size, height: size))
     image.lockFocus()
-    guard let cg = NSGraphicsContext.current?.cgContext else { return image }
+
+    guard let cg = NSGraphicsContext.current?.cgContext else {
+        image.unlockFocus()
+        return image
+    }
+
     cg.setShouldAntialias(true)
     cg.setAllowsAntialiasing(true)
+
     let s = CGFloat(size) / 1024.0
     cg.scaleBy(x: s, y: s)
 
     NSColor.clear.setFill()
     NSRect(x: 0, y: 0, width: 1024, height: 1024).fill()
 
-    let outer = roundedRect(NSRect(x: 38, y: 38, width: 948, height: 948), radius: 210)
-    fillGradient(outer, colors: [
-        NSColor(calibratedRed: 0.015, green: 0.09, blue: 0.30, alpha: 1),
-        NSColor(calibratedRed: 0.02, green: 0.28, blue: 0.72, alpha: 1),
-        NSColor(calibratedRed: 0.03, green: 0.12, blue: 0.34, alpha: 1)
-    ], angle: 35)
-    // Keep every decorative layer strictly inside the rounded-square icon.
-    // This prevents the lower floor/timeline artwork from showing as rectangular
-    // extensions outside the bottom corners at smaller macOS icon sizes.
+    let outerRect = NSRect(x: 42, y: 42, width: 940, height: 940)
+    let outer = roundedRect(outerRect, radius: 214)
+
+    let outerShadow = NSShadow()
+    outerShadow.shadowColor = NSColor.black.withAlphaComponent(0.34)
+    outerShadow.shadowBlurRadius = 34
+    outerShadow.shadowOffset = NSSize(width: 0, height: -16)
+    outerShadow.set()
+
+    fillGradient(
+        outer,
+        colors: [
+            NSColor(calibratedRed: 0.015, green: 0.07, blue: 0.20, alpha: 1),
+            NSColor(calibratedRed: 0.01, green: 0.16, blue: 0.43, alpha: 1),
+            NSColor(calibratedRed: 0.025, green: 0.07, blue: 0.20, alpha: 1)
+        ],
+        angle: 38
+    )
+
     NSGraphicsContext.saveGraphicsState()
     outer.addClip()
 
-    // Subtle floor
-    let floor = NSBezierPath()
-    floor.move(to: NSPoint(x: 42, y: 94))
-    floor.line(to: NSPoint(x: 982, y: 94))
-    floor.line(to: NSPoint(x: 982, y: 450))
-    floor.curve(to: NSPoint(x: 42, y: 360), controlPoint1: NSPoint(x: 730, y: 520), controlPoint2: NSPoint(x: 300, y: 450))
-    floor.close()
-    fillGradient(floor, colors: [
-        NSColor(calibratedRed: 0.02, green: 0.12, blue: 0.33, alpha: 0.9),
-        NSColor(calibratedRed: 0.05, green: 0.30, blue: 0.70, alpha: 0.45)
-    ], angle: 90)
+    // Atmospheric blue glow behind the brain.
+    let backGlow = NSBezierPath(ovalIn: NSRect(x: 120, y: 390, width: 800, height: 610))
+    fillGradient(
+        backGlow,
+        colors: [
+            NSColor(calibratedRed: 0.05, green: 0.68, blue: 1.0, alpha: 0.23),
+            NSColor(calibratedRed: 0.35, green: 0.20, blue: 0.92, alpha: 0.08)
+        ],
+        angle: 20
+    )
 
-    // Glowing activity lane
-    let lane = NSBezierPath()
-    lane.move(to: NSPoint(x: 112, y: 145))
-    lane.curve(to: NSPoint(x: 650, y: 430), controlPoint1: NSPoint(x: 280, y: 230), controlPoint2: NSPoint(x: 760, y: 185))
-    lane.curve(to: NSPoint(x: 560, y: 525), controlPoint1: NSPoint(x: 575, y: 465), controlPoint2: NSPoint(x: 500, y: 485))
-    lane.curve(to: NSPoint(x: 675, y: 610), controlPoint1: NSPoint(x: 630, y: 565), controlPoint2: NSPoint(x: 675, y: 575))
-    lane.lineCapStyle = .round
-    NSColor(calibratedRed: 0.03, green: 0.46, blue: 1.0, alpha: 0.22).setStroke()
-    lane.lineWidth = 72
-    lane.stroke()
-    NSColor(calibratedRed: 0.14, green: 0.70, blue: 1.0, alpha: 0.9).setStroke()
-    lane.lineWidth = 9
-    lane.stroke()
+    // Brain base silhouette.
+    let brain = NSBezierPath()
+    brain.move(to: NSPoint(x: 224, y: 560))
+    brain.curve(to: NSPoint(x: 205, y: 735),
+                controlPoint1: NSPoint(x: 150, y: 620),
+                controlPoint2: NSPoint(x: 155, y: 700))
+    brain.curve(to: NSPoint(x: 330, y: 885),
+                controlPoint1: NSPoint(x: 220, y: 820),
+                controlPoint2: NSPoint(x: 270, y: 865))
+    brain.curve(to: NSPoint(x: 500, y: 902),
+                controlPoint1: NSPoint(x: 390, y: 915),
+                controlPoint2: NSPoint(x: 455, y: 920))
+    brain.curve(to: NSPoint(x: 665, y: 875),
+                controlPoint1: NSPoint(x: 550, y: 930),
+                controlPoint2: NSPoint(x: 620, y: 915))
+    brain.curve(to: NSPoint(x: 820, y: 765),
+                controlPoint1: NSPoint(x: 755, y: 855),
+                controlPoint2: NSPoint(x: 810, y: 815))
+    brain.curve(to: NSPoint(x: 810, y: 605),
+                controlPoint1: NSPoint(x: 855, y: 705),
+                controlPoint2: NSPoint(x: 850, y: 650))
+    brain.curve(to: NSPoint(x: 720, y: 520),
+                controlPoint1: NSPoint(x: 792, y: 565),
+                controlPoint2: NSPoint(x: 760, y: 535))
+    brain.curve(to: NSPoint(x: 580, y: 510),
+                controlPoint1: NSPoint(x: 675, y: 500),
+                controlPoint2: NSPoint(x: 620, y: 505))
+    brain.curve(to: NSPoint(x: 455, y: 485),
+                controlPoint1: NSPoint(x: 535, y: 495),
+                controlPoint2: NSPoint(x: 500, y: 480))
+    brain.curve(to: NSPoint(x: 320, y: 505),
+                controlPoint1: NSPoint(x: 405, y: 475),
+                controlPoint2: NSPoint(x: 355, y: 485))
+    brain.curve(to: NSPoint(x: 224, y: 560),
+                controlPoint1: NSPoint(x: 280, y: 510),
+                controlPoint2: NSPoint(x: 245, y: 535))
+    brain.close()
 
-    // Warm memory highlight along the lane
-    let warm = lane.copy() as! NSBezierPath
-    NSColor(calibratedRed: 1.0, green: 0.66, blue: 0.20, alpha: 0.72).setStroke()
-    warm.lineWidth = 5
-    warm.stroke()
+    let brainShadow = NSShadow()
+    brainShadow.shadowColor = NSColor.black.withAlphaComponent(0.34)
+    brainShadow.shadowBlurRadius = 26
+    brainShadow.shadowOffset = NSSize(width: 0, height: -10)
+    brainShadow.set()
 
-    // Timeline nodes
-    for point in [NSPoint(x: 205, y: 190), NSPoint(x: 405, y: 275), NSPoint(x: 610, y: 360), NSPoint(x: 620, y: 495), NSPoint(x: 660, y: 590)] {
-        let glow = NSBezierPath(ovalIn: NSRect(x: point.x - 16, y: point.y - 16, width: 32, height: 32))
-        NSColor(calibratedRed: 0.15, green: 0.72, blue: 1.0, alpha: 0.28).setFill()
-        glow.fill()
-        let dot = NSBezierPath(ovalIn: NSRect(x: point.x - 8, y: point.y - 8, width: 16, height: 16))
-        NSColor.white.setFill()
-        dot.fill()
-        NSColor(calibratedRed: 0.13, green: 0.68, blue: 1.0, alpha: 1).setStroke()
-        dot.lineWidth = 4
-        dot.stroke()
+    fillGradient(
+        brain,
+        colors: [
+            NSColor(calibratedRed: 0.04, green: 0.50, blue: 0.98, alpha: 1),
+            NSColor(calibratedRed: 0.08, green: 0.24, blue: 0.78, alpha: 1),
+            NSColor(calibratedRed: 0.40, green: 0.23, blue: 0.82, alpha: 1)
+        ],
+        angle: 25
+    )
+
+    // Brain lobes: large, clean forms that survive at small icon sizes.
+    let lobes: [(NSRect, [NSColor])] = [
+        (NSRect(x: 185, y: 650, width: 210, height: 210),
+         [NSColor(calibratedRed: 0.08, green: 0.74, blue: 1.0, alpha: 0.95),
+          NSColor(calibratedRed: 0.05, green: 0.30, blue: 0.86, alpha: 0.95)]),
+        (NSRect(x: 285, y: 760, width: 210, height: 190),
+         [NSColor(calibratedRed: 0.20, green: 0.72, blue: 1.0, alpha: 0.96),
+          NSColor(calibratedRed: 0.09, green: 0.32, blue: 0.90, alpha: 0.96)]),
+        (NSRect(x: 410, y: 775, width: 220, height: 185),
+         [NSColor(calibratedRed: 0.25, green: 0.66, blue: 1.0, alpha: 0.96),
+          NSColor(calibratedRed: 0.18, green: 0.33, blue: 0.94, alpha: 0.96)]),
+        (NSRect(x: 545, y: 735, width: 225, height: 205),
+         [NSColor(calibratedRed: 0.52, green: 0.38, blue: 0.98, alpha: 0.96),
+          NSColor(calibratedRed: 0.23, green: 0.28, blue: 0.88, alpha: 0.96)]),
+        (NSRect(x: 650, y: 625, width: 205, height: 225),
+         [NSColor(calibratedRed: 0.72, green: 0.32, blue: 0.86, alpha: 0.92),
+          NSColor(calibratedRed: 0.18, green: 0.24, blue: 0.78, alpha: 0.95)]),
+        (NSRect(x: 250, y: 565, width: 220, height: 210),
+         [NSColor(calibratedRed: 0.05, green: 0.60, blue: 0.98, alpha: 0.96),
+          NSColor(calibratedRed: 0.04, green: 0.25, blue: 0.78, alpha: 0.96)]),
+        (NSRect(x: 430, y: 560, width: 230, height: 205),
+         [NSColor(calibratedRed: 0.15, green: 0.48, blue: 0.98, alpha: 0.95),
+          NSColor(calibratedRed: 0.15, green: 0.23, blue: 0.80, alpha: 0.96)])
+    ]
+
+    for (rect, colors) in lobes {
+        let lobe = NSBezierPath(ovalIn: rect)
+        fillGradient(lobe, colors: colors, angle: 45)
+        NSColor.white.withAlphaComponent(0.08).setStroke()
+        lobe.lineWidth = 3
+        lobe.stroke()
     }
 
-    // Activity cards
-    drawCard(x: 170, y: 225, w: 315, h: 128, accent: NSColor.systemBlue, mark: "S")
-    drawCard(x: 115, y: 390, w: 300, h: 118, accent: NSColor(calibratedRed: 0.28, green: 0.24, blue: 0.86, alpha: 1), mark: "T")
-    drawCard(x: 165, y: 545, w: 300, h: 118, accent: NSColor(calibratedRed: 0.0, green: 0.52, blue: 0.95, alpha: 1), mark: "O")
-    drawCard(x: 650, y: 235, w: 265, h: 112, accent: NSColor(calibratedRed: 0.08, green: 0.60, blue: 0.95, alpha: 1), mark: "F")
-    drawCard(x: 690, y: 390, w: 235, h: 104, accent: NSColor(calibratedRed: 1.0, green: 0.78, blue: 0.16, alpha: 1), mark: "N")
-    drawCard(x: 715, y: 525, w: 195, h: 90, accent: NSColor(calibratedRed: 0.10, green: 0.78, blue: 0.31, alpha: 1), mark: "M")
+    // Warm memory glow at the destination point.
+    let memoryGlow = NSBezierPath(ovalIn: NSRect(x: 585, y: 645, width: 220, height: 220))
+    fillGradient(
+        memoryGlow,
+        colors: [
+            NSColor(calibratedRed: 1.0, green: 0.80, blue: 0.30, alpha: 0.88),
+            NSColor(calibratedRed: 1.0, green: 0.35, blue: 0.62, alpha: 0.52),
+            NSColor.clear
+        ],
+        angle: 35
+    )
 
-    // Clock face
-    let center = NSPoint(x: 525, y: 765)
-    let face = NSBezierPath(ovalIn: NSRect(x: center.x - 165, y: center.y - 165, width: 330, height: 330))
-    NSColor(calibratedRed: 0.01, green: 0.10, blue: 0.30, alpha: 0.94).setFill()
-    face.fill()
-    NSColor(calibratedRed: 0.56, green: 0.84, blue: 1.0, alpha: 0.82).setStroke()
-    face.lineWidth = 12
-    face.stroke()
+    // Subtle brain folds.
+    let foldSpecs: [(NSPoint, NSPoint, NSPoint, NSPoint)] = [
+        (NSPoint(x: 285, y: 785), NSPoint(x: 345, y: 835), NSPoint(x: 385, y: 710), NSPoint(x: 430, y: 760)),
+        (NSPoint(x: 455, y: 850), NSPoint(x: 520, y: 900), NSPoint(x: 550, y: 760), NSPoint(x: 590, y: 815)),
+        (NSPoint(x: 600, y: 760), NSPoint(x: 665, y: 830), NSPoint(x: 720, y: 720), NSPoint(x: 760, y: 750)),
+        (NSPoint(x: 270, y: 630), NSPoint(x: 340, y: 690), NSPoint(x: 400, y: 590), NSPoint(x: 460, y: 625))
+    ]
 
-    for i in 0..<12 {
-        let a = CGFloat(i) * .pi / 6
-        let r1: CGFloat = i % 3 == 0 ? 127 : 136
-        let r2: CGFloat = 145
-        let p = NSBezierPath()
-        p.move(to: NSPoint(x: center.x + cos(a) * r1, y: center.y + sin(a) * r1))
-        p.line(to: NSPoint(x: center.x + cos(a) * r2, y: center.y + sin(a) * r2))
-        NSColor.white.withAlphaComponent(i % 3 == 0 ? 0.82 : 0.24).setStroke()
-        p.lineWidth = i % 3 == 0 ? 8 : 4
-        p.lineCapStyle = .round
-        p.stroke()
+    for spec in foldSpecs {
+        let fold = NSBezierPath()
+        fold.move(to: spec.0)
+        fold.curve(to: spec.3, controlPoint1: spec.1, controlPoint2: spec.2)
+        fold.lineCapStyle = .round
+        fold.lineWidth = 10
+        NSColor.white.withAlphaComponent(0.17).setStroke()
+        fold.stroke()
     }
 
-    func hand(to p: NSPoint, width: CGFloat) {
-        let path = NSBezierPath()
-        path.move(to: center)
-        path.line(to: p)
-        path.lineCapStyle = .round
-        path.lineWidth = width
-        NSColor.white.setStroke()
-        path.stroke()
-    }
-    hand(to: NSPoint(x: 610, y: 845), width: 15)
-    hand(to: NSPoint(x: 455, y: 815), width: 13)
-    NSColor.white.setFill()
-    NSBezierPath(ovalIn: NSRect(x: center.x - 15, y: center.y - 15, width: 30, height: 30)).fill()
+    // The memory road curves from the foreground into the brain.
+    let road = NSBezierPath()
+    road.move(to: NSPoint(x: 430, y: 90))
+    road.curve(
+        to: NSPoint(x: 590, y: 315),
+        controlPoint1: NSPoint(x: 430, y: 180),
+        controlPoint2: NSPoint(x: 655, y: 190)
+    )
+    road.curve(
+        to: NSPoint(x: 535, y: 470),
+        controlPoint1: NSPoint(x: 545, y: 375),
+        controlPoint2: NSPoint(x: 485, y: 410)
+    )
+    road.curve(
+        to: NSPoint(x: 665, y: 650),
+        controlPoint1: NSPoint(x: 585, y: 530),
+        controlPoint2: NSPoint(x: 660, y: 560)
+    )
+    road.lineCapStyle = .round
+    road.lineJoinStyle = .round
 
-    // Rewind/history arrow around the clock
-    let arc = NSBezierPath()
-    arc.appendArc(withCenter: center, radius: 205, startAngle: -40, endAngle: 210, clockwise: false)
-    arc.lineCapStyle = .round
-    arc.lineWidth = 62
-    NSColor(calibratedRed: 0.65, green: 0.88, blue: 1.0, alpha: 0.96).setStroke()
-    arc.stroke()
+    // Outer blue glow.
+    NSColor(calibratedRed: 0.02, green: 0.60, blue: 1.0, alpha: 0.22).setStroke()
+    road.lineWidth = 238
+    road.stroke()
 
-    let tip = NSPoint(x: center.x + cos(CGFloat(210) * .pi / 180) * 205, y: center.y + sin(CGFloat(210) * .pi / 180) * 205)
-    let arrow = NSBezierPath()
-    arrow.move(to: NSPoint(x: tip.x - 48, y: tip.y + 58))
-    arrow.line(to: NSPoint(x: tip.x + 40, y: tip.y + 4))
-    arrow.line(to: NSPoint(x: tip.x - 45, y: tip.y - 52))
-    arrow.close()
-    NSColor(calibratedRed: 0.75, green: 0.92, blue: 1.0, alpha: 1).setFill()
-    arrow.fill()
+    // Warm rim visible around the road.
+    NSColor(calibratedRed: 1.0, green: 0.61, blue: 0.28, alpha: 0.88).setStroke()
+    road.lineWidth = 210
+    road.stroke()
+
+    // Main road surface.
+    let roadSurface = road.copy() as! NSBezierPath
+    roadSurface.lineCapStyle = .round
+    roadSurface.lineJoinStyle = .round
+    NSColor(calibratedRed: 0.08, green: 0.20, blue: 0.72, alpha: 1).setStroke()
+    roadSurface.lineWidth = 184
+    roadSurface.stroke()
+
+    // Cool inner highlight makes the road read as dimensional.
+    let roadHighlight = road.copy() as! NSBezierPath
+    NSColor(calibratedRed: 0.26, green: 0.44, blue: 1.0, alpha: 0.46).setStroke()
+    roadHighlight.lineWidth = 150
+    roadHighlight.stroke()
+
+    // White dashed center line.
+    let dash = road.copy() as! NSBezierPath
+    dash.lineCapStyle = .round
+    dash.lineWidth = 15
+    var dashPattern: [CGFloat] = [48, 42]
+    dash.setLineDash(&dashPattern, count: dashPattern.count, phase: 0)
+    NSColor.white.withAlphaComponent(0.96).setStroke()
+    dash.stroke()
+
+    // Destination light.
+    let destination = NSBezierPath(ovalIn: NSRect(x: 625, y: 610, width: 86, height: 86))
+    fillGradient(
+        destination,
+        colors: [
+            NSColor(calibratedRed: 1.0, green: 0.97, blue: 0.72, alpha: 1),
+            NSColor(calibratedRed: 1.0, green: 0.58, blue: 0.28, alpha: 0.96)
+        ],
+        angle: 45
+    )
 
     NSGraphicsContext.restoreGraphicsState()
 
-    // Draw the outer rim after clipping all interior artwork so the border
-    // remains crisp and nothing can bleed beyond it.
-    NSColor(calibratedRed: 0.10, green: 0.67, blue: 1.0, alpha: 0.85).setStroke()
+    NSColor(calibratedRed: 0.04, green: 0.56, blue: 1.0, alpha: 0.88).setStroke()
     outer.lineWidth = 7
     outer.stroke()
 
@@ -229,4 +330,4 @@ for (name, size) in appTargets {
 try writePNG(drawIcon(size: 512), to: onboardingDir.appendingPathComponent("OnboardingIcon.png"))
 try writePNG(drawIcon(size: 1024), to: onboardingDir.appendingPathComponent("OnboardingIcon@2x.png"))
 
-print("Memory Lane icons generated from the approved contained clock/timeline design.")
+print("Memory Lane icons generated from the approved brain-and-road design.")

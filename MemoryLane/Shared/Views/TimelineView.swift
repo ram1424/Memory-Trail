@@ -9,7 +9,6 @@ struct TimelineView: View {
 
     @Binding var category: MemoryLaneCategory
 
-    @State private var searchText = ""
     @State private var selectedMemoryID: UUID?
     @State private var dayOffset = 0
     @State private var showingClearTimelineConfirmation = false
@@ -113,41 +112,8 @@ struct TimelineView: View {
     }
 
     private func topBar(dayItems: [MemoryItem]) -> some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.secondary)
-
-                TextField("Search your day… (apps, websites, files, or keywords)", text: $searchText)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14.5))
-
-                if !searchText.isEmpty {
-                    Button {
-                        searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.tertiary)
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                Text("⌘ K")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 8)
-                    .frame(height: 26)
-                    .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 46)
-            .background(MemoryLanePalette.elevatedStrong.opacity(0.94), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                    .stroke(Color.secondary.opacity(0.14), lineWidth: 1)
-            }
-            .shadow(color: Color.black.opacity(0.03), radius: 8, y: 3)
+        HStack {
+            Spacer()
 
             Button {
                 withAnimation(.easeInOut(duration: 0.18)) {
@@ -156,38 +122,30 @@ struct TimelineView: View {
             } label: {
                 Label(
                     showsPanels ? "Hide Panels" : "Show Panels",
-                    systemImage: showsPanels ? "sidebar.right" : "sidebar.right"
+                    systemImage: "sidebar.right"
                 )
                 .font(.system(size: 13.5, weight: .semibold))
-                .padding(.horizontal, 12)
-                .frame(height: 44)
+                .padding(.horizontal, 14)
+                .frame(height: 42)
             }
             .buttonStyle(.plain)
-            .background(MemoryLanePalette.elevatedStrong.opacity(0.94), in: RoundedRectangle(cornerRadius: 13))
+            .background(
+                MemoryLanePalette.elevatedStrong.opacity(0.94),
+                in: RoundedRectangle(cornerRadius: 13)
+            )
             .overlay {
                 RoundedRectangle(cornerRadius: 13)
                     .stroke(Color.secondary.opacity(0.14), lineWidth: 1)
             }
-            .help(showsPanels ? "Hide Today Summary and Activity Details" : "Show Today Summary and Activity Details")
-
-            Button {
-                category = .allApps
-            } label: {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .font(.system(size: 17, weight: .semibold))
-                    .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.plain)
-            .background(MemoryLanePalette.elevatedStrong.opacity(0.94), in: RoundedRectangle(cornerRadius: 13))
-            .overlay {
-                RoundedRectangle(cornerRadius: 13)
-                    .stroke(Color.secondary.opacity(0.14), lineWidth: 1)
-            }
-            .help("Clear filters")
+            .help(
+                showsPanels
+                    ? "Hide Today Summary and Activity Details"
+                    : "Show Today Summary and Activity Details"
+            )
         }
         .padding(.horizontal, 20)
-        .padding(.top, 16)
-        .padding(.bottom, 10)
+        .padding(.top, 14)
+        .padding(.bottom, 8)
     }
 
     private func quickFilters(dayItems: [MemoryItem]) -> some View {
@@ -373,7 +331,7 @@ struct TimelineView: View {
             systemImage: memories.isEmpty ? "sparkles" : "magnifyingglass",
             description: Text(memories.isEmpty
                 ? "Open a few apps to start building your private activity history."
-                : "Try a different filter, search term, or day.")
+                : "Try a different activity filter or day.")
         )
         .frame(maxWidth: .infinity, minHeight: 460)
         .background(MemoryLanePalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 22))
@@ -396,13 +354,7 @@ struct TimelineView: View {
     }
 
     private func filteredItems(_ dayItems: [MemoryItem]) -> [MemoryItem] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        return dayItems.filter { item in
-            let categoryMatch = category.matches(item)
-            let searchMatch = query.isEmpty || item.searchableText.localizedCaseInsensitiveContains(query)
-            return categoryMatch && searchMatch
-        }
+        dayItems.filter { category.matches($0) }
     }
 
     private func latestBadge(for item: MemoryItem) -> LatestActivityBadge? {
