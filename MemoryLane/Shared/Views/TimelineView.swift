@@ -7,50 +7,70 @@ struct TimelineView: View {
     @Environment(RecallPreferences.self) private var preferences
     @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
 
-    @State private var showingClearTimelineConfirmation = false
-    @State private var selectedMemoryID: UUID?
+    @Binding var category: MemoryLaneCategory
+
     @State private var searchText = ""
-    @State private var filter: TimelineFilter = .all
-    @State private var density: TimelineDensity = .comfortable
+    @State private var selectedMemoryID: UUID?
     @State private var dayOffset = 0
+    @State private var showingClearTimelineConfirmation = false
     @State private var now = Date()
-    @AppStorage("timelineShowsInspector") private var showsInspector = true
 
     var body: some View {
-        let snapshot = makeTimelineSnapshot()
+        let dayItems = itemsForSelectedDay
+        let visibleItems = filteredItems(dayItems)
+        let sections = daySections(from: visibleItems)
+        let durations = durationLookup(for: dayItems)
 
-        VStack(spacing: 0) {
-            timelineToolbar
-            filterBar
+        HStack(spacing: 0) {
+            VStack(spacing: 0) {
+                topBar(dayItems: dayItems)
+                quickFilters(dayItems: dayItems)
 
-            HStack(spacing: 0) {
-                timelineContent(snapshot)
-                    .frame(minWidth: 620, maxWidth: .infinity)
+                Divider()
+                    .opacity(0.45)
 
-                if showsInspector, let item = selectedItem {
-                    Divider()
-                        .opacity(0.55)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 16) {
+                        if visibleItems.isEmpty {
+                            emptyState
+                        } else {
+                            dayHeading(count: visibleItems.count)
 
-                    TimelineInspector(
-                        item: item,
-                        previousItem: adjacentItem(to: item, direction: .older),
-                        nextItem: adjacentItem(to: item, direction: .newer),
-                        duration: snapshot.durations[item.id] ?? durationForItem(item),
-                        isActive: isActive(item)
-                    )
-                    .frame(width: 390)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                            ForEach(sections) { section in
+                                activitySection(
+                                    section,
+                                    durations: durations
+                                )
+                            }
+                        }
+                    }
+                    .padding(20)
                 }
             }
+            .frame(minWidth: 590, maxWidth: .infinity)
+
+            Divider()
+                .opacity(0.55)
+
+            TimelineSummaryColumn(
+                dayItems: dayItems,
+                selectedItem: selectedItem,
+                selectedDuration: selectedItem.map { durations[$0.id] ?? 0 } ?? 0,
+                selectedDay: selectedDay,
+                preferences: preferences,
+                onFavorite: toggleFavorite,
+                onDelete: deleteSelectedItem
+            )
+            .frame(width: 365)
         }
         .background(
             LinearGradient(
                 colors: [
-                    Color(nsColor: .windowBackgroundColor),
-                    Color(nsColor: .controlBackgroundColor).opacity(0.22)
+                    Color.white,
+                    Color(red: 0.965, green: 0.98, blue: 1.0)
                 ],
-                startPoint: .top,
-                endPoint: .bottom
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
         )
         .navigationTitle("")
@@ -75,345 +95,339 @@ struct TimelineView: View {
             }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This permanently deletes all \(memories.count) timeline items from Memory Lane. This action cannot be undone.")
+            Text("This permanently deletes all \(memories.count) timeline items from Memory Lane.")
+        }
+        .onAppear {
+            ensureSelection(in: visibleItems)
+        }
+        .onChange(of: visibleItems.map(\.id)) { _, _ in
+            ensureSelection(in: visibleItems)
         }
         .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { value in
             now = value
         }
     }
 
-    private var timelineToolbar: some View {
-        VStack(spacing: 14) {
-            HStack(alignment: .center, spacing: 18) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Timeline")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+    private func topBar(dayItems: [MemoryItem]) -> some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.secondary)
 
-                    Text(selectedDay.formatted(.dateTime.weekday(.wide).month(.wide).day().year()))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                TextField("Search your day… (apps, websites, files, or keywords)", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14.5))
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .frame(minWidth: 220, alignment: .leading)
 
-                HStack(spacing: 9) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary)
+                Text("⌘ K")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .frame(height: 26)
+                    .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 46)
+            .background(Color.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .stroke(Color.secondary.opacity(0.14), lineWidth: 1)
+            }
+            .shadow(color: Color.black.opacity(0.03), radius: 8, y: 3)
 
-                    TextField("Search your activity…", text: $searchText)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14.5))
-                        .frame(minWidth: 180)
+            Button {
+                category = .allApps
+            } label: {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .background(Color.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 13))
+            .overlay {
+                RoundedRectangle(cornerRadius: 13)
+                    .stroke(Color.secondary.opacity(0.14), lineWidth: 1)
+            }
+            .help("Clear filters")
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 10)
+    }
 
-                    if !searchText.isEmpty {
-                        Button {
-                            searchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.tertiary)
+    private func quickFilters(dayItems: [MemoryItem]) -> some View {
+        let options: [MemoryLaneCategory] = [.allApps, .web, .email, .chat, .files, .productivity]
+
+        return HStack(spacing: 8) {
+            ForEach(options) { option in
+                let count = dayItems.filter { !$0.isCaptureNoise && option.matches($0) }.count
+                Button {
+                    withAnimation(.easeOut(duration: 0.12)) {
+                        category = option
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Text(option == .productivity ? "Apps" : quickTitle(for: option))
+                        Text("(\(count))")
+                            .foregroundStyle(category == option ? Color.white.opacity(0.88) : Color.secondary)
+                    }
+                    .font(.system(size: 12.5, weight: category == option ? .semibold : .medium))
+                    .foregroundStyle(category == option ? Color.white : Color.primary)
+                    .padding(.horizontal, 13)
+                    .frame(height: 34)
+                    .background(
+                        category == option
+                            ? Color.accentColor
+                            : Color.white.opacity(0.80),
+                        in: Capsule()
+                    )
+                    .overlay {
+                        if category != option {
+                            Capsule()
+                                .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 13)
-                .frame(height: 40)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(.quaternary, lineWidth: 1)
+                .buttonStyle(.plain)
+            }
+
+            Menu {
+                ForEach(MemoryLaneCategory.allCases.filter { !options.contains($0) }) { option in
+                    Button {
+                        category = option
+                    } label: {
+                        Label(option.title, systemImage: option.symbol)
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 14, weight: .bold))
+                    .frame(width: 34, height: 34)
+                    .background(Color.white.opacity(0.80), in: Circle())
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(preferences.capturePaused ? Color.orange : Color.green)
+                    .frame(width: 9, height: 9)
+
+                Text(preferences.capturePaused ? "Paused" : "Capturing")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 0) {
+                Button {
+                    dayOffset -= 1
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .frame(width: 34, height: 34)
                 }
 
-                Spacer(minLength: 0)
+                Text(dayOffset == 0 ? "Today" : selectedDay.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption.weight(.semibold))
+                    .frame(minWidth: 76)
 
                 Button {
-                    dayOffset = 0
+                    if dayOffset < 0 {
+                        dayOffset += 1
+                    }
                 } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "calendar")
-                        Text(dayOffset == 0 ? "Today" : selectedDay.formatted(date: .abbreviated, time: .omitted))
-                            .lineLimit(1)
-                    }
-                    .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 13)
-                    .frame(height: 40)
+                    Image(systemName: "chevron.right")
+                        .frame(width: 34, height: 34)
                 }
-                .buttonStyle(.plain)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(.quaternary, lineWidth: 1)
-                }
-
-                HStack(spacing: 0) {
-                    Button {
-                        dayOffset -= 1
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .frame(width: 38, height: 38)
-                    }
-
-                    Divider()
-                        .frame(height: 20)
-
-                    Button {
-                        if dayOffset < 0 {
-                            dayOffset += 1
-                        }
-                    } label: {
-                        Image(systemName: "chevron.right")
-                            .frame(width: 38, height: 38)
-                    }
-                    .disabled(dayOffset >= 0)
-                }
-                .buttonStyle(.plain)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(.quaternary, lineWidth: 1)
-                }
+                .disabled(dayOffset >= 0)
+            }
+            .buttonStyle(.plain)
+            .background(Color.white.opacity(0.84), in: RoundedRectangle(cornerRadius: 11))
+            .overlay {
+                RoundedRectangle(cornerRadius: 11)
+                    .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 18)
+        .padding(.horizontal, 20)
         .padding(.bottom, 12)
     }
 
-    private var filterBar: some View {
-        HStack(spacing: 8) {
-            ForEach(TimelineFilter.quickFilters) { option in
-                Button {
-                    withAnimation(.easeOut(duration: 0.14)) {
-                        filter = option
-                    }
-                } label: {
-                    Text(option.title)
-                        .font(.system(size: 13, weight: filter == option ? .semibold : .medium))
-                        .foregroundStyle(filter == option ? Color.white : Color.primary)
-                        .padding(.horizontal, 15)
-                        .frame(height: 34)
-                        .background(
-                            filter == option
-                                ? Color.accentColor
-                                : Color(nsColor: .controlBackgroundColor).opacity(0.82),
-                            in: Capsule()
-                        )
-                        .overlay {
-                            if filter != option {
-                                Capsule()
-                                    .stroke(.quaternary, lineWidth: 1)
-                            }
-                        }
-                }
-                .buttonStyle(.plain)
-            }
-
-            Spacer(minLength: 14)
-
-            Picker("Density", selection: $density) {
-                Label("List", systemImage: "list.bullet").tag(TimelineDensity.comfortable)
-                Label("Compact", systemImage: "square.grid.2x2").tag(TimelineDensity.compact)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 190)
-
-            Button {
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    showsInspector.toggle()
-                }
-            } label: {
-                Image(systemName: showsInspector ? "sidebar.trailing" : "sidebar.trailing")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(showsInspector ? Color.accentColor : Color.secondary)
-                    .frame(width: 34, height: 32)
-            }
-            .buttonStyle(.plain)
-            .background(
-                showsInspector ? Color.accentColor.opacity(0.10) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 9, style: .continuous)
-            )
-            .help(showsInspector ? "Hide Details" : "Show Details")
-        }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 14)
-        .overlay(alignment: .bottom) {
-            Divider()
-                .opacity(0.45)
+    private func quickTitle(for category: MemoryLaneCategory) -> String {
+        switch category {
+        case .allApps: "All"
+        case .web: "Web"
+        case .email: "Email"
+        case .chat: "Chat"
+        case .files: "Files"
+        default: category.title
         }
     }
 
-    private func timelineContent(_ snapshot: TimelineSnapshot) -> some View {
-        let visibleItems = snapshot.visibleItems
-        let durations = snapshot.durations
+    private func dayHeading(count: Int) -> some View {
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(dayOffset == 0 ? "Today" : selectedDay.formatted(.dateTime.weekday(.wide)))
+                    .font(.system(size: 27, weight: .bold, design: .rounded))
 
-        return ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                if visibleItems.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: memories.isEmpty ? "sparkles" : "magnifyingglass")
-                            .font(.system(size: 34, weight: .medium))
-                            .foregroundStyle(.secondary)
-
-                        Text(memories.isEmpty ? "Your timeline is empty" : "No matching activity")
-                            .font(.title3.weight(.semibold))
-
-                        Text(memories.isEmpty
-                            ? "Open a few apps or add a memory to start building your searchable work history."
-                            : "Try another day, filter, or search term.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: 420)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 470)
-                } else {
-                    Section {
-                        VStack(spacing: 10) {
-                            ActivityHeatmap(items: snapshot.dayItems, selectedDay: selectedDay, now: now)
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 12)
-                        .padding(.bottom, 12)
-
-                        LazyVStack(spacing: density.rowSpacing) {
-                            ForEach(visibleItems) { item in
-                                TimelineActivityRow(
-                                    item: item,
-                                    duration: durations[item.id] ?? 0,
-                                    isActive: isActive(item),
-                                    isSelected: selectedMemoryID == item.id,
-                                    density: density
-                                )
-                                .contentShape(Rectangle())
-                                .onTapGesture(count: 2) {
-                                    selectedMemoryID = item.id
-                                    if !showsInspector {
-                                        withAnimation(.easeInOut(duration: 0.16)) {
-                                            showsInspector = true
-                                        }
-                                    }
-                                }
-                                .onTapGesture {
-                                    selectedMemoryID = item.id
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 24)
-                    } header: {
-                        dayHeader(snapshot)
-                    }
-                }
+                Text(selectedDay.formatted(.dateTime.weekday(.wide).month(.wide).day().year()))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-        }
-    }
-
-    private func dayHeader(_ snapshot: TimelineSnapshot) -> some View {
-        HStack(spacing: 12) {
-            Text(dayHeaderTitle)
-                .font(.system(size: 13, weight: .bold))
-                .textCase(.uppercase)
-                .tracking(0.4)
 
             Spacer()
 
-            if !snapshot.visibleItems.isEmpty {
-                Text(snapshot.totalVisibleDurationLabel)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 10)
-                    .frame(height: 26)
-                    .background(.thinMaterial, in: Capsule())
-            }
+            Text("\(count) activit\(count == 1 ? "y" : "ies")")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.tint)
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 11)
-        .background(.ultraThinMaterial)
+        .padding(.horizontal, 2)
+    }
+
+    @ViewBuilder
+    private func activitySection(
+        _ section: DayActivitySection,
+        durations: [UUID: TimeInterval]
+    ) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                Image(systemName: section.period.symbol)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(section.period.tint)
+                    .frame(width: 42, height: 42)
+                    .background(section.period.tint.opacity(0.10), in: Circle())
+
+                Text(section.period.title)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+
+                Text(section.period.timeRange)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(section.period.tint)
+
+                Spacer()
+
+                Text("\(section.items.count) activit\(section.items.count == 1 ? "y" : "ies")")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(section.period.tint)
+
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(section.period.tint)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 10)
+
+            LazyVStack(spacing: 1) {
+                ForEach(section.items) { item in
+                    BrightTimelineRow(
+                        item: item,
+                        duration: durations[item.id] ?? 0,
+                        isSelected: selectedMemoryID == item.id,
+                        periodTint: section.period.tint,
+                        onSelect: {
+                            selectedMemoryID = item.id
+                        },
+                        onFavorite: {
+                            item.isFavorite.toggle()
+                            try? modelContext.save()
+                        },
+                        onDelete: {
+                            if selectedMemoryID == item.id {
+                                selectedMemoryID = nil
+                            }
+                            modelContext.delete(item)
+                            try? modelContext.save()
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 12)
+        }
+        .background(section.period.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(section.period.tint.opacity(0.20), lineWidth: 1)
+        }
+    }
+
+    private var emptyState: some View {
+        ContentUnavailableView(
+            memories.isEmpty ? "Your timeline is empty" : "No matching activity",
+            systemImage: memories.isEmpty ? "sparkles" : "magnifyingglass",
+            description: Text(memories.isEmpty
+                ? "Open a few apps to start building your private activity history."
+                : "Try a different filter, search term, or day.")
+        )
+        .frame(maxWidth: .infinity, minHeight: 460)
+        .background(Color.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 22))
     }
 
     private var selectedDay: Date {
-        Calendar.current.date(byAdding: .day, value: dayOffset, to: Calendar.current.startOfDay(for: now)) ?? now
+        Calendar.current.date(byAdding: .day, value: dayOffset, to: Date()) ?? Date()
     }
 
-    private var dayHeaderTitle: String {
-        if Calendar.current.isDateInToday(selectedDay) {
-            return "Today · \(selectedDay.formatted(.dateTime.month(.wide).day().year()))"
-        }
-        if Calendar.current.isDateInYesterday(selectedDay) {
-            return "Yesterday · \(selectedDay.formatted(.dateTime.month(.wide).day().year()))"
-        }
-        return selectedDay.formatted(.dateTime.weekday(.wide).month(.wide).day().year())
-    }
-
-    private struct TimelineSnapshot {
-        let dayItems: [MemoryItem]
-        let visibleItems: [MemoryItem]
-        let durations: [UUID: TimeInterval]
-        let totalVisibleDurationLabel: String
-    }
-
-    private func makeTimelineSnapshot() -> TimelineSnapshot {
+    private var itemsForSelectedDay: [MemoryItem] {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: selectedDay)
-        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else {
-            return TimelineSnapshot(
-                dayItems: [],
-                visibleItems: [],
-                durations: [:],
-                totalVisibleDurationLabel: ""
-            )
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+
+        return memories.filter {
+            $0.createdAt >= start &&
+            $0.createdAt < end &&
+            !$0.isCaptureNoise
         }
+    }
 
-        // @Query is already newest-first. Stop as soon as we pass the selected
-        // day instead of rescanning the entire history on every SwiftUI redraw.
-        let daySlice = memories
-            .drop(while: { $0.createdAt >= end })
-            .prefix(while: { $0.createdAt >= start })
-        let dayItems = Array(daySlice)
+    private func filteredItems(_ dayItems: [MemoryItem]) -> [MemoryItem] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let normalizedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let visibleItems = dayItems.filter { item in
-            guard !item.isCaptureNoise else { return false }
-
-            let matchesSearch = normalizedSearch.isEmpty
-                || item.searchableText.localizedCaseInsensitiveContains(normalizedSearch)
-            return matchesSearch && filter.matches(item)
+        return dayItems.filter { item in
+            let categoryMatch = category.matches(item)
+            let searchMatch = query.isEmpty || item.searchableText.localizedCaseInsensitiveContains(query)
+            return categoryMatch && searchMatch
         }
+    }
 
-        var durations: [UUID: TimeInterval] = [:]
-        durations.reserveCapacity(dayItems.count)
+    private func daySections(from items: [MemoryItem]) -> [DayActivitySection] {
+        DayPeriod.allCases.compactMap { period in
+            let periodItems = items.filter { period.contains($0.createdAt) }
+            guard !periodItems.isEmpty else { return nil }
+            return DayActivitySection(period: period, items: periodItems)
+        }
+    }
 
-        for (index, item) in dayItems.enumerated() {
+    private func durationLookup(for items: [MemoryItem]) -> [UUID: TimeInterval] {
+        var result: [UUID: TimeInterval] = [:]
+        result.reserveCapacity(items.count)
+
+        for (index, item) in items.enumerated() {
             let duration: TimeInterval
 
             if index == 0 {
-                if calendar.isDateInToday(start) {
-                    duration = min(max(0, now.timeIntervalSince(item.createdAt)), 60 * 30)
-                } else if let globalIndex = memories.firstIndex(where: { $0.id == item.id }),
-                          globalIndex > 0 {
-                    let newer = memories[globalIndex - 1]
-                    duration = min(max(0, newer.createdAt.timeIntervalSince(item.createdAt)), 60 * 90)
-                } else {
-                    duration = 0
-                }
+                duration = Calendar.current.isDateInToday(item.createdAt)
+                    ? min(max(0, now.timeIntervalSince(item.createdAt)), 30 * 60)
+                    : 0
             } else {
-                let newer = dayItems[index - 1]
-                duration = min(max(0, newer.createdAt.timeIntervalSince(item.createdAt)), 60 * 90)
+                let newer = items[index - 1]
+                duration = min(max(0, newer.createdAt.timeIntervalSince(item.createdAt)), 90 * 60)
             }
 
-            durations[item.id] = duration
+            result[item.id] = duration
         }
 
-        let totalSeconds = visibleItems.reduce(0.0) { partial, item in
-            partial + (durations[item.id] ?? 0)
-        }
-
-        return TimelineSnapshot(
-            dayItems: dayItems,
-            visibleItems: visibleItems,
-            durations: durations,
-            totalVisibleDurationLabel: Self.durationFormatter.string(from: totalSeconds) ?? ""
-        )
+        return result
     }
 
     private var selectedItem: MemoryItem? {
@@ -421,488 +435,273 @@ struct TimelineView: View {
         return memories.first { $0.id == selectedMemoryID }
     }
 
-    private func durationForItem(_ item: MemoryItem) -> TimeInterval {
-        guard let index = memories.firstIndex(where: { $0.id == item.id }) else { return 0 }
-
-        if index == 0 {
-            return min(max(0, now.timeIntervalSince(item.createdAt)), 60 * 30)
+    private func ensureSelection(in items: [MemoryItem]) {
+        if let selectedMemoryID, items.contains(where: { $0.id == selectedMemoryID }) {
+            return
         }
-
-        let newer = memories[index - 1]
-        return min(max(0, newer.createdAt.timeIntervalSince(item.createdAt)), 60 * 90)
+        selectedMemoryID = items.first?.id
     }
 
-    private func isActive(_ item: MemoryItem) -> Bool {
-        guard !preferences.capturePaused,
-              memories.first?.id == item.id,
-              item.sourceKind == .appActivity
-        else {
-            return false
-        }
-
-        return now.timeIntervalSince(item.createdAt) < 15 * 60
+    private func toggleFavorite() {
+        guard let selectedItem else { return }
+        selectedItem.isFavorite.toggle()
+        try? modelContext.save()
     }
 
-    private func adjacentItem(to item: MemoryItem, direction: AdjacentDirection) -> MemoryItem? {
-        guard let index = memories.firstIndex(where: { $0.id == item.id }) else { return nil }
-
-        switch direction {
-        case .newer:
-            guard index > 0 else { return nil }
-            return memories[index - 1]
-        case .older:
-            guard index + 1 < memories.count else { return nil }
-            return memories[index + 1]
-        }
+    private func deleteSelectedItem() {
+        guard let selectedItem else { return }
+        modelContext.delete(selectedItem)
+        try? modelContext.save()
+        selectedMemoryID = nil
     }
 
     private func clearTimeline() {
-        selectedMemoryID = nil
         for item in memories {
             modelContext.delete(item)
         }
-
-        do {
-            try modelContext.save()
-        } catch {
-            assertionFailure("Unable to clear Memory Lane timeline: \(error)")
-        }
+        try? modelContext.save()
+        selectedMemoryID = nil
     }
-
-    private static let durationFormatter: DateComponentsFormatter = {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute]
-        formatter.unitsStyle = .abbreviated
-        formatter.zeroFormattingBehavior = .dropAll
-        return formatter
-    }()
 }
 
-private struct TimelineActivityRow: View {
-    let item: MemoryItem
-    let duration: TimeInterval
-    let isActive: Bool
-    let isSelected: Bool
-    let density: TimelineDensity
+private struct DayActivitySection: Identifiable {
+    let period: DayPeriod
+    let items: [MemoryItem]
 
-    var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Text(item.createdAt.formatted(date: .omitted, time: .shortened))
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 72, alignment: .trailing)
+    var id: String { period.rawValue }
+}
 
-            timelineRail
+private enum DayPeriod: String, CaseIterable {
+    case morning
+    case afternoon
+    case evening
+    case night
 
-            HStack(spacing: 14) {
-                sourceIcon
-
-                VStack(alignment: .leading, spacing: density == .comfortable ? 5 : 3) {
-                    HStack(spacing: 8) {
-                        Text(primaryTitle)
-                            .font(.system(size: density == .comfortable ? 16 : 14.5, weight: .semibold))
-                            .lineLimit(1)
-
-                        if item.isFavorite {
-                            Image(systemName: "star.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.yellow)
-                        }
-                    }
-
-                    if !secondaryTitle.isEmpty {
-                        Text(secondaryTitle)
-                            .font(.system(size: density == .comfortable ? 14.5 : 13.5))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-
-                    if density == .comfortable {
-                        HStack(spacing: 6) {
-                            Text(item.sourceApp)
-                            Text("·")
-                            Text(categoryLabel)
-
-                            if duration >= 60 {
-                                Text("·")
-                                Text(Self.durationFormatter.string(from: duration) ?? "")
-                            }
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    }
-                }
-
-                Spacer(minLength: 12)
-
-                if isActive {
-                    Label("Active now", systemImage: "circle.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.green)
-                        .labelStyle(.titleAndIcon)
-                        .padding(.horizontal, 10)
-                        .frame(height: 28)
-                        .background(Color.green.opacity(0.08), in: Capsule())
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-            }
-            .padding(.horizontal, density == .comfortable ? 16 : 14)
-            .padding(.vertical, density == .comfortable ? 14 : 10)
-            .background(
-                isSelected
-                    ? Color.accentColor.opacity(0.11)
-                    : Color(nsColor: .controlBackgroundColor).opacity(0.86),
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(
-                        isSelected ? Color.accentColor.opacity(0.42) : Color.secondary.opacity(0.13),
-                        lineWidth: 1
-                    )
-            }
-            .shadow(
-                color: isSelected ? Color.black.opacity(0.07) : .clear,
-                radius: isSelected ? 8 : 0,
-                y: isSelected ? 2 : 0
-            )
+    var title: String {
+        switch self {
+        case .morning: "Morning"
+        case .afternoon: "Afternoon"
+        case .evening: "Evening"
+        case .night: "Night"
         }
     }
 
-    private var timelineRail: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(Color.secondary.opacity(0.16))
-                .frame(width: 1)
+    var timeRange: String {
+        switch self {
+        case .morning: "5:00 AM – 12:00 PM"
+        case .afternoon: "12:00 PM – 5:00 PM"
+        case .evening: "5:00 PM – 10:00 PM"
+        case .night: "10:00 PM – 5:00 AM"
+        }
+    }
 
-            Circle()
-                .fill(isActive ? Color.green : Color.accentColor)
-                .frame(width: isActive ? 12 : 9, height: isActive ? 12 : 9)
-                .overlay {
-                    if isActive {
-                        Circle()
-                            .stroke(Color.green.opacity(0.20), lineWidth: 6)
-                    }
+    var symbol: String {
+        switch self {
+        case .morning: "sun.max.fill"
+        case .afternoon: "sun.min.fill"
+        case .evening: "sunset.fill"
+        case .night: "moon.stars.fill"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .morning: .orange
+        case .afternoon: .blue
+        case .evening: .purple
+        case .night: .indigo
+        }
+    }
+
+    var background: Color {
+        switch self {
+        case .morning:
+            Color(red: 1.0, green: 0.975, blue: 0.91)
+        case .afternoon:
+            Color(red: 0.93, green: 0.975, blue: 1.0)
+        case .evening:
+            Color(red: 0.965, green: 0.94, blue: 1.0)
+        case .night:
+            Color(red: 0.94, green: 0.95, blue: 1.0)
+        }
+    }
+
+    func contains(_ date: Date) -> Bool {
+        let hour = Calendar.current.component(.hour, from: date)
+        switch self {
+        case .morning:
+            return hour >= 5 && hour < 12
+        case .afternoon:
+            return hour >= 12 && hour < 17
+        case .evening:
+            return hour >= 17 && hour < 22
+        case .night:
+            return hour >= 22 || hour < 5
+        }
+    }
+}
+
+private struct BrightTimelineRow: View {
+    let item: MemoryItem
+    let duration: TimeInterval
+    let isSelected: Bool
+    let periodTint: Color
+    let onSelect: () -> Void
+    let onFavorite: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 70, alignment: .trailing)
+
+            ZStack {
+                Rectangle()
+                    .fill(periodTint.opacity(0.55))
+                    .frame(width: 2)
+
+                Circle()
+                    .fill(periodTint)
+                    .frame(width: 10, height: 10)
+            }
+            .frame(width: 16, height: 58)
+
+            sourceIcon
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.sourceApp)
+                    .font(.system(size: 14.5, weight: .semibold))
+                    .lineLimit(1)
+
+                Text(item.displayTitle)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            Text(activityLabel)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(activityTint)
+                .padding(.horizontal, 12)
+                .frame(height: 28)
+                .background(activityTint.opacity(0.12), in: Capsule())
+
+            Button(action: onFavorite) {
+                Image(systemName: item.isFavorite ? "star.fill" : "star")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(item.isFavorite ? Color.orange : Color.secondary)
+                    .frame(width: 30, height: 30)
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                Button("Copy Details", systemImage: "doc.on.doc") {
+                    copyDetails()
                 }
 
-            Rectangle()
-                .fill(Color.secondary.opacity(0.16))
-                .frame(width: 1)
+                Button("Open Source App", systemImage: "arrow.up.forward.app") {
+                    openSource()
+                }
+
+                Divider()
+
+                Button("Delete", systemImage: "trash", role: .destructive) {
+                    onDelete()
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 30)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
         }
-        .frame(width: 20)
-        .frame(minHeight: density.rowHeight + 12)
+        .padding(.horizontal, 10)
+        .frame(height: 62)
+        .background(
+            isSelected
+                ? Color.accentColor.opacity(0.08)
+                : Color.white.opacity(0.82),
+            in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .stroke(
+                    isSelected ? Color.accentColor.opacity(0.75) : Color.secondary.opacity(0.08),
+                    lineWidth: isSelected ? 1.5 : 1
+                )
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 13))
+        .onTapGesture(perform: onSelect)
     }
 
     @ViewBuilder
     private var sourceIcon: some View {
-        if item.sourceKind == .appActivity,
-           let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
+        if let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
             Image(nsImage: icon)
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
-                .frame(width: density == .comfortable ? 38 : 32, height: density == .comfortable ? 38 : 32)
-                .padding(6)
-                .background(
-                    Color(nsColor: .controlBackgroundColor).opacity(0.88),
-                    in: RoundedRectangle(cornerRadius: 13, style: .continuous)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
-                }
+                .frame(width: 34, height: 34)
         } else {
-            Image(systemName: item.sourceKind.symbol)
-                .font(.system(size: 18, weight: .semibold))
-                .frame(width: 50, height: 50)
-                .foregroundStyle(.tint)
-                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            Image(systemName: fallbackSymbol)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(activityTint)
+                .frame(width: 34, height: 34)
+                .background(activityTint.opacity(0.12), in: RoundedRectangle(cornerRadius: 9))
         }
     }
 
-    private var primaryTitle: String {
-        if item.sourceKind == .appActivity, !item.displayTitle.hasPrefix("Opened ") {
-            return item.displayTitle
-        }
-        return item.sourceKind == .appActivity ? item.sourceApp : item.title
-    }
-
-    private var secondaryTitle: String {
-        guard item.sourceKind == .appActivity else {
-            return item.body
-        }
-        return primaryTitle == item.sourceApp ? item.body : item.sourceApp
-    }
-
-    private var categoryLabel: String {
-        TimelineFilter.category(for: item).title
-    }
-
-    private static let durationFormatter: DateComponentsFormatter = {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute]
-        formatter.unitsStyle = .abbreviated
-        formatter.zeroFormattingBehavior = .dropAll
-        return formatter
-    }()
-}
-
-private struct TimelineInspector: View {
-    @Bindable var item: MemoryItem
-    let previousItem: MemoryItem?
-    let nextItem: MemoryItem?
-    let duration: TimeInterval
-    let isActive: Bool
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                inspectorHeader
-                activitySummary
-                metadataSection
-                actions
-
-                if previousItem != nil || nextItem != nil {
-                    Divider()
-                        .opacity(0.55)
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Related Activity")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
-                        if let previousItem {
-                            adjacentActivity(item: previousItem)
-                        }
-
-                        if let nextItem {
-                            adjacentActivity(item: nextItem)
-                        }
-                    }
-                }
-            }
-            .padding(24)
-        }
-        .background(.ultraThinMaterial)
-    }
-
-    private var inspectorHeader: some View {
-        HStack(alignment: .center, spacing: 12) {
-            inspectorIcon
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(item.sourceApp)
-                    .font(.title3.weight(.semibold))
-
-                Text(TimelineFilter.category(for: item).title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Button {
-                item.isFavorite.toggle()
-            } label: {
-                Image(systemName: item.isFavorite ? "star.fill" : "star")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(item.isFavorite ? .yellow : .secondary)
-                    .frame(width: 34, height: 34)
-            }
-            .buttonStyle(.plain)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .help(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
+    private var fallbackSymbol: String {
+        switch MemoryLaneCategory.category(for: item) {
+        case .web: "globe"
+        case .email: "envelope.fill"
+        case .chat: "bubble.left.and.bubble.right.fill"
+        case .files: "folder.fill"
+        case .productivity: "doc.text.fill"
+        case .development: "chevron.left.forwardslash.chevron.right"
+        case .media: "play.fill"
+        case .design: "paintbrush.fill"
+        case .remoteAccess: "display"
+        case .system: "gearshape.fill"
+        default: item.sourceKind.symbol
         }
     }
 
-    private var activitySummary: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(item.displayTitle)
-                .font(.system(size: 19, weight: .semibold))
-                .lineLimit(3)
-                .textSelection(.enabled)
+    private var activityLabel: String {
+        let app = "\(item.sourceApp) \(item.displayTitle)".lowercased()
 
-            HStack(spacing: 7) {
-                Text(timeValue)
-                if duration >= 60 {
-                    Text("·")
-                    Text(durationLabel)
-                }
-            }
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-
-            if isActive {
-                Label("Active now", systemImage: "circle.fill")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.green)
-            }
-        }
+        if app.contains("outlook") || app.contains("mail") { return "Email" }
+        if app.contains("teams") || app.contains("slack") || app.contains("messages") { return "Chat" }
+        if app.contains("excel") || app.contains(".xlsx") { return "Spreadsheet" }
+        if app.contains("onenote") || app.contains("notes") { return "Notes" }
+        if app.contains("word") || app.contains(".doc") { return "Document" }
+        if app.contains("powerpoint") || app.contains(".ppt") { return "Presentation" }
+        if MemoryLaneCategory.category(for: item) == .web { return "Web" }
+        if item.sourceKind == .clipboard { return "Clipboard" }
+        if item.sourceKind == .file { return "File" }
+        return MemoryLaneCategory.category(for: item).title
     }
 
-    private var metadataSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if !item.body.isEmpty {
-                detailRow(symbol: "text.alignleft", title: "Details", value: item.body)
-                Divider().padding(.leading, 34)
-            }
-
-            detailRow(symbol: "app", title: "Application", value: item.sourceApp)
-
-            if let sourceURL = item.sourceURL, !sourceURL.isEmpty {
-                Divider().padding(.leading, 34)
-                detailRow(symbol: "link", title: "Source", value: sourceURL)
-            }
+    private var activityTint: Color {
+        switch activityLabel {
+        case "Email", "Document": .blue
+        case "Web", "Spreadsheet": .green
+        case "Chat", "Notes": .purple
+        case "Presentation": .orange
+        case "File", "Clipboard": .orange
+        default: MemoryLaneCategory.category(for: item).tint
         }
-        .padding(.horizontal, 14)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(.quaternary, lineWidth: 1)
-        }
-    }
-
-    private var actions: some View {
-        VStack(spacing: 10) {
-            if !item.sourceBundleID.isEmpty {
-                Button {
-                    openSourceApplication()
-                } label: {
-                    Label("Open in \(item.sourceApp)", systemImage: "arrow.up.forward.app")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-            }
-
-            HStack(spacing: 10) {
-                Button {
-                    copyDetails()
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                        .frame(maxWidth: .infinity)
-                }
-
-                Button {
-                    item.isFavorite.toggle()
-                } label: {
-                    Label(item.isFavorite ? "Favorited" : "Favorite", systemImage: item.isFavorite ? "star.fill" : "star")
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .buttonStyle(.bordered)
-        }
-    }
-
-    @ViewBuilder
-    private var inspectorIcon: some View {
-        if item.sourceKind == .appActivity,
-           let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
-            Image(nsImage: icon)
-                .resizable()
-                .interpolation(.high)
-                .scaledToFit()
-                .frame(width: 46, height: 46)
-                .padding(6)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(.quaternary, lineWidth: 1)
-                }
-        } else {
-            Image(systemName: item.sourceKind.symbol)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 58, height: 58)
-                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        }
-    }
-
-    private func detailRow(symbol: String, title: String, value: String) -> some View {
-        HStack(alignment: .top, spacing: 11) {
-            Image(systemName: symbol)
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Text(value)
-                    .font(.subheadline)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding(.vertical, 12)
-    }
-
-    private func adjacentActivity(item: MemoryItem) -> some View {
-        HStack(spacing: 10) {
-            if item.sourceKind == .appActivity,
-               let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
-                Image(nsImage: icon)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-            } else {
-                Image(systemName: item.sourceKind.symbol)
-                    .frame(width: 28)
-                    .foregroundStyle(.secondary)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.displayTitle)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
-
-                Text(item.createdAt.formatted(date: .omitted, time: .shortened))
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Spacer()
-        }
-        .padding(10)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var timeValue: String {
-        if isActive {
-            return "\(item.createdAt.formatted(date: .omitted, time: .shortened)) – Present"
-        }
-        let end = item.createdAt.addingTimeInterval(duration)
-        return "\(item.createdAt.formatted(date: .omitted, time: .shortened)) – \(end.formatted(date: .omitted, time: .shortened))"
-    }
-
-    private var durationLabel: String {
-        if duration < 60 {
-            return "Less than a minute"
-        }
-        return Self.durationFormatter.string(from: duration) ?? ""
-    }
-
-    private func openSourceApplication() {
-        guard !item.sourceBundleID.isEmpty,
-              let applicationURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: item.sourceBundleID)
-        else {
-            return
-        }
-
-        NSWorkspace.shared.openApplication(
-            at: applicationURL,
-            configuration: NSWorkspace.OpenConfiguration()
-        )
     }
 
     private func copyDetails() {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(
             [item.displayTitle, item.body, item.sourceApp, item.sourceURL ?? ""]
                 .filter { !$0.isEmpty }
                 .joined(separator: "\n"),
@@ -910,194 +709,369 @@ private struct TimelineInspector: View {
         )
     }
 
-    private static let durationFormatter: DateComponentsFormatter = {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute]
-        formatter.unitsStyle = .full
-        formatter.zeroFormattingBehavior = .dropAll
-        return formatter
-    }()
-}
-
-private struct ActivityHeatmap: View {
-    let items: [MemoryItem]
-    let selectedDay: Date
-    let now: Date
-
-    private var buckets: [Int] {
-        var counts = Array(repeating: 0, count: 48)
-        let calendar = Calendar.current
-        let dayStart = calendar.startOfDay(for: selectedDay)
-        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? selectedDay
-
-        let relevant = items
-            .reversed()
-            .filter { $0.sourceKind == .appActivity || $0.sourceKind == .file || $0.sourceKind == .link }
-
-        for (index, item) in relevant.enumerated() {
-            let nextDate: Date
-            if index + 1 < relevant.count {
-                nextDate = relevant[index + 1].createdAt
-            } else {
-                nextDate = min(now, item.createdAt.addingTimeInterval(8 * 60))
-            }
-
-            let spanEnd = min(nextDate, item.createdAt.addingTimeInterval(30 * 60), dayEnd.addingTimeInterval(-1))
-            let clampedStart = max(item.createdAt, dayStart)
-            guard spanEnd >= clampedStart else { continue }
-
-            let startMinutes = max(0, Int(clampedStart.timeIntervalSince(dayStart) / 60))
-            let endMinutes = min(1439, Int(spanEnd.timeIntervalSince(dayStart) / 60))
-            let startIndex = min(47, max(0, startMinutes / 30))
-            let endIndex = min(47, max(startIndex, endMinutes / 30))
-
-            for bucket in startIndex...endIndex {
-                counts[bucket] += 1
-            }
+    private func openSource() {
+        if let sourceURL = item.sourceURL,
+           let url = URL(string: sourceURL),
+           ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
+            NSWorkspace.shared.open(url)
+            return
         }
 
-        return counts
+        guard !item.sourceBundleID.isEmpty,
+              let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: item.sourceBundleID)
+        else {
+            return
+        }
+
+        NSWorkspace.shared.openApplication(
+            at: appURL,
+            configuration: NSWorkspace.OpenConfiguration()
+        )
     }
+}
+
+private struct TimelineSummaryColumn: View {
+    let dayItems: [MemoryItem]
+    let selectedItem: MemoryItem?
+    let selectedDuration: TimeInterval
+    let selectedDay: Date
+    let preferences: RecallPreferences
+    let onFavorite: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
-        let values = buckets
-        let maxCount = max(values.max() ?? 0, 1)
+        ScrollView {
+            VStack(spacing: 14) {
+                statusBar
+                summaryCard
 
-        VStack(alignment: .leading, spacing: 7) {
-            HStack {
-                Label("Activity Overview", systemImage: "waveform.path.ecg")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("12 AM")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Text("·")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Text("12 PM")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Text("·")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Text("11:59 PM")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-
-            HStack(spacing: 2) {
-                ForEach(values.indices, id: \.self) { index in
-                    let count = values[index]
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(
-                            count == 0
-                                ? Color.secondary.opacity(0.08)
-                                : Color.accentColor.opacity(0.20 + (0.72 * Double(count) / Double(maxCount)))
-                        )
-                        .frame(maxWidth: .infinity)
+                if let selectedItem {
+                    detailCard(selectedItem)
+                } else {
+                    ContentUnavailableView(
+                        "Select an activity",
+                        systemImage: "cursorarrow.click.2",
+                        description: Text("Choose an item in the timeline to see its details.")
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 280)
+                    .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 18))
                 }
             }
-            .frame(height: 11)
+            .padding(14)
         }
-        .padding(.horizontal, 2)
+        .background(Color(red: 0.965, green: 0.98, blue: 1.0))
     }
-}
 
-private enum TimelineFilter: String, CaseIterable, Identifiable, Hashable {
-    case all
-    case web
-    case email
-    case chat
-    case files
-    case clipboard
-    case favorites
+    private var statusBar: some View {
+        HStack(spacing: 9) {
+            Circle()
+                .fill(preferences.capturePaused ? Color.orange : Color.green)
+                .frame(width: 10, height: 10)
 
-    var id: String { rawValue }
+            Text(preferences.capturePaused ? "Paused" : "Capturing")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
 
-    var title: String {
-        switch self {
-        case .all: "All"
-        case .web: "Web"
+            Spacer()
+
+            Image(systemName: "calendar")
+                .foregroundStyle(.secondary)
+
+            Text(selectedDay.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().year()))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private var summaryCard: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            Label("Today Summary", systemImage: "chart.bar.fill")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                SummaryMetricTile(
+                    value: "\(dayItems.count)",
+                    label: "Total Activities",
+                    symbol: "chart.bar.fill",
+                    tint: .cyan
+                )
+
+                SummaryMetricTile(
+                    value: "\(Set(dayItems.map(\.sourceApp)).count)",
+                    label: "Apps Used",
+                    symbol: "square.grid.2x2.fill",
+                    tint: .blue
+                )
+
+                SummaryMetricTile(
+                    value: activeTimeLabel,
+                    label: "Active Time",
+                    symbol: "clock.fill",
+                    tint: .teal
+                )
+
+                SummaryMetricTile(
+                    value: "\(dayItems.filter { $0.sourceKind == .clipboard }.count)",
+                    label: "Clipboard Items",
+                    symbol: "doc.on.clipboard.fill",
+                    tint: .orange
+                )
+            }
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.90), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 19, style: .continuous)
+                .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func detailCard(_ item: MemoryItem) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                detailIcon(item)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.sourceApp)
+                        .font(.headline)
+
+                    Text("\(detailType(item)) • \(item.createdAt.formatted(date: .omitted, time: .shortened))\(selectedDuration >= 60 ? " • \(durationLabel)" : "")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button(action: onFavorite) {
+                    Image(systemName: item.isFavorite ? "star.fill" : "star")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(item.isFavorite ? Color.orange : Color.secondary)
+                }
+                .buttonStyle(.plain)
+
+                Menu {
+                    Button("Delete", systemImage: "trash", role: .destructive) {
+                        onDelete()
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            }
+
+            Text(item.displayTitle)
+                .font(.system(size: 17, weight: .bold))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Divider()
+
+            detailLine("App", item.sourceApp)
+            detailLine("Type", detailType(item))
+            detailLine("Time", item.createdAt.formatted(date: .abbreviated, time: .shortened))
+
+            if let sender = sender(from: item.body) {
+                detailLine("From", sender)
+            }
+
+            if let sourceURL = item.sourceURL, !sourceURL.isEmpty {
+                detailLine(sourceURL.hasPrefix("/") ? "Path" : "URL", sourceURL)
+            }
+
+            detailLine("Window", item.displayTitle)
+
+            Divider()
+
+            Button {
+                open(item)
+            } label: {
+                Label(openButtonTitle(item), systemImage: "arrow.up.forward.app")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 42)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(item.displayTitle, forType: .string)
+            } label: {
+                Label("Copy Subject", systemImage: "doc.on.doc")
+                    .font(.subheadline.weight(.medium))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 38)
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 19, style: .continuous)
+                .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func detailIcon(_ item: MemoryItem) -> some View {
+        if let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
+            Image(nsImage: icon)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 44, height: 44)
+        } else {
+            Image(systemName: MemoryLaneCategory.category(for: item).symbol)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(MemoryLaneCategory.category(for: item).tint)
+                .frame(width: 44, height: 44)
+                .background(
+                    MemoryLaneCategory.category(for: item).tint.opacity(0.12),
+                    in: RoundedRectangle(cornerRadius: 12)
+                )
+        }
+    }
+
+    private func detailLine(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 54, alignment: .leading)
+
+            Text(value)
+                .font(.caption)
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(3)
+        }
+    }
+
+    private var activeTimeLabel: String {
+        guard dayItems.count > 1 else {
+            return dayItems.isEmpty ? "0m" : "1m"
+        }
+
+        let ascending = dayItems.sorted { $0.createdAt < $1.createdAt }
+        var seconds: TimeInterval = 0
+
+        for index in 0..<(ascending.count - 1) {
+            let gap = ascending[index + 1].createdAt.timeIntervalSince(ascending[index].createdAt)
+            seconds += min(max(gap, 60), 20 * 60)
+        }
+
+        let hours = Int(seconds) / 3600
+        let minutes = (Int(seconds) % 3600) / 60
+        return hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m"
+    }
+
+    private var durationLabel: String {
+        let minutes = max(1, Int(selectedDuration / 60))
+        return "\(minutes) min"
+    }
+
+    private func detailType(_ item: MemoryItem) -> String {
+        switch MemoryLaneCategory.category(for: item) {
         case .email: "Email"
         case .chat: "Chat"
-        case .files: "Files"
-        case .clipboard: "Clipboard"
-        case .favorites: "Favorites"
+        case .web: "Web"
+        case .files: "File"
+        case .productivity: "Document"
+        case .development: "Development"
+        case .media: "Media"
+        case .design: "Design"
+        case .remoteAccess: "Remote Access"
+        case .system: "System"
+        default: item.sourceKind.rawValue
         }
     }
 
-    var symbol: String {
-        switch self {
-        case .all: "line.3.horizontal.decrease.circle"
-        case .web: "safari"
-        case .email: "envelope"
-        case .chat: "bubble.left.and.bubble.right"
-        case .files: "folder"
-        case .clipboard: "doc.on.clipboard"
-        case .favorites: "star"
-        }
+    private func sender(from body: String) -> String? {
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.lowercased().hasPrefix("from:") else { return nil }
+        let value = String(trimmed.dropFirst("from:".count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 
-    static let quickFilters: [TimelineFilter] = [.all, .web, .email, .chat, .files, .clipboard, .favorites]
-
-    func matches(_ item: MemoryItem) -> Bool {
-        switch self {
-        case .all:
-            return true
-        case .favorites:
-            return item.isFavorite
-        default:
-            return Self.category(for: item) == self
-        }
+    private func openButtonTitle(_ item: MemoryItem) -> String {
+        let app = item.sourceApp
+        return app.isEmpty ? "Open Source" : "Open in \(app)"
     }
 
-    static func category(for item: MemoryItem) -> TimelineFilter {
-        if item.sourceKind == .clipboard {
-            return .clipboard
-        }
-        if item.sourceKind == .file || item.sourceKind == .screenshot {
-            return .files
-        }
-
-        let haystack = "\(item.sourceApp) \(item.sourceBundleID)".lowercased()
-        if haystack.contains("safari") || haystack.contains("chrome") || haystack.contains("firefox") || haystack.contains("edge") || haystack.contains("arc") {
-            return .web
-        }
-        if haystack.contains("outlook") || haystack.contains("mail") {
-            return .email
-        }
-        if haystack.contains("teams") || haystack.contains("slack") || haystack.contains("messages") || haystack.contains("discord") {
-            return .chat
+    private func open(_ item: MemoryItem) {
+        if let sourceURL = item.sourceURL,
+           let url = URL(string: sourceURL),
+           ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
+            NSWorkspace.shared.open(url)
+            return
         }
 
-        return .files
+        guard !item.sourceBundleID.isEmpty,
+              let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: item.sourceBundleID)
+        else {
+            return
+        }
+
+        NSWorkspace.shared.openApplication(
+            at: appURL,
+            configuration: NSWorkspace.OpenConfiguration()
+        )
     }
 }
 
-private enum TimelineDensity: String, CaseIterable, Identifiable, Hashable {
-    case compact
-    case comfortable
+private struct SummaryMetricTile: View {
+    let value: String
+    let label: String
+    let symbol: String
+    let tint: Color
 
-    var id: String { rawValue }
-    var title: String { rawValue.capitalized }
-    var rowHeight: CGFloat { self == .comfortable ? 84 : 62 }
-    var rowSpacing: CGFloat { self == .comfortable ? 10 : 6 }
-}
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol)
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 34, height: 34)
+                .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
 
-private enum AdjacentDirection {
-    case newer
-    case older
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(minHeight: 66)
+        .background(tint.opacity(0.055), in: RoundedRectangle(cornerRadius: 13))
+        .overlay {
+            RoundedRectangle(cornerRadius: 13)
+                .stroke(tint.opacity(0.10), lineWidth: 1)
+        }
+    }
 }
 
 struct MemoryRow: View {
     let item: MemoryItem
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .top, spacing: 13) {
             sourceIcon
 
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(primaryTitle)
                         .font(.headline)
@@ -1106,7 +1080,7 @@ struct MemoryRow: View {
                     if item.isFavorite {
                         Image(systemName: "star.fill")
                             .font(.caption)
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(.orange)
                     }
 
                     Spacer()
@@ -1138,32 +1112,28 @@ struct MemoryRow: View {
                 .foregroundStyle(.tertiary)
             }
         }
-        .padding(14)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(13)
+        .background(Color.white.opacity(0.84), in: RoundedRectangle(cornerRadius: 15))
         .overlay {
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(.quaternary, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
         }
     }
 
     @ViewBuilder
     private var sourceIcon: some View {
-        if item.sourceKind == .appActivity,
-           let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
+        if let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
             Image(nsImage: icon)
                 .resizable()
                 .interpolation(.high)
                 .scaledToFit()
-                .frame(width: 30, height: 30)
-                .padding(4)
-                .frame(width: 38, height: 38)
-                .background(Color(nsColor: .controlBackgroundColor).opacity(0.55), in: RoundedRectangle(cornerRadius: 10))
+                .frame(width: 34, height: 34)
         } else {
             Image(systemName: item.sourceKind.symbol)
                 .font(.system(size: 16, weight: .semibold))
-                .frame(width: 38, height: 38)
+                .frame(width: 36, height: 36)
                 .foregroundStyle(.tint)
-                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
         }
     }
 
@@ -1173,12 +1143,12 @@ struct MemoryRow: View {
 
     private var secondaryTitle: String {
         guard item.sourceKind == .appActivity else { return "" }
-        return item.title.hasPrefix("Opened ") ? "" : item.title
+        return item.title.hasPrefix("Opened ") ? "" : item.displayTitle
     }
 }
 
 @MainActor
-private final class AppIconCache {
+final class AppIconCache {
     static let shared = AppIconCache()
 
     private let cache = NSCache<NSString, NSImage>()

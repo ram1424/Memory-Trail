@@ -432,7 +432,7 @@ struct InsightsView: View {
 
                     InsightMetricCard(
                         title: "Favorites",
-                        value: "\(todayItems.filter(\.isFavorite).count)",
+                        value: "\(todayItems.filter { $0.isFavorite }.count)",
                         symbol: "star.fill",
                         tint: .yellow
                     )
@@ -601,7 +601,7 @@ enum MemoryLaneCategory: String, CaseIterable, Identifiable {
         case .design: .indigo
         case .remoteAccess: .cyan
         case .system: .gray
-        case .other: .secondary
+        case .other: .gray
         }
     }
 
