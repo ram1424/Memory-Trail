@@ -14,8 +14,7 @@ struct TimelineView: View {
     @State private var dayOffset = 0
     @State private var showingClearTimelineConfirmation = false
     @State private var now = Date()
-    @AppStorage("today.showSummary") private var showsTodaySummary = true
-    @AppStorage("today.showDetails") private var showsTimelineDetails = true
+    @AppStorage("today.showPanels") private var showsPanels = true
 
     var body: some View {
         let dayItems = itemsForSelectedDay
@@ -47,7 +46,7 @@ struct TimelineView: View {
             }
             .frame(minWidth: 590, maxWidth: .infinity)
 
-            if showsTodaySummary || showsTimelineDetails {
+            if showsPanels {
                 Divider()
                     .opacity(0.55)
 
@@ -57,12 +56,8 @@ struct TimelineView: View {
                     selectedDuration: selectedItem.map { durations[$0.id] ?? 0 } ?? 0,
                     selectedDay: selectedDay,
                     preferences: preferences,
-                    showsSummary: showsTodaySummary,
-                    showsDetails: showsTimelineDetails,
                     onFavorite: toggleFavorite,
-                    onDelete: deleteSelectedItem,
-                    onHideSummary: { showsTodaySummary = false },
-                    onHideDetails: { showsTimelineDetails = false }
+                    onDelete: deleteSelectedItem
                 )
                 .frame(width: 365)
             }
@@ -154,22 +149,26 @@ struct TimelineView: View {
             }
             .shadow(color: Color.black.opacity(0.03), radius: 8, y: 3)
 
-            Menu {
-                Toggle("Today Summary", isOn: $showsTodaySummary)
-                Toggle("Activity Details", isOn: $showsTimelineDetails)
+            Button {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    showsPanels.toggle()
+                }
             } label: {
-                Label("Panels", systemImage: "rectangle.split.3x1")
-                    .font(.system(size: 13.5, weight: .semibold))
-                    .padding(.horizontal, 12)
-                    .frame(height: 44)
+                Label(
+                    showsPanels ? "Hide Panels" : "Show Panels",
+                    systemImage: showsPanels ? "sidebar.right" : "sidebar.right"
+                )
+                .font(.system(size: 13.5, weight: .semibold))
+                .padding(.horizontal, 12)
+                .frame(height: 44)
             }
-            .menuStyle(.borderlessButton)
+            .buttonStyle(.plain)
             .background(MemoryLanePalette.elevatedStrong.opacity(0.94), in: RoundedRectangle(cornerRadius: 13))
             .overlay {
                 RoundedRectangle(cornerRadius: 13)
                     .stroke(Color.secondary.opacity(0.14), lineWidth: 1)
             }
-            .help("Show or hide Today Summary and Activity Details")
+            .help(showsPanels ? "Hide Today Summary and Activity Details" : "Show Today Summary and Activity Details")
 
             Button {
                 category = .allApps
@@ -709,34 +708,25 @@ private struct TimelineSummaryColumn: View {
     let selectedDuration: TimeInterval
     let selectedDay: Date
     let preferences: RecallPreferences
-    let showsSummary: Bool
-    let showsDetails: Bool
     let onFavorite: () -> Void
     let onDelete: () -> Void
-    let onHideSummary: () -> Void
-    let onHideDetails: () -> Void
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
                 statusBar
+                summaryCard
 
-                if showsSummary {
-                    summaryCard
-                }
-
-                if showsDetails {
-                    if let selectedItem {
-                        detailCard(selectedItem)
-                    } else {
-                        ContentUnavailableView(
-                            "Select an activity",
-                            systemImage: "cursorarrow.click.2",
-                            description: Text("Choose an item in Today to see its details.")
-                        )
-                        .frame(maxWidth: .infinity, minHeight: 280)
-                        .background(MemoryLanePalette.elevated.opacity(0.90), in: RoundedRectangle(cornerRadius: 18))
-                    }
+                if let selectedItem {
+                    detailCard(selectedItem)
+                } else {
+                    ContentUnavailableView(
+                        "Select an activity",
+                        systemImage: "cursorarrow.click.2",
+                        description: Text("Choose an item in Today to see its details.")
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 280)
+                    .background(MemoryLanePalette.elevated.opacity(0.90), in: RoundedRectangle(cornerRadius: 18))
                 }
             }
             .padding(14)
@@ -768,22 +758,9 @@ private struct TimelineSummaryColumn: View {
 
     private var summaryCard: some View {
         VStack(alignment: .leading, spacing: 13) {
-            HStack {
-                Label("Today Summary", systemImage: "chart.bar.fill")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
-
-                Spacer()
-
-                Button(action: onHideSummary) {
-                    Image(systemName: "xmark")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 28, height: 28)
-                }
-                .buttonStyle(.plain)
-                .help("Hide Today Summary")
-            }
+            Label("Today Summary", systemImage: "chart.bar.fill")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 SummaryMetricTile(
@@ -869,15 +846,6 @@ private struct TimelineSummaryColumn: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
-
-                Button(action: onHideDetails) {
-                    Image(systemName: "xmark")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 26, height: 26)
-                }
-                .buttonStyle(.plain)
-                .help("Hide Activity Details")
             }
 
             Divider()
