@@ -22,8 +22,8 @@ struct MemoryDetailView: View {
         .background(
             LinearGradient(
                 colors: [
-                    Color(nsColor: .windowBackgroundColor),
-                    Color(nsColor: .controlBackgroundColor).opacity(0.28)
+                    MemoryLanePalette.canvasTop,
+                    MemoryLanePalette.canvasBottom
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -37,9 +37,9 @@ struct MemoryDetailView: View {
                 Button {
                     dismiss()
                 } label: {
-                    Label("Back to Timeline", systemImage: "chevron.left")
+                    Label("Close Details", systemImage: "xmark")
                 }
-                .help("Return to Timeline")
+                .help("Close activity details")
                 .keyboardShortcut("[", modifiers: .command)
             }
         }
@@ -80,7 +80,7 @@ struct MemoryDetailView: View {
             .help(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
         }
         .padding(20)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20))
         .overlay {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(.quaternary, lineWidth: 1)
@@ -125,7 +125,7 @@ struct MemoryDetailView: View {
             }
         }
         .padding(20)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20))
         .overlay {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(.quaternary, lineWidth: 1)
@@ -169,7 +169,7 @@ struct MemoryDetailView: View {
             }
         }
         .padding(20)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20))
         .overlay {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(.quaternary, lineWidth: 1)
@@ -200,7 +200,7 @@ struct MemoryDetailView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(.quaternary, lineWidth: 1)

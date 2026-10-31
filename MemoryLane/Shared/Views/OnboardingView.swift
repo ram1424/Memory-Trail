@@ -59,13 +59,15 @@ struct OnboardingView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .layoutPriority(1)
                 .transition(.opacity.combined(with: .move(edge: .trailing)))
 
                 footer
+                    .frame(height: 62)
                     .padding(.horizontal, 28)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 12)
             }
-            .frame(width: 790, height: 610)
+            .frame(width: 790, height: 650)
             .background(MemoryLanePalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 24))
             .overlay {
                 RoundedRectangle(cornerRadius: 24)
@@ -417,7 +419,8 @@ struct OnboardingView: View {
             }
             .frame(maxWidth: 390)
         }
-        .padding(38)
+        .padding(.horizontal, 38)
+        .padding(.vertical, 24)
     }
 
     private var accessibilityPage: some View {
@@ -505,7 +508,7 @@ struct OnboardingView: View {
             .frame(maxWidth: 620)
 
             HStack(spacing: 12) {
-                statusBadge(icon: "clock.arrow.circlepath", text: "Timeline")
+                statusBadge(icon: "clock.arrow.circlepath", text: "Today")
                 statusBadge(icon: "sparkles", text: "Ask Memory Lane")
                 statusBadge(icon: "folder.fill", text: "Files")
                 statusBadge(icon: "doc.on.clipboard.fill", text: "Clipboard")

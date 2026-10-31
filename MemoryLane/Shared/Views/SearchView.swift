@@ -7,6 +7,7 @@ struct SearchView: View {
 
     @State private var query = ""
     @State private var answer: MemoryLaneAnswer?
+    @State private var selectedResult: MemoryItem?
     @FocusState private var searchFocused: Bool
 
     private let examples = [
@@ -42,6 +43,10 @@ struct SearchView: View {
             )
         )
         .navigationTitle("")
+        .sheet(item: $selectedResult) { item in
+            MemoryDetailView(item: item)
+                .frame(minWidth: 760, minHeight: 650)
+        }
         .onAppear {
             if query.isEmpty {
                 searchFocused = true
@@ -82,6 +87,7 @@ struct SearchView: View {
                     Button {
                         query = ""
                         answer = nil
+                        selectedResult = nil
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(.tertiary)
@@ -197,12 +203,20 @@ struct SearchView: View {
                 .font(.headline)
 
             ForEach(items) { item in
-                NavigationLink {
-                    MemoryDetailView(item: item)
+                Button {
+                    selectedResult = item
                 } label: {
-                    MemoryRow(item: item)
+                    HStack(spacing: 10) {
+                        MemoryRow(item: item)
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .help("Open activity details")
             }
         }
     }
