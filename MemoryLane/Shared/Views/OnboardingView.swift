@@ -67,7 +67,11 @@ struct OnboardingView: View {
                     .padding(.horizontal, 28)
                     .padding(.bottom, 12)
             }
-            .frame(width: 850, height: 650)
+            .frame(
+                width: page == 4 ? 1020 : 850,
+                height: page == 4 ? 760 : 650
+            )
+            .animation(.easeInOut(duration: 0.22), value: page)
             .background(MemoryLanePalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 24))
             .overlay {
                 RoundedRectangle(cornerRadius: 24)
@@ -335,7 +339,7 @@ struct OnboardingView: View {
     }
 
     private var privacyAndControlPage: some View {
-        HStack(alignment: .center, spacing: 30) {
+        HStack(alignment: .center, spacing: 36) {
             VStack(alignment: .center, spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
@@ -349,7 +353,7 @@ struct OnboardingView: View {
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 275, height: 275)
+                        .frame(width: 290, height: 290)
                         .overlay {
                             RoundedRectangle(cornerRadius: 28, style: .continuous)
                                 .stroke(Color.blue.opacity(0.08), lineWidth: 1)
@@ -358,13 +362,13 @@ struct OnboardingView: View {
                     Image("OnboardingIcon")
                         .resizable()
                         .interpolation(.high)
-                        .frame(width: 142, height: 142)
+                        .frame(width: 150, height: 150)
                         .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
 
                     Image(systemName: "lock.shield.fill")
                         .font(.system(size: 40))
                         .foregroundStyle(.white, .blue)
-                        .offset(x: 82, y: 82)
+                        .offset(x: 86, y: 86)
                 }
 
                 Text("Your history stays on this Mac.")
@@ -402,9 +406,9 @@ struct OnboardingView: View {
                     in: RoundedRectangle(cornerRadius: 14)
                 )
             }
-            .frame(width: 285)
+            .frame(width: 300)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 9) {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Privacy First. By Design.")
                         .font(.system(size: 30, weight: .bold))
@@ -464,16 +468,17 @@ struct OnboardingView: View {
                     title: "If Memory Lane is missing from Accessibility",
                     text: "1. Open System Settings → Privacy & Security → Accessibility.\n2. Click +, choose Applications → Memory Lane, then click Open.\n3. Turn Memory Lane on and relaunch it if macOS asks."
                 )
+                .padding(.vertical, 2)
 
                 Text("You can replay this tutorial anytime from Settings → Help.")
                     .font(.caption)
                     .foregroundStyle(tertiaryText)
                     .padding(.leading, 2)
             }
-            .frame(maxWidth: 500, alignment: .leading)
+            .frame(maxWidth: 610, alignment: .leading)
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 30)
+        .padding(.vertical, 10)
     }
 
     private var accessibilityPage: some View {
@@ -908,27 +913,29 @@ struct OnboardingView: View {
                 .frame(width: 38, height: 38)
                 .background(tint.gradient, in: Circle())
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(primaryText)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(text)
                     .font(.caption)
                     .foregroundStyle(secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .layoutPriority(1)
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 10)
 
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(tertiaryText)
                 .padding(.top, 5)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
         .background(
             MemoryLanePalette.elevated.opacity(0.92),
             in: RoundedRectangle(cornerRadius: 14)
