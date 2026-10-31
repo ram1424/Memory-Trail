@@ -19,7 +19,7 @@ struct MemoryLaneApp: App {
 
         switch String(argument.dropFirst("--screenshot-demo=".count)) {
         case "timeline":
-            return .timeline
+            return .today
         case "ask":
             return .search
         case "favorites":

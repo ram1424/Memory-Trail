@@ -76,7 +76,7 @@ struct RootView: View {
 
                 Group {
                     switch activeSelection {
-                    case .today, .timeline:
+                    case .today:
                         TimelineView(category: $category)
                     case .search:
                         SearchView()
@@ -127,7 +127,6 @@ struct MemoryLaneSidebar: View {
 
                     VStack(spacing: 5) {
                         sidebarButton(.today, title: "Today", symbol: "house.fill")
-                        sidebarButton(.timeline, title: "Timeline", symbol: "line.3.horizontal.decrease")
                         sidebarButton(.search, title: "Ask Memory Lane", symbol: "magnifyingglass")
                         sidebarButton(.favorites, title: "Favorites", symbol: "star.fill")
                         sidebarButton(.clipboard, title: "Clipboard History", symbol: "doc.on.clipboard.fill")
@@ -240,7 +239,7 @@ struct MemoryLaneSidebar: View {
 
     private func categoryButton(_ option: MemoryLaneCategory) -> some View {
         let count = memories.lazy.filter { !$0.isCaptureNoise && option.matches($0) }.count
-        let selected = category == option && (selection == .today || selection == .timeline)
+        let selected = category == option && selection == .today
 
         return Button {
             category = option
@@ -343,7 +342,7 @@ struct MemoryLaneScreenshotShell: View {
 
                 Group {
                     switch selection {
-                    case .today, .timeline:
+                    case .today:
                         TimelineView(category: $category)
                     case .search:
                         SearchView()
@@ -551,7 +550,6 @@ private func pageHeader(_ title: String, subtitle: String, symbol: String, tint:
 
 enum SidebarItem: Hashable {
     case today
-    case timeline
     case search
     case favorites
     case clipboard

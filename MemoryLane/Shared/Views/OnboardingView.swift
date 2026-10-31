@@ -86,7 +86,7 @@ struct OnboardingView: View {
 
     private var pageTitle: String {
         switch page {
-        case 1: "Timeline"
+        case 1: "Today"
         case 2: "Ask Memory Lane"
         case 3: "Capture & Files"
         case 4: "Privacy & Controls"
@@ -110,7 +110,7 @@ struct OnboardingView: View {
                     .foregroundStyle(primaryText)
                     .multilineTextAlignment(.center)
 
-                Text("A private, searchable history of the work you do on your Mac.")
+                Text("A privacy-first, searchable history of the work you do on your Mac.")
                     .font(.title3)
                     .foregroundStyle(secondaryText)
                     .multilineTextAlignment(.center)
@@ -132,8 +132,8 @@ struct OnboardingView: View {
                 )
                 benefitRow(
                     icon: "lock.shield.fill",
-                    title: "Local-first privacy",
-                    text: "Your timeline stays on your Mac, with pause controls and exclusions for sensitive apps.",
+                    title: "Privacy-first by design",
+                    text: "Memory Lane runs locally. Captured activity is sourced and stored on this Mac and is not sent to an external service.",
                     tint: .green
                 )
             }
@@ -145,8 +145,8 @@ struct OnboardingView: View {
     private var timelinePage: some View {
         VStack(spacing: 16) {
             pageHeading(
-                title: "Your Workday, in Order",
-                subtitle: "Timeline turns captured activity into a clean chronological history without summarizing or rewriting what you viewed."
+                title: "Today, Newest First",
+                subtitle: "Today shows your captured activity in one continuous newest-first history without summarizing or rewriting what you viewed."
             )
 
             HStack(spacing: 10) {
@@ -190,9 +190,9 @@ struct OnboardingView: View {
             .frame(maxWidth: 660)
 
             HStack(spacing: 14) {
-                compactFeature(icon: "waveform.path.ecg", title: "Activity Overview", text: "See busy and quiet periods across the day.")
-                compactFeature(icon: "rectangle.righthalf.inset.filled", title: "Details Panel", text: "Double-click any activity to open its details on the right.")
-                compactFeature(icon: "rectangle.compress.vertical", title: "View Density", text: "Switch between Compact and Comfortable views.")
+                compactFeature(icon: "bolt.fill", title: "Live Activity", text: "Your newest activity stays at the top and is clearly marked while active.")
+                compactFeature(icon: "rectangle.righthalf.inset.filled", title: "Details Panel", text: "Select any activity to see its local details on the right.")
+                compactFeature(icon: "line.3.horizontal.decrease.circle", title: "Dynamic Filters", text: "Only activity types you have actually used are shown.")
             }
             .frame(maxWidth: 690)
         }
@@ -365,14 +365,31 @@ struct OnboardingView: View {
             }
 
             VStack(alignment: .leading, spacing: 15) {
-                Text("You’re in Control")
+                Text("Privacy First. By Design.")
                     .font(.system(size: 30, weight: .bold))
                     .foregroundStyle(primaryText)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("Local-only architecture", systemImage: "macbook")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.blue)
+
+                    Text("Memory Lane is designed to run privately on your Mac. Captured timeline data is sourced locally, processed locally, and stored locally. Memory Lane does not use cloud sync or external data connectors for your captured history.")
+                        .font(.caption)
+                        .foregroundStyle(secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(12)
+                .background(MemoryLanePalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(MemoryLanePalette.border, lineWidth: 1)
+                }
 
                 privacyRow(icon: "pause.circle.fill", title: "Pause Capture", text: "Pause or resume activity capture whenever you need privacy.", tint: .green)
                 privacyRow(icon: "hand.raised.slash.fill", title: "Exclude Apps", text: "Choose apps and services Memory Lane should ignore.", tint: .orange)
                 privacyRow(icon: "lock.fill", title: "Passwords & Wallet", text: "Passwords and Wallet are always excluded.", tint: .blue)
-                privacyRow(icon: "externaldrive.fill", title: "Local Storage", text: "Timeline history is stored locally using SwiftData.", tint: .purple)
+                privacyRow(icon: "externaldrive.fill", title: "Local Storage", text: "Your activity history is stored locally on this Mac using SwiftData.", tint: .purple)
                 privacyRow(icon: "trash.slash.fill", title: "Clear App Cache", text: "Reset cached capture state and preferences without deleting Timeline history.", tint: .pink)
 
                 VStack(alignment: .leading, spacing: 5) {

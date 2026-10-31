@@ -112,9 +112,45 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                settingsCard("Data & Privacy", systemImage: "externaldrive.fill") {
-                    Text("Memory Lane stores your activity timeline locally using SwiftData. No cloud account or analytics SDK is included.")
-                        .foregroundStyle(.secondary)
+                settingsCard("Privacy", systemImage: "lock.shield.fill") {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Privacy-first by design")
+                            .font(.title3.weight(.semibold))
+
+                        Text("Memory Lane is a private, locally run macOS app. Its captured activity history is processed and stored on this computer.")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Divider()
+
+                    privacyStatement(
+                        icon: "internaldrive.fill",
+                        title: "Sourced and stored locally",
+                        text: "Timeline data comes from local macOS app/window context, local files and paths, and the clipboard when enabled. Captured history is stored locally on this Mac using SwiftData."
+                    )
+
+                    privacyStatement(
+                        icon: "icloud.slash.fill",
+                        title: "No captured-data transmission",
+                        text: "Memory Lane does not upload, sync, or send your captured timeline data outside of this computer."
+                    )
+
+                    privacyStatement(
+                        icon: "link.badge.minus",
+                        title: "No external data connectors",
+                        text: "Memory Lane does not use external data connectors, cloud sync, analytics services, or a remote account for its capture and storage workflow."
+                    )
+
+                    privacyStatement(
+                        icon: "checkmark.shield.fill",
+                        title: "Verifiable source code",
+                        text: "The source code is available publicly so you can review and verify how Memory Lane captures, processes, and stores data."
+                    )
+
+                    Link(destination: URL(string: "https://github.com/ram1424/Memory-Lane")!) {
+                        Label("Review Memory Lane Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                    .buttonStyle(.borderedProminent)
 
                     Divider()
 
@@ -124,7 +160,7 @@ struct SettingsView: View {
                         Label("Clear App Cache", systemImage: "trash.slash")
                     }
 
-                    Text("Resets cached capture state and Memory Lane preferences without deleting your Timeline history.")
+                    Text("Resets cached capture state and Memory Lane preferences without deleting your activity history.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
 
@@ -200,6 +236,28 @@ struct SettingsView: View {
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(.quaternary, lineWidth: 1)
+        }
+    }
+
+    private func privacyStatement(icon: String, title: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: 11) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.blue)
+                .frame(width: 30, height: 30)
+                .background(Color.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+
+                Text(text)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
         }
     }
 
