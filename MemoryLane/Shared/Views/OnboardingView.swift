@@ -8,17 +8,17 @@ struct OnboardingView: View {
 
     private let pageCount = 6
 
-    private let primaryText = Color.white
-    private let secondaryText = Color.white.opacity(0.72)
-    private let tertiaryText = Color.white.opacity(0.52)
+    private let primaryText = Color(red: 0.10, green: 0.14, blue: 0.22)
+    private let secondaryText = Color(red: 0.25, green: 0.31, blue: 0.41)
+    private let tertiaryText = Color(red: 0.40, green: 0.47, blue: 0.58)
 
     var body: some View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.05, green: 0.09, blue: 0.22),
-                    Color(red: 0.13, green: 0.25, blue: 0.55),
-                    Color(red: 0.48, green: 0.30, blue: 0.62)
+                    MemoryLanePalette.canvasTop,
+                    MemoryLanePalette.canvasBottom,
+                    MemoryLanePalette.sidebarBottom
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -66,12 +66,12 @@ struct OnboardingView: View {
                     .padding(.bottom, 24)
             }
             .frame(width: 790, height: 610)
-            .background(Color.black.opacity(0.30), in: RoundedRectangle(cornerRadius: 24))
+            .background(MemoryLanePalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 24))
             .overlay {
                 RoundedRectangle(cornerRadius: 24)
-                    .stroke(.white.opacity(0.18), lineWidth: 1)
+                    .stroke(MemoryLanePalette.border, lineWidth: 1)
             }
-            .shadow(radius: 40, y: 20)
+            .shadow(color: Color.black.opacity(0.12), radius: 30, y: 16)
             .padding(28)
         }
         .onAppear {
@@ -182,10 +182,10 @@ struct OnboardingView: View {
                 )
             }
             .padding(.vertical, 3)
-            .background(Color.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 18))
+            .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 18))
             .overlay {
                 RoundedRectangle(cornerRadius: 18)
-                    .stroke(.white.opacity(0.12), lineWidth: 1)
+                    .stroke(MemoryLanePalette.border, lineWidth: 1)
             }
             .frame(maxWidth: 660)
 
@@ -339,7 +339,7 @@ struct OnboardingView: View {
                     RoundedRectangle(cornerRadius: 28)
                         .fill(
                             LinearGradient(
-                                colors: [.blue.opacity(0.35), .purple.opacity(0.32)],
+                                colors: [Color.blue.opacity(0.20), Color.cyan.opacity(0.16)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -387,10 +387,10 @@ struct OnboardingView: View {
                 .font(.caption2)
                 .foregroundStyle(secondaryText)
                 .padding(10)
-                .background(Color.black.opacity(0.16), in: RoundedRectangle(cornerRadius: 11))
+                .background(MemoryLanePalette.surface.opacity(0.90), in: RoundedRectangle(cornerRadius: 11))
                 .overlay {
                     RoundedRectangle(cornerRadius: 11)
-                        .stroke(.white.opacity(0.09), lineWidth: 1)
+                        .stroke(MemoryLanePalette.border, lineWidth: 1)
                 }
 
                 Text("You can replay this tutorial anytime from Settings → Help.")
@@ -440,7 +440,7 @@ struct OnboardingView: View {
                         .foregroundStyle(captureCoordinator.hasAccessibilityPermission ? .green : .orange)
                 }
                 .padding(18)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                .background(MemoryLanePalette.elevatedStrong.opacity(0.92), in: RoundedRectangle(cornerRadius: 16))
 
                 if captureCoordinator.hasAccessibilityPermission {
                     Label("Accessibility Access Enabled", systemImage: "checkmark.shield.fill")
@@ -478,10 +478,10 @@ struct OnboardingView: View {
                         manualAccessibilityStep(4, "Turn Memory Lane on. Relaunch the app if macOS asks you to.")
                     }
                     .padding(12)
-                    .background(Color.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 13))
+                    .background(MemoryLanePalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
                     .overlay {
                         RoundedRectangle(cornerRadius: 13)
-                            .stroke(.white.opacity(0.10), lineWidth: 1)
+                            .stroke(MemoryLanePalette.border, lineWidth: 1)
                     }
                 }
             }
@@ -609,7 +609,7 @@ struct OnboardingView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
         .padding(12)
-        .background(Color.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 13))
+        .background(MemoryLanePalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
     }
 
     private func featurePill(_ title: String, icon: String, selected: Bool = false) -> some View {
@@ -619,7 +619,7 @@ struct OnboardingView: View {
             .padding(.horizontal, 10)
             .frame(height: 28)
             .background(
-                selected ? Color.accentColor : Color.white.opacity(0.08),
+                selected ? Color.accentColor : MemoryLanePalette.elevated.opacity(0.90),
                 in: Capsule()
             )
     }
@@ -643,10 +643,10 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 11)
-        .background(Color.black.opacity(0.19), in: RoundedRectangle(cornerRadius: 14))
+        .background(MemoryLanePalette.surface.opacity(0.94), in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
-                .stroke(.white.opacity(0.10), lineWidth: 1)
+                .stroke(MemoryLanePalette.border, lineWidth: 1)
         }
     }
 
@@ -682,10 +682,10 @@ struct OnboardingView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 174, alignment: .topLeading)
         .padding(15)
-        .background(Color.black.opacity(0.20), in: RoundedRectangle(cornerRadius: 16))
+        .background(MemoryLanePalette.surface.opacity(0.94), in: RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .stroke(.white.opacity(0.10), lineWidth: 1)
+                .stroke(MemoryLanePalette.border, lineWidth: 1)
         }
     }
 
@@ -701,9 +701,9 @@ struct OnboardingView: View {
         } else {
             Image(systemName: fallbackSymbol)
                 .font(.system(size: 27, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(.blue)
                 .frame(width: 58, height: 58)
-                .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 13))
+                .background(MemoryLanePalette.surface, in: RoundedRectangle(cornerRadius: 13))
         }
     }
 
@@ -724,7 +724,7 @@ struct OnboardingView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 70, alignment: .topLeading)
         .padding(11)
-        .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 13))
+        .background(MemoryLanePalette.elevated.opacity(0.88), in: RoundedRectangle(cornerRadius: 13))
     }
 
     private enum CaptureGraphic {
@@ -772,8 +772,8 @@ struct OnboardingView: View {
         .background(
             LinearGradient(
                 colors: [
-                    Color.black.opacity(0.24),
-                    tint.opacity(0.08)
+                    MemoryLanePalette.elevated.opacity(0.96),
+                    tint.opacity(0.07)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -782,7 +782,7 @@ struct OnboardingView: View {
         )
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .stroke(.white.opacity(0.10), lineWidth: 1)
+                .stroke(MemoryLanePalette.border, lineWidth: 1)
         }
     }
 
@@ -865,6 +865,6 @@ struct OnboardingView: View {
             .foregroundStyle(primaryText)
             .padding(.horizontal, 10)
             .frame(height: 28)
-            .background(Color.white.opacity(0.08), in: Capsule())
+            .background(MemoryLanePalette.elevated.opacity(0.90), in: Capsule())
     }
 }

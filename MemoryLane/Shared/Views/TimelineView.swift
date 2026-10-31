@@ -503,7 +503,7 @@ private struct BrightTimelineRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 7) {
-                    Text(item.sourceApp)
+                    Text(item.displayTitle)
                         .font(.system(size: 14.5, weight: .semibold))
                         .lineLimit(1)
 
@@ -523,7 +523,7 @@ private struct BrightTimelineRow: View {
                     }
                 }
 
-                Text(item.displayTitle)
+                Text(item.sourceApp)
                     .font(.system(size: 12.5))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -783,12 +783,23 @@ private struct TimelineSummaryColumn: View {
                 detailIcon(item)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.sourceApp)
+                    Text(item.displayTitle)
                         .font(.headline)
+                        .lineLimit(2)
 
-                    Text("\(detailType(item)) • \(item.createdAt.formatted(date: .omitted, time: .shortened))\(selectedDuration >= 60 ? " • \(durationLabel)" : "")")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 5) {
+                        Text(item.sourceApp)
+                        Text("•")
+                        Text(detailType(item))
+                        Text("•")
+                        Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                        if selectedDuration >= 60 {
+                            Text("•")
+                            Text(durationLabel)
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
 
                 Spacer()
@@ -812,10 +823,6 @@ private struct TimelineSummaryColumn: View {
                 .menuStyle(.borderlessButton)
                 .fixedSize()
             }
-
-            Text(item.displayTitle)
-                .font(.system(size: 17, weight: .bold))
-                .fixedSize(horizontal: false, vertical: true)
 
             Divider()
 
