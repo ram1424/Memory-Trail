@@ -1,9 +1,14 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 struct SettingsView: View {
     @Environment(RecallPreferences.self) private var preferences
     @State private var captureCoordinator = MacCaptureCoordinator.shared
     @State private var customExclusions = ""
+    @State private var showingInstalledAppPicker = false
+    @State private var installedApps: [InstalledApplication] = []
     @State private var showingClearCacheConfirmation = false
     @State private var cacheClearedMessage = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
@@ -59,22 +64,83 @@ struct SettingsView: View {
                 }
 
                 settingsCard("Excluded Apps & Services", systemImage: "hand.raised.slash") {
-                    Menu {
-                        ForEach(RecallExclusionOption.catalog) { option in
-                            Toggle(isOn: exclusionBinding(for: option)) {
-                                Label(option.name, systemImage: option.systemImage)
-                            }
-                            .disabled(option.isAlwaysExcluded)
+                    HStack(alignment: .center, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Choose installed apps Memory Lane should ignore.")
+                                .font(.subheadline)
+
+                            Text("\(excludedInstalledAppCount) installed app\(excludedInstalledAppCount == 1 ? "" : "s") currently excluded.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
                         }
-                    } label: {
-                        Label("Choose Apps & Services", systemImage: "plus.circle")
+
+                        Spacer()
+
+                        Button {
+                            refreshInstalledApps()
+                            showingInstalledAppPicker = true
+                        } label: {
+                            Label("Select Installed Apps", systemImage: "plus.app.fill")
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
 
-                    ForEach(selectedOptions) { option in
-                        HStack {
-                            Label(option.name, systemImage: option.systemImage)
+                    Divider()
+
+                    ForEach(alwaysExcludedOptions) { option in
+                        HStack(spacing: 10) {
+                            Image(systemName: option.systemImage)
+                                .frame(width: 24)
+                                .foregroundStyle(.blue)
+
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(option.name)
+                                    .font(.subheadline.weight(.medium))
+                                Text("Always excluded")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
                             Spacer()
-                            Text(option.isAlwaysExcluded ? "Always excluded" : "Excluded")
+
+                            Image(systemName: "lock.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if !otherExcludedInstalledApps.isEmpty {
+                        Divider()
+
+                        Text("Selected installed apps")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        ForEach(otherExcludedInstalledApps.prefix(8)) { app in
+                            HStack(spacing: 10) {
+                                Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path))
+                                    .resizable()
+                                    .interpolation(.high)
+                                    .scaledToFit()
+                                    .frame(width: 28, height: 28)
+
+                                Text(app.name)
+                                    .font(.subheadline)
+
+                                Spacer()
+
+                                Button {
+                                    preferences.setExcluded(false, bundleID: app.bundleID)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Remove exclusion")
+                            }
+                        }
+
+                        if otherExcludedInstalledApps.count > 8 {
+                            Text("+ \(otherExcludedInstalledApps.count - 8) more")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -95,7 +161,7 @@ struct SettingsView: View {
                         .buttonStyle(.borderless)
                     }
 
-                    Label("Wallet and Passwords are always excluded. Memory Lane will not intentionally log activity or clipboard content while either app is active.", systemImage: "lock.shield.fill")
+                    Label("Passwords and Wallet are always excluded. Additional apps you select are ignored for both activity and clipboard capture.", systemImage: "lock.shield.fill")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -195,8 +261,16 @@ struct SettingsView: View {
             )
         )
         .navigationTitle("")
+        .sheet(isPresented: $showingInstalledAppPicker) {
+            InstalledAppPicker(
+                apps: installedApps,
+                preferences: preferences
+            )
+            .frame(minWidth: 720, minHeight: 620)
+        }
         .onAppear {
             customExclusions = preferences.customExcludedBundleIDs
+            refreshInstalledApps()
             captureCoordinator.refreshAccessibilityStatus()
         }
         .onReceive(Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()) { _ in
@@ -269,14 +343,243 @@ struct SettingsView: View {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
     }
 
-    private var selectedOptions: [RecallExclusionOption] {
-        RecallExclusionOption.catalog.filter { preferences.isExcluded(option: $0) }
+    private var alwaysExcludedOptions: [RecallExclusionOption] {
+        RecallExclusionOption.catalog.filter(\.isAlwaysExcluded)
     }
 
-    private func exclusionBinding(for option: RecallExclusionOption) -> Binding<Bool> {
-        Binding(
-            get: { preferences.isExcluded(option: option) },
-            set: { preferences.setExcluded($0, option: option) }
+    private var otherExcludedInstalledApps: [InstalledApplication] {
+        installedApps.filter {
+            preferences.isExcluded(bundleID: $0.bundleID) &&
+            !RecallExclusionOption.mandatoryBundleIDs.contains($0.bundleID)
+        }
+    }
+
+    private var excludedInstalledAppCount: Int {
+        installedApps.filter { preferences.isExcluded(bundleID: $0.bundleID) }.count
+    }
+
+    private func refreshInstalledApps() {
+#if os(macOS)
+        installedApps = InstalledApplication.discover()
+#endif
+    }
+
+}
+
+
+#if os(macOS)
+private struct InstalledApplication: Identifiable, Hashable {
+    let bundleID: String
+    let name: String
+    let url: URL
+
+    var id: String { bundleID }
+
+    static func discover() -> [InstalledApplication] {
+        let fileManager = FileManager.default
+        let roots: [URL] = [
+            URL(fileURLWithPath: "/Applications", isDirectory: true),
+            URL(fileURLWithPath: "/System/Applications", isDirectory: true),
+            URL(fileURLWithPath: "/System/Library/CoreServices/Applications", isDirectory: true),
+            fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Applications", isDirectory: true)
+        ]
+
+        var byBundleID: [String: InstalledApplication] = [:]
+        for root in roots {
+            scan(root: root, depth: 0, maxDepth: 2, into: &byBundleID)
+        }
+
+        return byBundleID.values.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    private static func scan(
+        root: URL,
+        depth: Int,
+        maxDepth: Int,
+        into apps: inout [String: InstalledApplication]
+    ) {
+        guard depth <= maxDepth,
+              let entries = try? FileManager.default.contentsOfDirectory(
+                at: root,
+                includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles]
+              )
+        else {
+            return
+        }
+
+        for url in entries {
+            if url.pathExtension.lowercased() == "app",
+               let bundle = Bundle(url: url),
+               let bundleID = bundle.bundleIdentifier,
+               !bundleID.isEmpty {
+                let name =
+                    bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ??
+                    bundle.object(forInfoDictionaryKey: "CFBundleName") as? String ??
+                    url.deletingPathExtension().lastPathComponent
+
+                apps[bundleID] = InstalledApplication(
+                    bundleID: bundleID,
+                    name: name,
+                    url: url
+                )
+                continue
+            }
+
+            guard depth < maxDepth,
+                  (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+            else {
+                continue
+            }
+
+            scan(root: url, depth: depth + 1, maxDepth: maxDepth, into: &apps)
+        }
+    }
+}
+
+private struct InstalledAppPicker: View {
+    @Environment(\.dismiss) private var dismiss
+    let apps: [InstalledApplication]
+    let preferences: RecallPreferences
+
+    @State private var searchText = ""
+
+    private var filteredApps: [InstalledApplication] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return apps }
+
+        return apps.filter {
+            $0.name.localizedCaseInsensitiveContains(query) ||
+            $0.bundleID.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Exclude Installed Apps")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+
+                    Text("Selected apps will be ignored by Memory Lane capture.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button("Done") {
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(20)
+
+            Divider()
+
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+
+                TextField("Search installed apps", text: $searchText)
+                    .textFieldStyle(.plain)
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 42)
+            .background(
+                MemoryLanePalette.elevatedStrong.opacity(0.94),
+                in: RoundedRectangle(cornerRadius: 12)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(MemoryLanePalette.border, lineWidth: 1)
+            }
+            .padding(16)
+
+            ScrollView {
+                LazyVStack(spacing: 5) {
+                    ForEach(filteredApps) { app in
+                        InstalledAppRow(app: app, preferences: preferences)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+            }
+        }
+        .background(
+            LinearGradient(
+                colors: [MemoryLanePalette.canvasTop, MemoryLanePalette.canvasBottom],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         )
     }
 }
+
+private struct InstalledAppRow: View {
+    let app: InstalledApplication
+    let preferences: RecallPreferences
+
+    private var isMandatory: Bool {
+        RecallExclusionOption.mandatoryBundleIDs.contains(app.bundleID)
+    }
+
+    private var exclusionBinding: Binding<Bool> {
+        Binding(
+            get: { preferences.isExcluded(bundleID: app.bundleID) },
+            set: { preferences.setExcluded($0, bundleID: app.bundleID) }
+        )
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path))
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 38, height: 38)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(app.name)
+                    .font(.subheadline.weight(.medium))
+
+                Text(app.bundleID)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            if isMandatory {
+                Label("Always excluded", systemImage: "lock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Toggle("", isOn: exclusionBinding)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 58)
+        .background(
+            preferences.isExcluded(bundleID: app.bundleID)
+                ? Color.accentColor.opacity(0.08)
+                : MemoryLanePalette.elevated.opacity(0.82),
+            in: RoundedRectangle(cornerRadius: 12)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(
+                    preferences.isExcluded(bundleID: app.bundleID)
+                        ? Color.accentColor.opacity(0.28)
+                        : MemoryLanePalette.border,
+                    lineWidth: 1
+                )
+        }
+    }
+}
+#endif

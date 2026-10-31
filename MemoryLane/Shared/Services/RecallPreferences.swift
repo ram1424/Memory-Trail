@@ -80,12 +80,24 @@ final class RecallPreferences {
 
     func setExcluded(_ excluded: Bool, option: RecallExclusionOption) {
         guard !option.isAlwaysExcluded else { return }
+        setExcluded(excluded, bundleID: option.id)
+    }
+
+    func setExcluded(_ excluded: Bool, bundleID: String) {
+        let normalized = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty,
+              !RecallExclusionOption.mandatoryBundleIDs.contains(normalized)
+        else {
+            return
+        }
+
         var values = excludedBundleIDSet
         if excluded {
-            values.insert(option.id)
+            values.insert(normalized)
         } else {
-            values.remove(option.id)
+            values.remove(normalized)
         }
+
         values.formUnion(RecallExclusionOption.mandatoryBundleIDs)
         excludedBundleIDs = Self.serializeBundleIDs(values)
     }
