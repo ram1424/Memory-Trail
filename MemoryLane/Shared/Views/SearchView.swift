@@ -11,10 +11,14 @@ struct SearchView: View {
     @FocusState private var searchFocused: Bool
 
     private let examples = [
-        "What was I doing around 10:30 AM?",
-        "What did I view before opening Teams?",
-        "Show my activity from today",
-        "Find a file I worked on yesterday"
+        "What was I doing earlier today?",
+        "Show my activity from this week",
+        "Find files I worked on recently",
+        "What emails did I view recently?",
+        "What conversations did I have today?",
+        "What websites did I visit?",
+        "Show my most recent activity",
+        "Find a project I worked on"
     ]
 
     var body: some View {
