@@ -74,6 +74,8 @@ jobs:
             -f description="Memory Lane Xcode build passed." >/dev/null
 
       - name: Capture screenshots from real Memory Lane windows
+        id: screenshots
+        continue-on-error: true
         run: |
           set -euo pipefail
           APP="$PWD/build/Build/Products/Release/Memory Lane.app"
@@ -162,7 +164,7 @@ jobs:
           test "$UNIQUE" -eq 3
 
       - name: Publish refreshed app screenshots
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.screenshots.outcome == 'success'
         run: |
           set -euo pipefail
 
