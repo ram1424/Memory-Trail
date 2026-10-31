@@ -18,7 +18,6 @@ struct TimelineView: View {
     var body: some View {
         let dayItems = itemsForSelectedDay
         let visibleItems = filteredItems(dayItems)
-        let sections = daySections(from: visibleItems)
         let durations = durationLookup(for: dayItems)
 
         HStack(spacing: 0) {
@@ -35,13 +34,10 @@ struct TimelineView: View {
                             emptyState
                         } else {
                             dayHeading(count: visibleItems.count)
-
-                            ForEach(sections) { section in
-                                activitySection(
-                                    section,
-                                    durations: durations
-                                )
-                            }
+                            activityList(
+                                visibleItems,
+                                durations: durations
+                            )
                         }
                     }
                     .padding(20)
@@ -102,6 +98,11 @@ struct TimelineView: View {
         }
         .onChange(of: visibleItems.map(\.id)) { _, _ in
             ensureSelection(in: visibleItems)
+
+            if category != .allApps,
+               !dayItems.contains(where: { category.matches($0) }) {
+                category = .allApps
+            }
         }
         .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { value in
             now = value
@@ -166,11 +167,16 @@ struct TimelineView: View {
     }
 
     private func quickFilters(dayItems: [MemoryItem]) -> some View {
-        let options: [MemoryLaneCategory] = [.allApps, .web, .email, .chat, .files, .productivity]
+        let used = Set(dayItems.map { MemoryLaneCategory.category(for: $0) })
+        let dynamicOptions = [.allApps] + MemoryLaneCategory.allCases.filter {
+            $0 != .allApps && used.contains($0)
+        }
+        let primaryOptions = Array(dynamicOptions.prefix(6))
+        let overflowOptions = Array(dynamicOptions.dropFirst(6))
 
         return HStack(spacing: 8) {
-            ForEach(options) { option in
-                let count = dayItems.filter { !$0.isCaptureNoise && option.matches($0) }.count
+            ForEach(primaryOptions) { option in
+                let count = dayItems.filter { option.matches($0) }.count
                 Button {
                     withAnimation(.easeOut(duration: 0.12)) {
                         category = option
@@ -201,22 +207,24 @@ struct TimelineView: View {
                 .buttonStyle(.plain)
             }
 
-            Menu {
-                ForEach(MemoryLaneCategory.allCases.filter { !options.contains($0) }) { option in
-                    Button {
-                        category = option
-                    } label: {
-                        Label(option.title, systemImage: option.symbol)
+            if !overflowOptions.isEmpty {
+                Menu {
+                    ForEach(overflowOptions) { option in
+                        Button {
+                            category = option
+                        } label: {
+                            Label(option.title, systemImage: option.symbol)
+                        }
                     }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 14, weight: .bold))
+                        .frame(width: 34, height: 34)
+                        .background(MemoryLanePalette.elevated.opacity(0.92), in: Circle())
                 }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 14, weight: .bold))
-                    .frame(width: 34, height: 34)
-                    .background(MemoryLanePalette.elevated.opacity(0.92), in: Circle())
+                .menuStyle(.borderlessButton)
+                .fixedSize()
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
 
             Spacer(minLength: 8)
 
@@ -295,70 +303,42 @@ struct TimelineView: View {
     }
 
     @ViewBuilder
-    private func activitySection(
-        _ section: DayActivitySection,
+    private func activityList(
+        _ items: [MemoryItem],
         durations: [UUID: TimeInterval]
     ) -> some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: section.period.symbol)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(section.period.tint)
-                    .frame(width: 42, height: 42)
-                    .background(section.period.tint.opacity(0.10), in: Circle())
-
-                Text(section.period.title)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-
-                Text(section.period.timeRange)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(section.period.tint)
-
-                Spacer()
-
-                Text("\(section.items.count) activit\(section.items.count == 1 ? "y" : "ies")")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(section.period.tint)
-
-                Image(systemName: "chevron.down")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(section.period.tint)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 10)
-
-            LazyVStack(spacing: 1) {
-                ForEach(section.items) { item in
-                    BrightTimelineRow(
-                        item: item,
-                        duration: durations[item.id] ?? 0,
-                        isSelected: selectedMemoryID == item.id,
-                        periodTint: section.period.tint,
-                        onSelect: {
-                            selectedMemoryID = item.id
-                        },
-                        onFavorite: {
-                            item.isFavorite.toggle()
-                            try? modelContext.save()
-                        },
-                        onDelete: {
-                            if selectedMemoryID == item.id {
-                                selectedMemoryID = nil
-                            }
-                            modelContext.delete(item)
-                            try? modelContext.save()
+        LazyVStack(spacing: 1) {
+            ForEach(items) { item in
+                BrightTimelineRow(
+                    item: item,
+                    duration: durations[item.id] ?? 0,
+                    isSelected: selectedMemoryID == item.id,
+                    timelineTint: .blue,
+                    onSelect: {
+                        selectedMemoryID = item.id
+                    },
+                    onFavorite: {
+                        item.isFavorite.toggle()
+                        try? modelContext.save()
+                    },
+                    onDelete: {
+                        if selectedMemoryID == item.id {
+                            selectedMemoryID = nil
                         }
-                    )
-                }
+                        modelContext.delete(item)
+                        try? modelContext.save()
+                    }
+                )
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 12)
         }
-        .background(section.period.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(10)
+        .background(
+            MemoryLanePalette.surface.opacity(0.88),
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
         .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(section.period.tint.opacity(0.20), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(MemoryLanePalette.border, lineWidth: 1)
         }
     }
 
@@ -397,14 +377,6 @@ struct TimelineView: View {
             let categoryMatch = category.matches(item)
             let searchMatch = query.isEmpty || item.searchableText.localizedCaseInsensitiveContains(query)
             return categoryMatch && searchMatch
-        }
-    }
-
-    private func daySections(from items: [MemoryItem]) -> [DayActivitySection] {
-        DayPeriod.allCases.compactMap { period in
-            let periodItems = items.filter { period.contains($0.createdAt) }
-            guard !periodItems.isEmpty else { return nil }
-            return DayActivitySection(period: period, items: periodItems)
         }
     }
 
@@ -464,88 +436,11 @@ struct TimelineView: View {
     }
 }
 
-private struct DayActivitySection: Identifiable {
-    let period: DayPeriod
-    let items: [MemoryItem]
-
-    var id: String { period.rawValue }
-}
-
-private enum DayPeriod: String, CaseIterable {
-    case morning
-    case afternoon
-    case evening
-    case night
-
-    var title: String {
-        switch self {
-        case .morning: "Morning"
-        case .afternoon: "Afternoon"
-        case .evening: "Evening"
-        case .night: "Night"
-        }
-    }
-
-    var timeRange: String {
-        switch self {
-        case .morning: "5:00 AM – 12:00 PM"
-        case .afternoon: "12:00 PM – 5:00 PM"
-        case .evening: "5:00 PM – 10:00 PM"
-        case .night: "10:00 PM – 5:00 AM"
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .morning: "sun.max.fill"
-        case .afternoon: "sun.min.fill"
-        case .evening: "sunset.fill"
-        case .night: "moon.stars.fill"
-        }
-    }
-
-    var tint: Color {
-        switch self {
-        case .morning: .orange
-        case .afternoon: .blue
-        case .evening: .purple
-        case .night: .indigo
-        }
-    }
-
-    var background: Color {
-        switch self {
-        case .morning:
-            Color(red: 0.965, green: 0.925, blue: 0.82)
-        case .afternoon:
-            Color(red: 0.84, green: 0.92, blue: 0.985)
-        case .evening:
-            Color(red: 0.90, green: 0.86, blue: 0.97)
-        case .night:
-            Color(red: 0.86, green: 0.88, blue: 0.96)
-        }
-    }
-
-    func contains(_ date: Date) -> Bool {
-        let hour = Calendar.current.component(.hour, from: date)
-        switch self {
-        case .morning:
-            return hour >= 5 && hour < 12
-        case .afternoon:
-            return hour >= 12 && hour < 17
-        case .evening:
-            return hour >= 17 && hour < 22
-        case .night:
-            return hour >= 22 || hour < 5
-        }
-    }
-}
-
 private struct BrightTimelineRow: View {
     let item: MemoryItem
     let duration: TimeInterval
     let isSelected: Bool
-    let periodTint: Color
+    let timelineTint: Color
     let onSelect: () -> Void
     let onFavorite: () -> Void
     let onDelete: () -> Void
@@ -559,11 +454,11 @@ private struct BrightTimelineRow: View {
 
             ZStack {
                 Rectangle()
-                    .fill(periodTint.opacity(0.55))
+                    .fill(timelineTint.opacity(0.55))
                     .frame(width: 2)
 
                 Circle()
-                    .fill(periodTint)
+                    .fill(timelineTint)
                     .frame(width: 10, height: 10)
             }
             .frame(width: 16, height: 58)

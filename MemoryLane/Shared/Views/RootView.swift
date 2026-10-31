@@ -155,7 +155,7 @@ struct MemoryLaneSidebar: View {
                     .padding(.bottom, 7)
 
                     VStack(spacing: 3) {
-                        ForEach(MemoryLaneCategory.allCases) { option in
+                        ForEach(availableCategories) { option in
                             categoryButton(option)
                         }
                     }
@@ -177,6 +177,15 @@ struct MemoryLaneSidebar: View {
                 endPoint: .bottom
             )
         )
+    }
+
+    private var availableCategories: [MemoryLaneCategory] {
+        let captured = memories.filter { !$0.isCaptureNoise }
+        let used = Set(captured.map { MemoryLaneCategory.category(for: $0) })
+
+        return [.allApps] + MemoryLaneCategory.allCases.filter {
+            $0 != .allApps && used.contains($0)
+        }
     }
 
     private var brandHeader: some View {
