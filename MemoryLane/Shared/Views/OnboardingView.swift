@@ -335,142 +335,145 @@ struct OnboardingView: View {
     }
 
     private var privacyAndControlPage: some View {
-        HStack(alignment: .center, spacing: 32) {
-            VStack(spacing: 16) {
+        HStack(alignment: .center, spacing: 30) {
+            VStack(alignment: .center, spacing: 14) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
                         .fill(
                             LinearGradient(
                                 colors: [
                                     Color.blue.opacity(0.18),
-                                    Color.cyan.opacity(0.12)
+                                    Color.cyan.opacity(0.10)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 240, height: 205)
+                        .frame(width: 275, height: 275)
                         .overlay {
-                            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                .stroke(Color.blue.opacity(0.10), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                .stroke(Color.blue.opacity(0.08), lineWidth: 1)
                         }
 
                     Image("OnboardingIcon")
                         .resizable()
                         .interpolation(.high)
-                        .frame(width: 104, height: 104)
-                        .shadow(color: .black.opacity(0.18), radius: 8, y: 4)
+                        .frame(width: 142, height: 142)
+                        .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
 
                     Image(systemName: "lock.shield.fill")
-                        .font(.system(size: 36))
+                        .font(.system(size: 40))
                         .foregroundStyle(.white, .blue)
-                        .offset(x: 62, y: 56)
+                        .offset(x: 82, y: 82)
                 }
 
-                VStack(spacing: 5) {
-                    Text("Your history stays on this Mac.")
-                        .font(.headline)
-                        .foregroundStyle(primaryText)
-                        .multilineTextAlignment(.center)
-
-                    Text("Private by default. Local by design.")
-                        .font(.caption)
-                        .foregroundStyle(secondaryText)
-                        .multilineTextAlignment(.center)
-                }
-            }
-            .frame(width: 250)
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Privacy First. By Design.")
-                    .font(.system(size: 29, weight: .bold))
+                Text("Your history stays on this Mac.")
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(primaryText)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Label("Local-only architecture", systemImage: "macbook")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.blue)
+                Text("Private by default. Local by design.")
+                    .font(.subheadline)
+                    .foregroundStyle(secondaryText)
 
-                    Text("Captured activity is sourced locally, processed locally, and stored locally on this Mac. Memory Lane does not use cloud sync or external data connectors for your captured history.")
+                VStack(alignment: .leading, spacing: 8) {
+                    privacyCheck("Sourced locally")
+                    privacyCheck("Processed locally")
+                    privacyCheck("Stored locally")
+                }
+                .frame(maxWidth: 215, alignment: .leading)
+
+                Divider()
+                    .frame(maxWidth: 225)
+
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "shield.fill")
+                        .foregroundStyle(.blue)
+                        .frame(width: 24)
+
+                    Text("No cloud sync. No external connectors.\nNo data leaves your computer.")
                         .font(.caption)
                         .foregroundStyle(secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: 235, alignment: .leading)
                 .background(
-                    MemoryLanePalette.elevated.opacity(0.92),
-                    in: RoundedRectangle(cornerRadius: 12)
+                    MemoryLanePalette.elevated.opacity(0.82),
+                    in: RoundedRectangle(cornerRadius: 14)
                 )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(MemoryLanePalette.border, lineWidth: 1)
-                }
+            }
+            .frame(width: 285)
 
-                VStack(spacing: 9) {
-                    privacyRow(
-                        icon: "pause.circle.fill",
-                        title: "Pause Capture",
-                        text: "Pause or resume activity capture whenever you need privacy.",
-                        tint: .green
-                    )
-                    privacyRow(
-                        icon: "hand.raised.slash.fill",
-                        title: "Exclude Apps",
-                        text: "Choose apps and services Memory Lane should ignore.",
-                        tint: .orange
-                    )
-                    privacyRow(
-                        icon: "lock.fill",
-                        title: "Passwords & Wallet",
-                        text: "Passwords and Wallet are always excluded.",
-                        tint: .blue
-                    )
-                    privacyRow(
-                        icon: "externaldrive.fill",
-                        title: "Local Storage",
-                        text: "Your activity history is stored locally on this Mac using SwiftData.",
-                        tint: .purple
-                    )
-                    privacyRow(
-                        icon: "trash.slash.fill",
-                        title: "Clear App Cache",
-                        text: "Reset cached capture state and preferences. Your activity history is not deleted.",
-                        tint: .pink
-                    )
-                }
-
+            VStack(alignment: .leading, spacing: 10) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Label("If Memory Lane is missing from Accessibility", systemImage: "plus.app.fill")
-                        .font(.caption.weight(.semibold))
+                    Text("Privacy First. By Design.")
+                        .font(.system(size: 30, weight: .bold))
                         .foregroundStyle(primaryText)
 
-                    Text("1. Open System Settings → Privacy & Security → Accessibility.")
-                    Text("2. Click +, choose Applications → Memory Lane, then click Open.")
-                    Text("3. Turn Memory Lane on and relaunch it if macOS asks.")
-                }
-                .font(.caption2)
-                .foregroundStyle(secondaryText)
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    MemoryLanePalette.surface.opacity(0.90),
-                    in: RoundedRectangle(cornerRadius: 11)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 11)
-                        .stroke(MemoryLanePalette.border, lineWidth: 1)
+                    Text("Memory Lane is a private, locally run app. Your activity is captured, processed, and stored on this Mac. No data is uploaded or sent outside your computer.")
+                        .font(.subheadline)
+                        .foregroundStyle(secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
+                tutorialPrivacyCard(
+                    icon: "macbook",
+                    tint: .blue,
+                    title: "Local-only architecture",
+                    text: "Captured activity is sourced locally, processed locally, and stored locally on this Mac. Memory Lane does not use cloud sync or external data connectors for your captured history."
+                )
+
+                tutorialPrivacyCard(
+                    icon: "pause.fill",
+                    tint: .green,
+                    title: "Pause Capture",
+                    text: "Pause or resume activity capture whenever you need privacy."
+                )
+
+                tutorialPrivacyCard(
+                    icon: "hand.raised.fill",
+                    tint: .orange,
+                    title: "Exclude Apps",
+                    text: "Choose apps and services Memory Lane should ignore."
+                )
+
+                tutorialPrivacyCard(
+                    icon: "lock.fill",
+                    tint: .blue,
+                    title: "Passwords & Wallet",
+                    text: "Passwords and Wallet are always excluded."
+                )
+
+                tutorialPrivacyCard(
+                    icon: "externaldrive.fill",
+                    tint: .purple,
+                    title: "Local Storage",
+                    text: "Your activity history is stored locally on this Mac using SwiftData."
+                )
+
+                tutorialPrivacyCard(
+                    icon: "trash.fill",
+                    tint: .pink,
+                    title: "Clear App Cache",
+                    text: "Reset cached capture state and preferences. Your activity history is not deleted."
+                )
+
+                tutorialPrivacyCard(
+                    icon: "accessibility",
+                    tint: .blue,
+                    title: "If Memory Lane is missing from Accessibility",
+                    text: "1. Open System Settings → Privacy & Security → Accessibility.\n2. Click +, choose Applications → Memory Lane, then click Open.\n3. Turn Memory Lane on and relaunch it if macOS asks."
+                )
+
                 Text("You can replay this tutorial anytime from Settings → Help.")
-                    .font(.footnote)
+                    .font(.caption)
                     .foregroundStyle(tertiaryText)
-                    .padding(.top, 1)
+                    .padding(.leading, 2)
             }
-            .frame(maxWidth: 480, alignment: .leading)
+            .frame(maxWidth: 500, alignment: .leading)
         }
-        .padding(.horizontal, 34)
-        .padding(.vertical, 20)
+        .padding(.horizontal, 28)
+        .padding(.vertical, 14)
     }
 
     private var accessibilityPage: some View {
@@ -879,31 +882,61 @@ struct OnboardingView: View {
         }
     }
 
-    private func privacyRow(icon: String, title: String, text: String, tint: Color) -> some View {
+    private func privacyCheck(_ text: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.blue)
+
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(secondaryText)
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func tutorialPrivacyCard(
+        icon: String,
+        tint: Color,
+        title: String,
+        text: String
+    ) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
                 .background(tint.gradient, in: Circle())
-                .frame(width: 42)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(primaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(text)
                     .font(.caption)
                     .foregroundStyle(secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(tertiaryText)
+                .padding(.top, 5)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            MemoryLanePalette.elevated.opacity(0.92),
+            in: RoundedRectangle(cornerRadius: 14)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(MemoryLanePalette.border, lineWidth: 1)
+        }
     }
 
     private func sampleTimelineRow(time: String, app: String, detail: String, icon: String) -> some View {

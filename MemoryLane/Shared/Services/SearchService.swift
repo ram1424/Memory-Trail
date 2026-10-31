@@ -74,6 +74,11 @@ enum SearchService {
             candidates = candidates.filter { calendar.isDate($0.createdAt, inSameDayAs: targetDay) }
         }
 
+        let contentIntent = detectedContentIntent(in: lower)
+        if let contentIntent {
+            candidates = candidates.filter { contentIntent.matches($0) }
+        }
+
         let appFilter = detectedApp(in: lower)
         if let appFilter, !lower.contains("before") && !lower.contains("after") {
             candidates = candidates.filter { item in
@@ -101,7 +106,9 @@ enum SearchService {
             return outlookAnswer
         }
 
-        let queryTokens = meaningfulTokens(for: trimmed)
+        let queryTokens = meaningfulTokens(for: trimmed).filter { token in
+            !(contentIntent?.intentWords.contains(token) ?? false)
+        }
         let ranked = candidates
             .map { item -> (MemoryItem, Int) in
                 let text = item.searchableText
@@ -130,9 +137,15 @@ enum SearchService {
         }
 
         return MemoryLaneAnswer(
-            summary: answerSummary(query: trimmed, items: results),
+            summary: contentIntent?.summary(query: trimmed, items: results)
+                ?? answerSummary(query: trimmed, items: results),
             items: results,
-            interpretedQuery: interpretationText(query: trimmed, targetDay: targetDay, appFilter: appFilter)
+            interpretedQuery: interpretationText(
+                query: trimmed,
+                targetDay: targetDay,
+                appFilter: appFilter,
+                contentIntent: contentIntent
+            )
         )
     }
 
@@ -456,6 +469,99 @@ enum SearchService {
         return parts.joined(separator: " · ")
     }
 
+    private enum ContentIntent {
+        case web
+        case conversations
+
+        var displayName: String {
+            switch self {
+            case .web: "Web activity"
+            case .conversations: "Conversations"
+            }
+        }
+
+        var intentWords: Set<String> {
+            switch self {
+            case .web:
+                return [
+                    "website", "websites", "site", "sites", "web", "browser",
+                    "browsers", "browse", "browsed", "browsing", "visit", "visited"
+                ]
+            case .conversations:
+                return [
+                    "conversation", "conversations", "chat", "chats", "chatting",
+                    "message", "messages", "messaging", "talked", "talking"
+                ]
+            }
+        }
+
+        func matches(_ item: MemoryItem) -> Bool {
+            let app = "\(item.sourceApp) \(item.sourceBundleID)".lowercased()
+
+            switch self {
+            case .web:
+                let browserAliases = [
+                    "safari", "chrome", "firefox", "edge", "arc", "brave",
+                    "opera", "vivaldi", "browser"
+                ]
+                return browserAliases.contains { app.contains($0) }
+
+            case .conversations:
+                let chatAliases = [
+                    "teams", "msteams", "slack", "messages", "imessage",
+                    "discord", "zoom", "webex", "google chat", "signal",
+                    "whatsapp", "telegram"
+                ]
+                return chatAliases.contains { app.contains($0) }
+            }
+        }
+
+        func summary(query: String, items: [MemoryItem]) -> String {
+            guard !items.isEmpty else {
+                switch self {
+                case .web:
+                    return "I couldn't find browser activity matching “\(query)”."
+                case .conversations:
+                    return "I couldn't find chat or messaging activity matching “\(query)”."
+                }
+            }
+
+            let apps = SearchService.orderedUnique(items.map { $0.sourceApp })
+            let appPhrase = SearchService.naturalList(Array(apps.prefix(3)))
+
+            switch self {
+            case .web:
+                return "I found \(items.count) browser activit\(items.count == 1 ? "y" : "ies")\(appPhrase.isEmpty ? "" : " across \(appPhrase)")."
+            case .conversations:
+                return "I found \(items.count) conversation activit\(items.count == 1 ? "y" : "ies")\(appPhrase.isEmpty ? "" : " across \(appPhrase)")."
+            }
+        }
+    }
+
+    private static func detectedContentIntent(in query: String) -> ContentIntent? {
+        let queryTokens = Set(tokens(for: query))
+
+        let webTerms: Set<String> = [
+            "website", "websites", "site", "sites", "web", "browser", "browsers",
+            "browse", "browsed", "browsing", "visit", "visited"
+        ]
+
+        let conversationTerms: Set<String> = [
+            "conversation", "conversations", "chat", "chats", "chatting",
+            "message", "messages", "messaging"
+        ]
+
+        if !queryTokens.isDisjoint(with: webTerms) {
+            return .web
+        }
+
+        if !queryTokens.isDisjoint(with: conversationTerms) {
+            return .conversations
+        }
+
+        return nil
+    }
+
     private struct DetectedApp {
         let displayName: String
         let aliases: [String]
@@ -618,18 +724,31 @@ enum SearchService {
         return "I found \(items.count) relevant activit\(items.count == 1 ? "y" : "ies") around \(timeRange) across \(appPhrase)."
     }
 
-    private static func interpretationText(query: String, targetDay: Date?, appFilter: DetectedApp?) -> String {
+    private static func interpretationText(
+        query: String,
+        targetDay: Date?,
+        appFilter: DetectedApp?,
+        contentIntent: ContentIntent?
+    ) -> String {
         var parts: [String] = []
 
         if let targetDay {
             parts.append(targetDay.formatted(date: .abbreviated, time: .omitted))
         }
 
+        if let contentIntent {
+            parts.append(contentIntent.displayName)
+        }
+
         if let appFilter {
             parts.append(appFilter.displayName)
         }
 
-        let keywords = meaningfulTokens(for: query).prefix(4)
+        let keywords = meaningfulTokens(for: query)
+            .filter { token in
+                !(contentIntent?.intentWords.contains(token) ?? false)
+            }
+            .prefix(4)
         if !keywords.isEmpty {
             parts.append(keywords.joined(separator: ", "))
         }
