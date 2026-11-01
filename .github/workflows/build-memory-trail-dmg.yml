@@ -164,7 +164,6 @@ jobs:
             screencapture -x -l "$WINDOW_ID" "$OUT/$FILE"
             kill "$APP_PID" 2>/dev/null || true
             wait "$APP_PID" 2>/dev/null || true
-
             test -s "$OUT/$FILE"
           }
 
@@ -189,7 +188,6 @@ jobs:
         if: github.event_name == 'push' && steps.screenshots.outcome == 'success'
         run: |
           set -euo pipefail
-
           REMOTE_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
           if [ "$REMOTE_SHA" != "$GITHUB_SHA" ]; then
             echo "main advanced while this build was running; skipping screenshot commit."
@@ -267,11 +265,28 @@ jobs:
           TITLE="Memory Trail 1.0"
           NOTES="Memory Trail 1.0 macOS DMG. This automated build uses ad-hoc signing and is not notarized."
 
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release delete-asset "$TAG" "MemoryLane-1.0.dmg" -y >/dev/null 2>&1 || true
-            gh release upload "$TAG" "$DMG" --clobber
-            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES"
-          else
-            gh release create "$TAG" "$DMG" \
-              --title "$TITLE" \
-              --notes "$NOTES"
+          RELEASE_ID="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.id')"
+          test -n "$RELEASE_ID"
+
+          for ASSET_NAME in "MemoryLane-1.0.dmg" "$DMG"; do
+            ASSET_ID="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate --jq ".[] | select(.name == \"${ASSET_NAME}\") | .id" | head -n 1 || true)"
+            if [ -n "$ASSET_ID" ]; then
+              gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${ASSET_ID}"
+            fi
+          done
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            --header "Content-Type: application/octet-stream" \
+            --data-binary "@${DMG}" \
+            "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets?name=${DMG}"
+
+          gh api \
+            --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -f name="$TITLE" \
+            -f body="$NOTES" \
+            -f target_commitish="main" >/dev/null
