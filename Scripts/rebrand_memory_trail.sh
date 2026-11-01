@@ -1,0 +1,110 @@
+#!/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+move_if_needed() {
+  local source="$1"
+  local destination="$2"
+
+  if [ -e "$source" ] && [ ! -e "$destination" ]; then
+    mkdir -p "$(dirname "$destination")"
+    git mv "$source" "$destination"
+  fi
+}
+
+move_if_needed "Memory Lane.xcodeproj" "Memory Trail.xcodeproj"
+move_if_needed "MemoryLane" "MemoryTrail"
+move_if_needed \
+  "Memory Trail.xcodeproj/xcshareddata/xcschemes/Memory Lane.xcscheme" \
+  "Memory Trail.xcodeproj/xcshareddata/xcschemes/Memory Trail.xcscheme"
+move_if_needed \
+  "MemoryTrail/macOS/MemoryLaneApp.swift" \
+  "MemoryTrail/macOS/MemoryTrailApp.swift"
+move_if_needed \
+  "docs/screenshots/timeline-ui.png" \
+  "docs/screenshots/today-ui.png"
+move_if_needed \
+  "docs/screenshots/ask-memory-lane-ui.png" \
+  "docs/screenshots/ask-memory-trail-ui.png"
+
+python3 <<'PY'
+from pathlib import Path
+import base64
+import re
+
+root = Path.cwd()
+allowed_suffixes = {
+    ".swift", ".pbxproj", ".xcscheme", ".md", ".html", ".json",
+    ".yml", ".yaml", ".sh", ".txt"
+}
+excluded = {
+    root / "Scripts" / "rebrand_memory_trail.sh",
+}
+
+replacements = (
+    ("Memory Lane", "Memory Trail"),
+    ("MemoryLane", "MemoryTrail"),
+    ("memorylane", "memorytrail"),
+    ("MEMORY LANE", "MEMORY TRAIL"),
+    ("memory lane", "memory trail"),
+    ("generate_app_icons.swift", "generate_memory_trail_icons.swift"),
+    ("ask-memory-lane-ui.png", "ask-memory-trail-ui.png"),
+    ("timeline-ui.png", "today-ui.png"),
+)
+
+for path in root.rglob("*"):
+    if not path.is_file() or ".git" in path.parts or path in excluded:
+        continue
+    if path.suffix.lower() not in allowed_suffixes:
+        continue
+
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        continue
+
+    updated = text
+    for old, new in replacements:
+        updated = updated.replace(old, new)
+
+    if updated != text:
+        path.write_text(updated, encoding="utf-8")
+
+# Refresh embedded website logo/icon data URIs using the approved master asset.
+master = root / "Branding" / "MemoryTrailIconMaster.png"
+website = root / "docs" / "index.html"
+if master.exists() and website.exists():
+    encoded = base64.b64encode(master.read_bytes()).decode("ascii")
+    html = website.read_text(encoding="utf-8")
+    html = re.sub(
+        r"data:image/png;base64,[A-Za-z0-9+/=]+",
+        f"data:image/png;base64,{encoded}",
+        html,
+    )
+    website.write_text(html, encoding="utf-8")
+PY
+
+# Remove the old generated-icon script after all project references point at the new one.
+if [ -e "Scripts/generate_app_icons.swift" ]; then
+  git rm "Scripts/generate_app_icons.swift"
+fi
+
+# Keep the README logo visible while retaining the current repository URL until
+# the GitHub repository slug itself is renamed by the owner.
+python3 <<'PY'
+from pathlib import Path
+readme = Path("README.md")
+if readme.exists():
+    text = readme.read_text(encoding="utf-8")
+    marker = "# Memory Trail\n"
+    logo = "\n<p align=\"center\"><img src=\"Branding/MemoryTrailIconMaster.png\" width=\"160\" alt=\"Memory Trail app icon\"></p>\n"
+    if marker in text and "Branding/MemoryTrailIconMaster.png" not in text:
+        text = text.replace(marker, marker + logo, 1)
+    text = text.replace("### Timeline\n", "### Today\n")
+    text = text.replace("![Memory Trail Timeline](docs/screenshots/today-ui.png)", "![Memory Trail Today view](docs/screenshots/today-ui.png)")
+    readme.write_text(text, encoding="utf-8")
+PY
+
+printf 'Memory Trail rebrand applied successfully.\n'

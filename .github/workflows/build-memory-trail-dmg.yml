@@ -1,4 +1,4 @@
-name: Build Memory Lane DMG
+name: Build Memory Trail DMG
 
 on:
   workflow_dispatch:
@@ -6,10 +6,15 @@ on:
     branches:
       - main
     paths:
-      - ".github/workflows/build-memory-lane-dmg.yml"
+      - ".github/workflows/build-memory-trail-dmg.yml"
       - "Memory Lane.xcodeproj/**"
+      - "Memory Trail.xcodeproj/**"
       - "MemoryLane/**"
+      - "MemoryTrail/**"
+      - "Branding/**"
       - "Scripts/**"
+      - "README.md"
+      - "docs/**"
 
 permissions:
   contents: write
@@ -23,27 +28,45 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Apply Memory Trail rebrand
+        run: bash "$PWD/Scripts/rebrand_memory_trail.sh"
+
+      - name: Publish rebranded source files
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Repository branding is already current."
+          else
+            git commit -m "Rebrand application as Memory Trail"
+            git push origin HEAD:main
+          fi
+
       - name: Show Xcode version
         run: xcodebuild -version
 
       - name: Prepare app icon assets
         run: |
           set -euo pipefail
-          /usr/bin/xcrun swift "$PWD/Scripts/generate_app_icons.swift" "$PWD"
+          /usr/bin/xcrun swift "$PWD/Scripts/generate_memory_trail_icons.swift" "$PWD"
 
-          test -f "$PWD/MemoryLane/Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png"
-          test -f "$PWD/MemoryLane/Resources/Assets.xcassets/OnboardingIcon.imageset/OnboardingIcon.png"
-          test -f "$PWD/MemoryLane/Resources/Assets.xcassets/OnboardingIcon.imageset/OnboardingIcon@2x.png"
+          test -f "$PWD/MemoryTrail/Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png"
+          test -f "$PWD/MemoryTrail/Resources/Assets.xcassets/OnboardingIcon.imageset/OnboardingIcon.png"
+          test -f "$PWD/MemoryTrail/Resources/Assets.xcassets/OnboardingIcon.imageset/OnboardingIcon@2x.png"
 
-      - name: Build Memory Lane
+      - name: Build Memory Trail
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
           set +e
           xcodebuild \
-            -project "Memory Lane.xcodeproj" \
-            -scheme "Memory Lane" \
+            -project "Memory Trail.xcodeproj" \
+            -scheme "Memory Trail" \
             -configuration Release \
             -derivedDataPath "$PWD/build" \
             CODE_SIGNING_ALLOWED=NO \
@@ -61,7 +84,7 @@ jobs:
               --method POST \
               "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
               -f state=failure \
-              -f context=memory-lane-build-diagnostics \
+              -f context=memory-trail-build-diagnostics \
               -f description="$ERROR_LINE" >/dev/null
             exit "$BUILD_STATUS"
           fi
@@ -70,18 +93,18 @@ jobs:
             --method POST \
             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -f state=success \
-            -f context=memory-lane-build-diagnostics \
-            -f description="Memory Lane Xcode build passed." >/dev/null
+            -f context=memory-trail-build-diagnostics \
+            -f description="Memory Trail Xcode build passed." >/dev/null
 
-      - name: Capture screenshots from real Memory Lane windows
+      - name: Capture screenshots from real Memory Trail windows
         id: screenshots
         continue-on-error: true
         run: |
           set -euo pipefail
-          APP="$PWD/build/Build/Products/Release/Memory Lane.app"
-          BIN="$APP/Contents/MacOS/Memory Lane"
+          APP="$PWD/build/Build/Products/Release/Memory Trail.app"
+          BIN="$APP/Contents/MacOS/Memory Trail"
           OUT="$PWD/docs/screenshots"
-          FIND_WINDOW="$RUNNER_TEMP/find-memory-lane-window.swift"
+          FIND_WINDOW="$RUNNER_TEMP/find-memory-trail-window.swift"
 
           test -x "$BIN"
           mkdir -p "$OUT"
@@ -103,7 +126,7 @@ jobs:
               let width = bounds["Width"] as? Double ?? 0
               let height = bounds["Height"] as? Double ?? 0
 
-              if owner == "Memory Lane", layer == 0, width > 900, height > 600,
+              if owner == "Memory Trail", layer == 0, width > 900, height > 600,
                  let number = window[kCGWindowNumber as String] as? Int {
                   print(number)
                   exit(0)
@@ -116,7 +139,7 @@ jobs:
           capture_screen() {
             SCREEN="$1"
             FILE="$2"
-            LOG="$RUNNER_TEMP/memory-lane-$SCREEN.log"
+            LOG="$RUNNER_TEMP/memory-trail-$SCREEN.log"
 
             "$BIN" "--screenshot-demo=$SCREEN" >"$LOG" 2>&1 &
             APP_PID=$!
@@ -133,7 +156,7 @@ jobs:
             if [ -z "$WINDOW_ID" ]; then
               cat "$LOG" || true
               kill "$APP_PID" 2>/dev/null || true
-              echo "Could not find the visible Memory Lane window for $SCREEN."
+              echo "Could not find the visible Memory Trail window for $SCREEN."
               exit 1
             fi
 
@@ -145,11 +168,11 @@ jobs:
             test -s "$OUT/$FILE"
           }
 
-          capture_screen timeline timeline-ui.png
-          capture_screen ask ask-memory-lane-ui.png
+          capture_screen timeline today-ui.png
+          capture_screen ask ask-memory-trail-ui.png
           capture_screen favorites favorites-ui.png
 
-          for FILE in timeline-ui.png ask-memory-lane-ui.png favorites-ui.png; do
+          for FILE in today-ui.png ask-memory-trail-ui.png favorites-ui.png; do
             WIDTH="$(sips -g pixelWidth "$OUT/$FILE" | awk '/pixelWidth/ {print $2}')"
             HEIGHT="$(sips -g pixelHeight "$OUT/$FILE" | awk '/pixelHeight/ {print $2}')"
             echo "$FILE: ${WIDTH}x${HEIGHT}"
@@ -157,10 +180,9 @@ jobs:
               echo "Screenshot dimensions are too small: $FILE"
               exit 1
             fi
-
           done
 
-          UNIQUE="$(shasum -a 256 "$OUT"/timeline-ui.png "$OUT"/ask-memory-lane-ui.png "$OUT"/favorites-ui.png | awk '{print $1}' | sort -u | wc -l | tr -d ' ')"
+          UNIQUE="$(shasum -a 256 "$OUT"/today-ui.png "$OUT"/ask-memory-trail-ui.png "$OUT"/favorites-ui.png | awk '{print $1}' | sort -u | wc -l | tr -d ' ')"
           test "$UNIQUE" -eq 3
 
       - name: Publish refreshed app screenshots
@@ -183,21 +205,21 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Refresh screenshots from real app UI"
+          git commit -m "Refresh Memory Trail screenshots from real app UI"
           git push origin HEAD:main
 
-      - name: Sign Memory Lane
+      - name: Sign Memory Trail
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           set -euo pipefail
-          APP="$PWD/build/Build/Products/Release/Memory Lane.app"
+          APP="$PWD/build/Build/Products/Release/Memory Trail.app"
 
           if [ -n "${MACOS_CERTIFICATE_P12:-}" ]; then
-            CERT_PATH="$RUNNER_TEMP/memorylane-cert.p12"
-            KEYCHAIN_PATH="$RUNNER_TEMP/memorylane-signing.keychain-db"
+            CERT_PATH="$RUNNER_TEMP/memorytrail-cert.p12"
+            KEYCHAIN_PATH="$RUNNER_TEMP/memorytrail-signing.keychain-db"
             echo "$MACOS_CERTIFICATE_P12" | base64 --decode > "$CERT_PATH"
             security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
             security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
@@ -218,22 +240,22 @@ jobs:
       - name: Create DMG
         run: |
           set -euo pipefail
-          APP="$PWD/build/Build/Products/Release/Memory Lane.app"
+          APP="$PWD/build/Build/Products/Release/Memory Trail.app"
           test -d "$APP"
 
           rm -rf "$PWD/dmg-root"
           mkdir -p "$PWD/dmg-root"
-          ditto "$APP" "$PWD/dmg-root/Memory Lane.app"
+          ditto "$APP" "$PWD/dmg-root/Memory Trail.app"
           ln -s /Applications "$PWD/dmg-root/Applications"
 
           hdiutil create \
-            -volname "Memory Lane" \
+            -volname "Memory Trail" \
             -srcfolder "$PWD/dmg-root" \
             -ov \
             -format UDZO \
-            "$PWD/MemoryLane-1.0.dmg"
+            "$PWD/MemoryTrail-1.0.dmg"
 
-          shasum -a 256 "$PWD/MemoryLane-1.0.dmg"
+          shasum -a 256 "$PWD/MemoryTrail-1.0.dmg"
 
       - name: Publish GitHub Release
         env:
@@ -241,12 +263,15 @@ jobs:
         run: |
           set -euo pipefail
           TAG="v1.0"
-          DMG="MemoryLane-1.0.dmg"
+          DMG="MemoryTrail-1.0.dmg"
+          TITLE="Memory Trail 1.0"
+          NOTES="Memory Trail 1.0 macOS DMG. This automated build uses ad-hoc signing and is not notarized."
 
           if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release delete-asset "$TAG" "MemoryLane-1.0.dmg" -y >/dev/null 2>&1 || true
             gh release upload "$TAG" "$DMG" --clobber
+            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES"
           else
             gh release create "$TAG" "$DMG" \
-              --title "Memory Lane 1.0" \
-              --notes "Memory Lane 1.0 macOS DMG. This automated build uses ad-hoc signing and is not notarized."
-          fi
+              --title "$TITLE" \
+              --notes "$NOTES"
