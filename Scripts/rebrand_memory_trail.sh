@@ -57,6 +57,10 @@ replacements = (
 for path in root.rglob("*"):
     if not path.is_file() or ".git" in path.parts or path in excluded:
         continue
+    # Do not rewrite the workflow while it is using GITHUB_TOKEN to publish the
+    # source rename. GitHub rejects workflow-file changes without workflow scope.
+    if ".github" in path.parts and "workflows" in path.parts:
+        continue
     if path.suffix.lower() not in allowed_suffixes:
         continue
 
