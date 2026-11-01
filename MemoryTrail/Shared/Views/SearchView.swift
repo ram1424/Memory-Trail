@@ -6,7 +6,7 @@ struct SearchView: View {
     @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
 
     @State private var query = ""
-    @State private var answer: MemoryLaneAnswer?
+    @State private var answer: MemoryTrailAnswer?
     @State private var selectedResult: MemoryItem?
     @FocusState private var searchFocused: Bool
 
@@ -41,7 +41,7 @@ struct SearchView: View {
         }
         .background(
             LinearGradient(
-                colors: [MemoryLanePalette.canvasTop, MemoryLanePalette.canvasBottom],
+                colors: [MemoryTrailPalette.canvasTop, MemoryTrailPalette.canvasBottom],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -65,7 +65,7 @@ struct SearchView: View {
                     .font(.title2)
                     .foregroundStyle(.tint)
 
-                Text("Ask Memory Lane")
+                Text("Ask Memory Trail")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
             }
 
@@ -108,7 +108,7 @@ struct SearchView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(MemoryTrailPalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(.quaternary, lineWidth: 1)
@@ -125,7 +125,7 @@ struct SearchView: View {
                                 .font(.caption)
                                 .padding(.horizontal, 11)
                                 .frame(height: 28)
-                                .background(MemoryLanePalette.surface, in: Capsule())
+                                .background(MemoryTrailPalette.surface, in: Capsule())
                         }
                         .buttonStyle(.plain)
                     }
@@ -146,7 +146,7 @@ struct SearchView: View {
                 Text("Your workday is searchable")
                     .font(.system(size: 27, weight: .semibold, design: .rounded))
 
-                Text("Memory Lane can reason over captured timestamps, application names, window titles, URLs, filenames, and local file paths without sending your history to a cloud service.")
+                Text("Memory Trail can reason over captured timestamps, application names, window titles, URLs, filenames, and local file paths without sending your history to a cloud service.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -162,10 +162,10 @@ struct SearchView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 360)
         .padding(30)
-        .background(MemoryLanePalette.surface.opacity(0.95), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(MemoryTrailPalette.surface.opacity(0.95), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
-    private func answerCard(_ answer: MemoryLaneAnswer) -> some View {
+    private func answerCard(_ answer: MemoryTrailAnswer) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "sparkles")
@@ -175,7 +175,7 @@ struct SearchView: View {
                     .background(Color.accentColor.opacity(0.11), in: RoundedRectangle(cornerRadius: 10))
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Memory Lane found")
+                    Text("Memory Trail found")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
 

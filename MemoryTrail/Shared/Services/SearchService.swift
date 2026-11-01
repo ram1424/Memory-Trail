@@ -1,6 +1,6 @@
 import Foundation
 
-struct MemoryLaneAnswer {
+struct MemoryTrailAnswer {
     let summary: String
     let items: [MemoryItem]
     let interpretedQuery: String
@@ -47,11 +47,11 @@ enum SearchService {
         return tokens.allSatisfy { haystack.localizedStandardContains($0) }
     }
 
-    static func ask(_ query: String, memories: [MemoryItem], now: Date = .now) -> MemoryLaneAnswer {
+    static func ask(_ query: String, memories: [MemoryItem], now: Date = .now) -> MemoryTrailAnswer {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            return MemoryLaneAnswer(
-                summary: "Ask about a time, app, file, page, email, chat, or project in your local Memory Lane history.",
+            return MemoryTrailAnswer(
+                summary: "Ask about a time, app, file, page, email, chat, or project in your local Memory Trail history.",
                 items: [],
                 interpretedQuery: ""
             )
@@ -136,7 +136,7 @@ enum SearchService {
             results = ranked
         }
 
-        return MemoryLaneAnswer(
+        return MemoryTrailAnswer(
             summary: contentIntent?.summary(query: trimmed, items: results)
                 ?? answerSummary(query: trimmed, items: results),
             items: results,
@@ -189,7 +189,7 @@ enum SearchService {
         candidates: [MemoryItem],
         targetDay: Date?,
         appFilter: DetectedApp?
-    ) -> MemoryLaneAnswer? {
+    ) -> MemoryTrailAnswer? {
         let queryTokenSet = Set(tokens(for: lowerQuery))
         let explicitOutlook = appFilter?.displayName == "Outlook"
         let asksForEmail = queryTokenSet.contains("email") || queryTokenSet.contains("emails")
@@ -301,7 +301,7 @@ enum SearchService {
         let selected = strict.isEmpty ? ranked : strict
         let results = Array(selected.prefix(12).map { $0.item })
 
-        return MemoryLaneAnswer(
+        return MemoryTrailAnswer(
             summary: outlookAnswerSummary(query: query, items: results),
             items: results,
             interpretedQuery: outlookInterpretation(
@@ -589,7 +589,7 @@ enum SearchService {
         return nil
     }
 
-    private static func relationalAnswer(query: String, candidates: [MemoryItem]) -> MemoryLaneAnswer? {
+    private static func relationalAnswer(query: String, candidates: [MemoryItem]) -> MemoryTrailAnswer? {
         let before = query.contains("before")
         let after = query.contains("after")
         guard before || after else { return nil }
@@ -609,7 +609,7 @@ enum SearchService {
             let haystack = "\(item.sourceApp) \(item.sourceBundleID)".lowercased()
             return targetApp.aliases.contains { haystack.contains($0) }
         }) else {
-            return MemoryLaneAnswer(
+            return MemoryTrailAnswer(
                 summary: "I couldn't find a captured \(targetApp.displayName) activity matching that question.",
                 items: [],
                 interpretedQuery: "Looking for activity relative to \(targetApp.displayName)"
@@ -648,12 +648,12 @@ enum SearchService {
         let summary: String
 
         if let nearest = result.first {
-            summary = "Immediately \(relationship) the \(targetApp.displayName) activity at \(target.createdAt.formatted(date: .omitted, time: .shortened)), Memory Lane found \(nearest.sourceApp): “\(nearest.displayTitle)”."
+            summary = "Immediately \(relationship) the \(targetApp.displayName) activity at \(target.createdAt.formatted(date: .omitted, time: .shortened)), Memory Trail found \(nearest.sourceApp): “\(nearest.displayTitle)”."
         } else {
             summary = "I found the \(targetApp.displayName) activity, but there wasn't a matching captured activity within an hour \(relationship) it."
         }
 
-        return MemoryLaneAnswer(
+        return MemoryTrailAnswer(
             summary: summary,
             items: result,
             interpretedQuery: "Activity \(relationship) \(targetApp.displayName) at \(target.createdAt.formatted(date: .abbreviated, time: .shortened))"

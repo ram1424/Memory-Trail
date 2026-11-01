@@ -22,8 +22,8 @@ struct MemoryDetailView: View {
         .background(
             LinearGradient(
                 colors: [
-                    MemoryLanePalette.canvasTop,
-                    MemoryLanePalette.canvasBottom
+                    MemoryTrailPalette.canvasTop,
+                    MemoryTrailPalette.canvasBottom
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -80,7 +80,7 @@ struct MemoryDetailView: View {
             .help(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
         }
         .padding(20)
-        .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20))
+        .background(MemoryTrailPalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20))
         .overlay {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(.quaternary, lineWidth: 1)
@@ -125,7 +125,7 @@ struct MemoryDetailView: View {
             }
         }
         .padding(20)
-        .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20))
+        .background(MemoryTrailPalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20))
         .overlay {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(.quaternary, lineWidth: 1)
@@ -169,7 +169,7 @@ struct MemoryDetailView: View {
             }
         }
         .padding(20)
-        .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20))
+        .background(MemoryTrailPalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20))
         .overlay {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(.quaternary, lineWidth: 1)
@@ -200,7 +200,7 @@ struct MemoryDetailView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(16)
-        .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 16))
+        .background(MemoryTrailPalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(.quaternary, lineWidth: 1)

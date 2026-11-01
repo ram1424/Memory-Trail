@@ -21,7 +21,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Settings")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
-                    Text("Control what Memory Lane remembers and how it behaves.")
+                    Text("Control what Memory Trail remembers and how it behaves.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -57,7 +57,7 @@ struct SettingsView: View {
                             }
                         }
 
-                        Text("Memory Lane requests Accessibility access automatically on launch. If macOS does not show the prompt, use Request Access or open Accessibility Settings, then enable Memory Lane.")
+                        Text("Memory Trail requests Accessibility access automatically on launch. If macOS does not show the prompt, use Request Access or open Accessibility Settings, then enable Memory Trail.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -66,7 +66,7 @@ struct SettingsView: View {
                 settingsCard("Excluded Apps & Services", systemImage: "hand.raised.slash") {
                     HStack(alignment: .center, spacing: 14) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Choose installed apps Memory Lane should ignore.")
+                            Text("Choose installed apps Memory Trail should ignore.")
                                 .font(.subheadline)
 
                             Text("\(excludedInstalledAppCount) installed app\(excludedInstalledAppCount == 1 ? "" : "s") currently excluded.")
@@ -173,7 +173,7 @@ struct SettingsView: View {
                         Label("Show Welcome Tutorial", systemImage: "sparkles")
                     }
 
-                    Text("Replay the first-launch walkthrough for Memory Lane.")
+                    Text("Replay the first-launch walkthrough for Memory Trail.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -183,7 +183,7 @@ struct SettingsView: View {
                         Text("Privacy-first by design")
                             .font(.title3.weight(.semibold))
 
-                        Text("Memory Lane is a private, locally run macOS app. Its captured activity history is processed and stored on this computer.")
+                        Text("Memory Trail is a private, locally run macOS app. Its captured activity history is processed and stored on this computer.")
                             .foregroundStyle(.secondary)
                     }
 
@@ -198,23 +198,23 @@ struct SettingsView: View {
                     privacyStatement(
                         icon: "icloud.slash.fill",
                         title: "No captured-data transmission",
-                        text: "Memory Lane does not upload, sync, or send your captured timeline data outside of this computer."
+                        text: "Memory Trail does not upload, sync, or send your captured timeline data outside of this computer."
                     )
 
                     privacyStatement(
                         icon: "link.badge.minus",
                         title: "No external data connectors",
-                        text: "Memory Lane does not use external data connectors, cloud sync, analytics services, or a remote account for its capture and storage workflow."
+                        text: "Memory Trail does not use external data connectors, cloud sync, analytics services, or a remote account for its capture and storage workflow."
                     )
 
                     privacyStatement(
                         icon: "checkmark.shield.fill",
                         title: "Verifiable source code",
-                        text: "The source code is available publicly so you can review and verify how Memory Lane captures, processes, and stores data."
+                        text: "The source code is available publicly so you can review and verify how Memory Trail captures, processes, and stores data."
                     )
 
                     Link(destination: URL(string: "https://github.com/ram1424/Memory-Lane")!) {
-                        Label("Review Memory Lane Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                        Label("Review Memory Trail Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
                     .buttonStyle(.borderedProminent)
 
@@ -226,7 +226,7 @@ struct SettingsView: View {
                         Label("Clear App Cache", systemImage: "trash.slash")
                     }
 
-                    Text("Resets cached capture state and Memory Lane preferences without deleting your activity history.")
+                    Text("Resets cached capture state and Memory Trail preferences without deleting your activity history.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
 
@@ -238,7 +238,7 @@ struct SettingsView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Label("About Memory Lane", systemImage: "info.circle")
+                    Label("About Memory Trail", systemImage: "info.circle")
                         .font(.caption.weight(.semibold))
 
                     Text("Version \(appVersion) (Build \(buildNumber))")
@@ -255,7 +255,7 @@ struct SettingsView: View {
         }
         .background(
             LinearGradient(
-                colors: [MemoryLanePalette.canvasTop, MemoryLanePalette.canvasBottom],
+                colors: [MemoryTrailPalette.canvasTop, MemoryTrailPalette.canvasBottom],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -306,7 +306,7 @@ struct SettingsView: View {
             content()
         }
         .padding(18)
-        .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(MemoryTrailPalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(.quaternary, lineWidth: 1)
@@ -463,7 +463,7 @@ private struct InstalledAppPicker: View {
                     Text("Exclude Installed Apps")
                         .font(.system(size: 24, weight: .bold, design: .rounded))
 
-                    Text("Selected apps will be ignored by Memory Lane capture.")
+                    Text("Selected apps will be ignored by Memory Trail capture.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -489,12 +489,12 @@ private struct InstalledAppPicker: View {
             .padding(.horizontal, 14)
             .frame(height: 42)
             .background(
-                MemoryLanePalette.elevatedStrong.opacity(0.94),
+                MemoryTrailPalette.elevatedStrong.opacity(0.94),
                 in: RoundedRectangle(cornerRadius: 12)
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(MemoryLanePalette.border, lineWidth: 1)
+                    .stroke(MemoryTrailPalette.border, lineWidth: 1)
             }
             .padding(16)
 
@@ -510,7 +510,7 @@ private struct InstalledAppPicker: View {
         }
         .background(
             LinearGradient(
-                colors: [MemoryLanePalette.canvasTop, MemoryLanePalette.canvasBottom],
+                colors: [MemoryTrailPalette.canvasTop, MemoryTrailPalette.canvasBottom],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -568,7 +568,7 @@ private struct InstalledAppRow: View {
         .background(
             preferences.isExcluded(bundleID: app.bundleID)
                 ? Color.accentColor.opacity(0.08)
-                : MemoryLanePalette.elevated.opacity(0.82),
+                : MemoryTrailPalette.elevated.opacity(0.82),
             in: RoundedRectangle(cornerRadius: 12)
         )
         .overlay {
@@ -576,7 +576,7 @@ private struct InstalledAppRow: View {
                 .stroke(
                     preferences.isExcluded(bundleID: app.bundleID)
                         ? Color.accentColor.opacity(0.28)
-                        : MemoryLanePalette.border,
+                        : MemoryTrailPalette.border,
                     lineWidth: 1
                 )
         }

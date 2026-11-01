@@ -16,9 +16,9 @@ struct OnboardingView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    MemoryLanePalette.canvasTop,
-                    MemoryLanePalette.canvasBottom,
-                    MemoryLanePalette.sidebarBottom
+                    MemoryTrailPalette.canvasTop,
+                    MemoryTrailPalette.canvasBottom,
+                    MemoryTrailPalette.sidebarBottom
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -72,10 +72,10 @@ struct OnboardingView: View {
                 height: page == 4 ? 760 : 650
             )
             .animation(.easeInOut(duration: 0.22), value: page)
-            .background(MemoryLanePalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 24))
+            .background(MemoryTrailPalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 24))
             .overlay {
                 RoundedRectangle(cornerRadius: 24)
-                    .stroke(MemoryLanePalette.border, lineWidth: 1)
+                    .stroke(MemoryTrailPalette.border, lineWidth: 1)
             }
             .shadow(color: Color.black.opacity(0.12), radius: 30, y: 16)
             .padding(28)
@@ -93,7 +93,7 @@ struct OnboardingView: View {
     private var pageTitle: String {
         switch page {
         case 1: "Today"
-        case 2: "Ask Memory Lane"
+        case 2: "Ask Memory Trail"
         case 3: "Capture & Files"
         case 4: "Privacy & Controls"
         case 5: "Accessibility"
@@ -111,7 +111,7 @@ struct OnboardingView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
                     .shadow(color: .black.opacity(0.35), radius: 18, y: 8)
 
-                Text("Welcome to\nMemory Lane")
+                Text("Welcome to\nMemory Trail")
                     .font(.system(size: 34, weight: .bold))
                     .foregroundStyle(primaryText)
                     .multilineTextAlignment(.center)
@@ -132,14 +132,14 @@ struct OnboardingView: View {
                 )
                 benefitRow(
                     icon: "sparkles",
-                    title: "Ask Memory Lane",
+                    title: "Ask Memory Trail",
                     text: "Search your local history by time, app, filename, subject, page, or what happened before or after.",
                     tint: .purple
                 )
                 benefitRow(
                     icon: "lock.shield.fill",
                     title: "Privacy-first by design",
-                    text: "Memory Lane runs locally. Captured activity is sourced and stored on this Mac and is not sent to an external service.",
+                    text: "Memory Trail runs locally. Captured activity is sourced and stored on this Mac and is not sent to an external service.",
                     tint: .green
                 )
             }
@@ -169,7 +169,7 @@ struct OnboardingView: View {
                 sampleTimelineRow(
                     time: "10:42 AM",
                     app: "Safari",
-                    detail: "Memory Lane · Releases",
+                    detail: "Memory Trail · Releases",
                     icon: "safari"
                 )
                 Divider()
@@ -188,10 +188,10 @@ struct OnboardingView: View {
                 )
             }
             .padding(.vertical, 3)
-            .background(MemoryLanePalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 18))
+            .background(MemoryTrailPalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 18))
             .overlay {
                 RoundedRectangle(cornerRadius: 18)
-                    .stroke(MemoryLanePalette.border, lineWidth: 1)
+                    .stroke(MemoryTrailPalette.border, lineWidth: 1)
             }
             .frame(maxWidth: 660)
 
@@ -208,7 +208,7 @@ struct OnboardingView: View {
     private var askPage: some View {
         VStack(spacing: 18) {
             pageHeading(
-                title: "Ask Memory Lane",
+                title: "Ask Memory Trail",
                 subtitle: "Use natural-language local search to find captured activity without scrolling through your entire day."
             )
 
@@ -224,7 +224,7 @@ struct OnboardingView: View {
                 compactFeature(icon: "clock", title: "Time-aware", text: "Today, yesterday, and specific times.")
                 compactFeature(icon: "app.badge", title: "App-aware", text: "Safari, Outlook, Teams, Finder, Office, and more.")
                 compactFeature(icon: "arrow.left.arrow.right", title: "Before & After", text: "Trace what happened around another activity.")
-                compactFeature(icon: "lock.fill", title: "Local", text: "Queries use your local Memory Lane history.")
+                compactFeature(icon: "lock.fill", title: "Local", text: "Queries use your local Memory Trail history.")
             }
             .frame(maxWidth: 700)
         }
@@ -235,7 +235,7 @@ struct OnboardingView: View {
         VStack(spacing: 14) {
             pageHeading(
                 title: "Remember the Useful Details",
-                subtitle: "Memory Lane captures the meaningful thing you were viewing—not just the app name. Here are examples of what's captured from each app."
+                subtitle: "Memory Trail captures the meaningful thing you were viewing—not just the app name. Here are examples of what's captured from each app."
             )
 
             LazyVGrid(
@@ -402,7 +402,7 @@ struct OnboardingView: View {
                 .padding(12)
                 .frame(maxWidth: 235, alignment: .leading)
                 .background(
-                    MemoryLanePalette.elevated.opacity(0.82),
+                    MemoryTrailPalette.elevated.opacity(0.82),
                     in: RoundedRectangle(cornerRadius: 14)
                 )
             }
@@ -414,7 +414,7 @@ struct OnboardingView: View {
                         .font(.system(size: 30, weight: .bold))
                         .foregroundStyle(primaryText)
 
-                    Text("Memory Lane is a private, locally run app. Your activity is captured, processed, and stored on this Mac. No data is uploaded or sent outside your computer.")
+                    Text("Memory Trail is a private, locally run app. Your activity is captured, processed, and stored on this Mac. No data is uploaded or sent outside your computer.")
                         .font(.subheadline)
                         .foregroundStyle(secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -424,7 +424,7 @@ struct OnboardingView: View {
                     icon: "macbook",
                     tint: .blue,
                     title: "Local-only architecture",
-                    text: "Captured activity is sourced locally, processed locally, and stored locally on this Mac. Memory Lane does not use cloud sync or external data connectors for your captured history."
+                    text: "Captured activity is sourced locally, processed locally, and stored locally on this Mac. Memory Trail does not use cloud sync or external data connectors for your captured history."
                 )
 
                 tutorialPrivacyCard(
@@ -438,7 +438,7 @@ struct OnboardingView: View {
                     icon: "hand.raised.fill",
                     tint: .orange,
                     title: "Exclude Apps",
-                    text: "Choose apps and services Memory Lane should ignore."
+                    text: "Choose apps and services Memory Trail should ignore."
                 )
 
                 tutorialPrivacyCard(
@@ -465,8 +465,8 @@ struct OnboardingView: View {
                 tutorialPrivacyCard(
                     icon: "accessibility",
                     tint: .blue,
-                    title: "If Memory Lane is missing from Accessibility",
-                    text: "1. Open System Settings → Privacy & Security → Accessibility.\n2. Click +, choose Applications → Memory Lane, then click Open.\n3. Turn Memory Lane on and relaunch it if macOS asks."
+                    title: "If Memory Trail is missing from Accessibility",
+                    text: "1. Open System Settings → Privacy & Security → Accessibility.\n2. Click +, choose Applications → Memory Trail, then click Open.\n3. Turn Memory Trail on and relaunch it if macOS asks."
                 )
                 .padding(.vertical, 2)
 
@@ -488,7 +488,7 @@ struct OnboardingView: View {
                 .foregroundStyle(primaryText)
                 .multilineTextAlignment(.center)
 
-            Text("Accessibility access lets Memory Lane capture useful context such as Safari page titles, Outlook subjects, Mail subjects, Teams conversations, OneNote pages, and supported file information.")
+            Text("Accessibility access lets Memory Trail capture useful context such as Safari page titles, Outlook subjects, Mail subjects, Teams conversations, OneNote pages, and supported file information.")
                 .font(.title3)
                 .foregroundStyle(secondaryText)
                 .multilineTextAlignment(.center)
@@ -502,7 +502,7 @@ struct OnboardingView: View {
                         .frame(width: 56, height: 56)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Memory Lane")
+                        Text("Memory Trail")
                             .font(.headline)
                             .foregroundStyle(primaryText)
                         Text(captureCoordinator.hasAccessibilityPermission
@@ -518,7 +518,7 @@ struct OnboardingView: View {
                         .foregroundStyle(captureCoordinator.hasAccessibilityPermission ? .green : .orange)
                 }
                 .padding(18)
-                .background(MemoryLanePalette.elevatedStrong.opacity(0.92), in: RoundedRectangle(cornerRadius: 16))
+                .background(MemoryTrailPalette.elevatedStrong.opacity(0.92), in: RoundedRectangle(cornerRadius: 16))
 
                 if captureCoordinator.hasAccessibilityPermission {
                     Label("Accessibility Access Enabled", systemImage: "checkmark.shield.fill")
@@ -546,20 +546,20 @@ struct OnboardingView: View {
 
                 if !captureCoordinator.hasAccessibilityPermission {
                     VStack(alignment: .leading, spacing: 7) {
-                        Label("If Memory Lane does not appear automatically", systemImage: "plus.app.fill")
+                        Label("If Memory Trail does not appear automatically", systemImage: "plus.app.fill")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(primaryText)
 
                         manualAccessibilityStep(1, "Open System Settings → Privacy & Security → Accessibility.")
                         manualAccessibilityStep(2, "Click the + button below the app list and authenticate if prompted.")
-                        manualAccessibilityStep(3, "Choose Memory Lane from Applications, then click Open.")
-                        manualAccessibilityStep(4, "Turn Memory Lane on. Relaunch the app if macOS asks you to.")
+                        manualAccessibilityStep(3, "Choose Memory Trail from Applications, then click Open.")
+                        manualAccessibilityStep(4, "Turn Memory Trail on. Relaunch the app if macOS asks you to.")
                     }
                     .padding(12)
-                    .background(MemoryLanePalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
+                    .background(MemoryTrailPalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
                     .overlay {
                         RoundedRectangle(cornerRadius: 13)
-                            .stroke(MemoryLanePalette.border, lineWidth: 1)
+                            .stroke(MemoryTrailPalette.border, lineWidth: 1)
                     }
                 }
             }
@@ -567,7 +567,7 @@ struct OnboardingView: View {
 
             HStack(spacing: 12) {
                 statusBadge(icon: "clock.arrow.circlepath", text: "Today")
-                statusBadge(icon: "sparkles", text: "Ask Memory Lane")
+                statusBadge(icon: "sparkles", text: "Ask Memory Trail")
                 statusBadge(icon: "folder.fill", text: "Files")
                 statusBadge(icon: "doc.on.clipboard.fill", text: "Clipboard")
                 statusBadge(icon: "star.fill", text: "Favorites")
@@ -613,7 +613,7 @@ struct OnboardingView: View {
                 }
             } label: {
                 HStack {
-                    Text(page == pageCount - 1 ? "Start Using Memory Lane" : "Continue")
+                    Text(page == pageCount - 1 ? "Start Using Memory Trail" : "Continue")
                     Image(systemName: page == pageCount - 1 ? "checkmark" : "arrow.right")
                 }
             }
@@ -687,7 +687,7 @@ struct OnboardingView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
         .padding(12)
-        .background(MemoryLanePalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
+        .background(MemoryTrailPalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
     }
 
     private func featurePill(_ title: String, icon: String, selected: Bool = false) -> some View {
@@ -697,7 +697,7 @@ struct OnboardingView: View {
             .padding(.horizontal, 10)
             .frame(height: 28)
             .background(
-                selected ? Color.accentColor : MemoryLanePalette.elevated.opacity(0.90),
+                selected ? Color.accentColor : MemoryTrailPalette.elevated.opacity(0.90),
                 in: Capsule()
             )
     }
@@ -721,10 +721,10 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 11)
-        .background(MemoryLanePalette.surface.opacity(0.94), in: RoundedRectangle(cornerRadius: 14))
+        .background(MemoryTrailPalette.surface.opacity(0.94), in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: 14)
-                .stroke(MemoryLanePalette.border, lineWidth: 1)
+                .stroke(MemoryTrailPalette.border, lineWidth: 1)
         }
     }
 
@@ -760,10 +760,10 @@ struct OnboardingView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 174, alignment: .topLeading)
         .padding(15)
-        .background(MemoryLanePalette.surface.opacity(0.94), in: RoundedRectangle(cornerRadius: 16))
+        .background(MemoryTrailPalette.surface.opacity(0.94), in: RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .stroke(MemoryLanePalette.border, lineWidth: 1)
+                .stroke(MemoryTrailPalette.border, lineWidth: 1)
         }
     }
 
@@ -781,7 +781,7 @@ struct OnboardingView: View {
                 .font(.system(size: 27, weight: .semibold))
                 .foregroundStyle(.blue)
                 .frame(width: 58, height: 58)
-                .background(MemoryLanePalette.surface, in: RoundedRectangle(cornerRadius: 13))
+                .background(MemoryTrailPalette.surface, in: RoundedRectangle(cornerRadius: 13))
         }
     }
 
@@ -802,7 +802,7 @@ struct OnboardingView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 70, alignment: .topLeading)
         .padding(11)
-        .background(MemoryLanePalette.elevated.opacity(0.88), in: RoundedRectangle(cornerRadius: 13))
+        .background(MemoryTrailPalette.elevated.opacity(0.88), in: RoundedRectangle(cornerRadius: 13))
     }
 
     private enum CaptureGraphic {
@@ -850,7 +850,7 @@ struct OnboardingView: View {
         .background(
             LinearGradient(
                 colors: [
-                    MemoryLanePalette.elevated.opacity(0.96),
+                    MemoryTrailPalette.elevated.opacity(0.96),
                     tint.opacity(0.07)
                 ],
                 startPoint: .topLeading,
@@ -860,7 +860,7 @@ struct OnboardingView: View {
         )
         .overlay {
             RoundedRectangle(cornerRadius: 16)
-                .stroke(MemoryLanePalette.border, lineWidth: 1)
+                .stroke(MemoryTrailPalette.border, lineWidth: 1)
         }
     }
 
@@ -937,12 +937,12 @@ struct OnboardingView: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
         .background(
-            MemoryLanePalette.elevated.opacity(0.92),
+            MemoryTrailPalette.elevated.opacity(0.92),
             in: RoundedRectangle(cornerRadius: 14)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 14)
-                .stroke(MemoryLanePalette.border, lineWidth: 1)
+                .stroke(MemoryTrailPalette.border, lineWidth: 1)
         }
     }
 
@@ -983,6 +983,6 @@ struct OnboardingView: View {
             .foregroundStyle(primaryText)
             .padding(.horizontal, 10)
             .frame(height: 28)
-            .background(MemoryLanePalette.elevated.opacity(0.90), in: Capsule())
+            .background(MemoryTrailPalette.elevated.opacity(0.90), in: Capsule())
     }
 }

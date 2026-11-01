@@ -5,7 +5,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct MemoryLaneApp: App {
+struct MemoryTrailApp: App {
     private let container: ModelContainer
     @State private var preferences = RecallPreferences.shared
     @State private var isLaunching = true
@@ -97,7 +97,7 @@ struct MemoryLaneApp: App {
                 container = try ModelContainer(for: MemoryItem.self)
             }
         } catch {
-            fatalError("Unable to initialize Memory Lane database: \(error)")
+            fatalError("Unable to initialize Memory Trail database: \(error)")
         }
 
         NSApplication.shared.applicationIconImage = Self.dockIcon
@@ -114,10 +114,10 @@ struct MemoryLaneApp: App {
                 .modelContainer(container)
                 .preferredColorScheme(.light)
                 .task {
-                    MemoryLaneScreenshotDemo.seedDemoTimeline(
+                    MemoryTrailScreenshotDemo.seedDemoTimeline(
                         in: container.mainContext
                     )
-                    await MemoryLaneScreenshotDemo.configureLiveWindow(for: selection)
+                    await MemoryTrailScreenshotDemo.configureLiveWindow(for: selection)
                 }
             } else {
                 ZStack {
@@ -143,7 +143,7 @@ struct MemoryLaneApp: App {
         .defaultSize(width: 1440, height: 900)
         .commands {
             CommandGroup(replacing: .appInfo) {
-                Button("About Memory Lane") {
+                Button("About Memory Trail") {
                     showAboutPanel()
                 }
             }
@@ -154,9 +154,9 @@ struct MemoryLaneApp: App {
                 preferences.capturePaused.toggle()
             }
             Divider()
-            Text("Memory Lane is local-first")
+            Text("Memory Trail is local-first")
                 .foregroundStyle(.secondary)
-            Button("Quit Memory Lane") {
+            Button("Quit Memory Trail") {
                 NSApplication.shared.terminate(nil)
             }
         } label: {
@@ -183,7 +183,7 @@ struct MemoryLaneApp: App {
         )
 
         NSApplication.shared.orderFrontStandardAboutPanel(options: [
-            .applicationName: "Memory Lane",
+            .applicationName: "Memory Trail",
             .applicationIcon: Self.brandIcon,
             .applicationVersion: "Version \(Self.appVersion)",
             .version: "Build \(Self.buildNumber)",
@@ -211,7 +211,7 @@ struct MemoryLaneApp: App {
                     .shadow(radius: 18, y: 8)
 
                 VStack(spacing: 6) {
-                    Text("Memory Lane")
+                    Text("Memory Trail")
                         .font(.system(size: 30, weight: .semibold, design: .rounded))
 
                     Text("Preparing your timeline…")
@@ -231,7 +231,7 @@ struct MemoryLaneApp: App {
 
 
 @MainActor
-private enum MemoryLaneScreenshotDemo {
+private enum MemoryTrailScreenshotDemo {
     private static let standardDemoSize = NSSize(width: 1440, height: 980)
     private static let settingsDemoSize = NSSize(width: 1440, height: 1020)
 

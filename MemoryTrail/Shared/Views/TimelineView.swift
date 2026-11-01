@@ -7,7 +7,7 @@ struct TimelineView: View {
     @Environment(RecallPreferences.self) private var preferences
     @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
 
-    @Binding var category: MemoryLaneCategory
+    @Binding var category: MemoryTrailCategory
 
     @State private var selectedMemoryID: UUID?
     @State private var dayOffset = 0
@@ -64,8 +64,8 @@ struct TimelineView: View {
         .background(
             LinearGradient(
                 colors: [
-                    MemoryLanePalette.canvasTop,
-                    MemoryLanePalette.canvasBottom
+                    MemoryTrailPalette.canvasTop,
+                    MemoryTrailPalette.canvasBottom
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -93,7 +93,7 @@ struct TimelineView: View {
             }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This permanently deletes all \(memories.count) timeline items from Memory Lane.")
+            Text("This permanently deletes all \(memories.count) timeline items from Memory Trail.")
         }
         .onAppear {
             ensureSelection(in: visibleItems)
@@ -130,7 +130,7 @@ struct TimelineView: View {
             }
             .buttonStyle(.plain)
             .background(
-                MemoryLanePalette.elevatedStrong.opacity(0.94),
+                MemoryTrailPalette.elevatedStrong.opacity(0.94),
                 in: RoundedRectangle(cornerRadius: 13)
             )
             .overlay {
@@ -149,8 +149,8 @@ struct TimelineView: View {
     }
 
     private func quickFilters(dayItems: [MemoryItem]) -> some View {
-        let used = Set(dayItems.map { MemoryLaneCategory.category(for: $0) })
-        let dynamicOptions = [.allApps] + MemoryLaneCategory.allCases.filter {
+        let used = Set(dayItems.map { MemoryTrailCategory.category(for: $0) })
+        let dynamicOptions = [.allApps] + MemoryTrailCategory.allCases.filter {
             $0 != .allApps && used.contains($0)
         }
         let primaryOptions = Array(dynamicOptions.prefix(6))
@@ -176,7 +176,7 @@ struct TimelineView: View {
                     .background(
                         category == option
                             ? Color.accentColor
-                            : MemoryLanePalette.elevated.opacity(0.92),
+                            : MemoryTrailPalette.elevated.opacity(0.92),
                         in: Capsule()
                     )
                     .overlay {
@@ -202,7 +202,7 @@ struct TimelineView: View {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 14, weight: .bold))
                         .frame(width: 34, height: 34)
-                        .background(MemoryLanePalette.elevated.opacity(0.92), in: Circle())
+                        .background(MemoryTrailPalette.elevated.opacity(0.92), in: Circle())
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
@@ -243,7 +243,7 @@ struct TimelineView: View {
                 .disabled(dayOffset >= 0)
             }
             .buttonStyle(.plain)
-            .background(MemoryLanePalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 11))
+            .background(MemoryTrailPalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 11))
             .overlay {
                 RoundedRectangle(cornerRadius: 11)
                     .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
@@ -253,7 +253,7 @@ struct TimelineView: View {
         .padding(.bottom, 12)
     }
 
-    private func quickTitle(for category: MemoryLaneCategory) -> String {
+    private func quickTitle(for category: MemoryTrailCategory) -> String {
         switch category {
         case .allApps: "All"
         case .web: "Web"
@@ -316,12 +316,12 @@ struct TimelineView: View {
         }
         .padding(10)
         .background(
-            MemoryLanePalette.surface.opacity(0.88),
+            MemoryTrailPalette.surface.opacity(0.88),
             in: RoundedRectangle(cornerRadius: 18, style: .continuous)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(MemoryLanePalette.border, lineWidth: 1)
+                .stroke(MemoryTrailPalette.border, lineWidth: 1)
         }
     }
 
@@ -334,7 +334,7 @@ struct TimelineView: View {
                 : "Try a different activity filter or day.")
         )
         .frame(maxWidth: .infinity, minHeight: 460)
-        .background(MemoryLanePalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 22))
+        .background(MemoryTrailPalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 22))
     }
 
     private var selectedDay: Date {
@@ -550,7 +550,7 @@ private struct BrightTimelineRow: View {
         .background(
             isSelected
                 ? Color.accentColor.opacity(0.08)
-                : MemoryLanePalette.elevated.opacity(0.96),
+                : MemoryTrailPalette.elevated.opacity(0.96),
             in: RoundedRectangle(cornerRadius: 13, style: .continuous)
         )
         .overlay {
@@ -582,7 +582,7 @@ private struct BrightTimelineRow: View {
     }
 
     private var fallbackSymbol: String {
-        switch MemoryLaneCategory.category(for: item) {
+        switch MemoryTrailCategory.category(for: item) {
         case .web: "globe"
         case .email: "envelope.fill"
         case .chat: "bubble.left.and.bubble.right.fill"
@@ -606,10 +606,10 @@ private struct BrightTimelineRow: View {
         if app.contains("onenote") || app.contains("notes") { return "Notes" }
         if app.contains("word") || app.contains(".doc") { return "Document" }
         if app.contains("powerpoint") || app.contains(".ppt") { return "Presentation" }
-        if MemoryLaneCategory.category(for: item) == .web { return "Web" }
+        if MemoryTrailCategory.category(for: item) == .web { return "Web" }
         if item.sourceKind == .clipboard { return "Clipboard" }
         if item.sourceKind == .file { return "File" }
-        return MemoryLaneCategory.category(for: item).title
+        return MemoryTrailCategory.category(for: item).title
     }
 
     private var activityTint: Color {
@@ -619,7 +619,7 @@ private struct BrightTimelineRow: View {
         case "Chat", "Notes": .purple
         case "Presentation": .orange
         case "File", "Clipboard": .orange
-        default: MemoryLaneCategory.category(for: item).tint
+        default: MemoryTrailCategory.category(for: item).tint
         }
     }
 
@@ -678,12 +678,12 @@ private struct TimelineSummaryColumn: View {
                         description: Text("Choose an item in Today to see its details.")
                     )
                     .frame(maxWidth: .infinity, minHeight: 280)
-                    .background(MemoryLanePalette.elevated.opacity(0.90), in: RoundedRectangle(cornerRadius: 18))
+                    .background(MemoryTrailPalette.elevated.opacity(0.90), in: RoundedRectangle(cornerRadius: 18))
                 }
             }
             .padding(14)
         }
-        .background(MemoryLanePalette.surface)
+        .background(MemoryTrailPalette.surface)
     }
 
     private var statusBar: some View {
@@ -745,7 +745,7 @@ private struct TimelineSummaryColumn: View {
             }
         }
         .padding(16)
-        .background(MemoryLanePalette.elevatedStrong.opacity(0.94), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .background(MemoryTrailPalette.elevatedStrong.opacity(0.94), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 19, style: .continuous)
                 .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
@@ -841,7 +841,7 @@ private struct TimelineSummaryColumn: View {
             .buttonStyle(.bordered)
         }
         .padding(16)
-        .background(MemoryLanePalette.elevatedStrong.opacity(0.96), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .background(MemoryTrailPalette.elevatedStrong.opacity(0.96), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 19, style: .continuous)
                 .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
@@ -857,12 +857,12 @@ private struct TimelineSummaryColumn: View {
                 .scaledToFit()
                 .frame(width: 44, height: 44)
         } else {
-            Image(systemName: MemoryLaneCategory.category(for: item).symbol)
+            Image(systemName: MemoryTrailCategory.category(for: item).symbol)
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(MemoryLaneCategory.category(for: item).tint)
+                .foregroundStyle(MemoryTrailCategory.category(for: item).tint)
                 .frame(width: 44, height: 44)
                 .background(
-                    MemoryLaneCategory.category(for: item).tint.opacity(0.12),
+                    MemoryTrailCategory.category(for: item).tint.opacity(0.12),
                     in: RoundedRectangle(cornerRadius: 12)
                 )
         }
@@ -924,7 +924,7 @@ private struct TimelineSummaryColumn: View {
     }
 
     private func detailType(_ item: MemoryItem) -> String {
-        switch MemoryLaneCategory.category(for: item) {
+        switch MemoryTrailCategory.category(for: item) {
         case .email: "Email"
         case .chat: "Chat"
         case .web: "Web"
@@ -1060,7 +1060,7 @@ struct MemoryRow: View {
             }
         }
         .padding(13)
-        .background(MemoryLanePalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 15))
+        .background(MemoryTrailPalette.elevated.opacity(0.94), in: RoundedRectangle(cornerRadius: 15))
         .overlay {
             RoundedRectangle(cornerRadius: 15)
                 .stroke(Color.secondary.opacity(0.10), lineWidth: 1)

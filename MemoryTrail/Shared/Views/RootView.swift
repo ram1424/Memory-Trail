@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import SwiftData
 
-enum MemoryLanePalette {
+enum MemoryTrailPalette {
     static let canvasTop = Color(red: 0.91, green: 0.935, blue: 0.975)
     static let canvasBottom = Color(red: 0.86, green: 0.90, blue: 0.955)
     static let sidebarTop = Color(red: 0.89, green: 0.92, blue: 0.97)
@@ -17,7 +17,7 @@ enum MemoryLanePalette {
 struct RootView: View {
     @Environment(RecallPreferences.self) private var preferences
     @State private var selection: SidebarItem?
-    @State private var category: MemoryLaneCategory = .allApps
+    @State private var category: MemoryTrailCategory = .allApps
     @State private var showingAddMemory = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
@@ -47,7 +47,7 @@ struct RootView: View {
         let activeSelection = forcedSelection ?? selection ?? .today
 
         return HStack(spacing: 0) {
-            MemoryLaneSidebar(
+            MemoryTrailSidebar(
                 selection: Binding(
                     get: { forcedSelection ?? selection },
                     set: { value in
@@ -66,8 +66,8 @@ struct RootView: View {
             ZStack {
                 LinearGradient(
                     colors: [
-                        MemoryLanePalette.canvasTop,
-                        MemoryLanePalette.canvasBottom
+                        MemoryTrailPalette.canvasTop,
+                        MemoryTrailPalette.canvasBottom
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -102,19 +102,19 @@ struct RootView: View {
                 }
             }
         }
-        .background(MemoryLanePalette.canvasTop)
+        .background(MemoryTrailPalette.canvasTop)
         .sheet(isPresented: $showingAddMemory) {
             AddMemoryView()
         }
     }
 }
 
-struct MemoryLaneSidebar: View {
+struct MemoryTrailSidebar: View {
     @Environment(RecallPreferences.self) private var preferences
     @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
 
     @Binding var selection: SidebarItem?
-    @Binding var category: MemoryLaneCategory
+    @Binding var category: MemoryTrailCategory
 
     var body: some View {
         VStack(spacing: 0) {
@@ -127,7 +127,7 @@ struct MemoryLaneSidebar: View {
 
                     VStack(spacing: 5) {
                         sidebarButton(.today, title: "Today", symbol: "house.fill")
-                        sidebarButton(.search, title: "Ask Memory Lane", symbol: "magnifyingglass")
+                        sidebarButton(.search, title: "Ask Memory Trail", symbol: "magnifyingglass")
                         sidebarButton(.favorites, title: "Favorites", symbol: "star.fill")
                         sidebarButton(.clipboard, title: "Clipboard History", symbol: "doc.on.clipboard.fill")
                         sidebarButton(.insights, title: "Insights", symbol: "chart.bar.fill")
@@ -169,8 +169,8 @@ struct MemoryLaneSidebar: View {
         .background(
             LinearGradient(
                 colors: [
-                    MemoryLanePalette.sidebarTop,
-                    MemoryLanePalette.sidebarBottom
+                    MemoryTrailPalette.sidebarTop,
+                    MemoryTrailPalette.sidebarBottom
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -178,11 +178,11 @@ struct MemoryLaneSidebar: View {
         )
     }
 
-    private var availableCategories: [MemoryLaneCategory] {
+    private var availableCategories: [MemoryTrailCategory] {
         let captured = memories.filter { !$0.isCaptureNoise }
-        let used = Set(captured.map { MemoryLaneCategory.category(for: $0) })
+        let used = Set(captured.map { MemoryTrailCategory.category(for: $0) })
 
-        return [.allApps] + MemoryLaneCategory.allCases.filter {
+        return [.allApps] + MemoryTrailCategory.allCases.filter {
             $0 != .allApps && used.contains($0)
         }
     }
@@ -196,7 +196,7 @@ struct MemoryLaneSidebar: View {
                 .frame(width: 64, height: 64)
                 .shadow(color: Color.accentColor.opacity(0.18), radius: 14, y: 6)
 
-            Text("Memory Lane")
+            Text("Memory Trail")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
         }
         .frame(maxWidth: .infinity)
@@ -237,7 +237,7 @@ struct MemoryLaneSidebar: View {
         .buttonStyle(.plain)
     }
 
-    private func categoryButton(_ option: MemoryLaneCategory) -> some View {
+    private func categoryButton(_ option: MemoryTrailCategory) -> some View {
         let count = memories.lazy.filter { !$0.isCaptureNoise && option.matches($0) }.count
         let selected = category == option && selection == .today
 
@@ -262,7 +262,7 @@ struct MemoryLaneSidebar: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 7)
                     .frame(minWidth: 26, minHeight: 22)
-                    .background(MemoryLanePalette.elevated.opacity(0.90), in: Capsule())
+                    .background(MemoryTrailPalette.elevated.opacity(0.90), in: Capsule())
             }
             .foregroundStyle(Color.primary)
             .padding(.horizontal, 10)
@@ -301,7 +301,7 @@ struct MemoryLaneSidebar: View {
                     .foregroundStyle(.tertiary)
             }
             .padding(11)
-            .background(MemoryLanePalette.elevated.opacity(0.90), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .background(MemoryTrailPalette.elevated.opacity(0.90), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 13, style: .continuous)
                     .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
@@ -311,15 +311,15 @@ struct MemoryLaneSidebar: View {
     }
 }
 
-struct MemoryLaneScreenshotShell: View {
+struct MemoryTrailScreenshotShell: View {
     @Environment(RecallPreferences.self) private var preferences
     let selection: SidebarItem
 
-    @State private var category: MemoryLaneCategory = .allApps
+    @State private var category: MemoryTrailCategory = .allApps
 
     var body: some View {
         HStack(spacing: 0) {
-            MemoryLaneSidebar(
+            MemoryTrailSidebar(
                 selection: .constant(selection),
                 category: $category
             )
@@ -332,8 +332,8 @@ struct MemoryLaneScreenshotShell: View {
             ZStack {
                 LinearGradient(
                     colors: [
-                        MemoryLanePalette.canvasTop,
-                        MemoryLanePalette.canvasBottom
+                        MemoryTrailPalette.canvasTop,
+                        MemoryTrailPalette.canvasBottom
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -358,7 +358,7 @@ struct MemoryLaneScreenshotShell: View {
                 }
             }
         }
-        .background(MemoryLanePalette.canvasTop)
+        .background(MemoryTrailPalette.canvasTop)
     }
 }
 
@@ -392,7 +392,7 @@ struct ClipboardHistoryView: View {
                 }
                 .padding(.horizontal, 14)
                 .frame(height: 44)
-                .background(MemoryLanePalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
+                .background(MemoryTrailPalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
                 .overlay {
                     RoundedRectangle(cornerRadius: 13)
                         .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
@@ -469,7 +469,7 @@ struct InsightsView: View {
                     Text("Activity by Category")
                         .font(.headline)
 
-                    ForEach(MemoryLaneCategory.allCases.filter { $0 != .allApps }) { option in
+                    ForEach(MemoryTrailCategory.allCases.filter { $0 != .allApps }) { option in
                         let count = todayItems.filter(option.matches).count
                         HStack {
                             Label(option.title, systemImage: option.symbol)
@@ -483,7 +483,7 @@ struct InsightsView: View {
                     }
                 }
                 .padding(18)
-                .background(MemoryLanePalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 18))
+                .background(MemoryTrailPalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 18))
                 .overlay {
                     RoundedRectangle(cornerRadius: 18)
                         .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
@@ -519,7 +519,7 @@ private struct InsightMetricCard: View {
             Spacer()
         }
         .padding(18)
-        .background(MemoryLanePalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 18))
+        .background(MemoryTrailPalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 18))
         .overlay {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(tint.opacity(0.14), lineWidth: 1)
@@ -557,7 +557,7 @@ enum SidebarItem: Hashable {
     case settings
 }
 
-enum MemoryLaneCategory: String, CaseIterable, Identifiable {
+enum MemoryTrailCategory: String, CaseIterable, Identifiable {
     case allApps
     case web
     case email
@@ -631,7 +631,7 @@ enum MemoryLaneCategory: String, CaseIterable, Identifiable {
         return Self.category(for: item) == self
     }
 
-    static func category(for item: MemoryItem) -> MemoryLaneCategory {
+    static func category(for item: MemoryItem) -> MemoryTrailCategory {
         let app = "\(item.sourceApp) \(item.sourceBundleID)".lowercased()
 
         if app.contains("safari") || app.contains("chrome") || app.contains("firefox") || app.contains("edge") || app.contains("arc") || app.contains("browser") {

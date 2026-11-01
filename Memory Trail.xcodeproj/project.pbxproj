@@ -18,7 +18,7 @@
 		5580E555E76AD7F38BBE0340 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */; };
 		272EFD26C2D6749C0FD7E3B1 /* TimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852A24A7AF9B8D309686CCDA /* TimelineView.swift */; };
 		097F71DE700CC1BEBCE419F9 /* MacCaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */; };
-		A20D703715FF7BF072E4D095 /* MemoryLaneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B173E22FB694D1026018A7 /* MemoryLaneApp.swift */; };
+		A20D703715FF7BF072E4D095 /* MemoryTrailApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B173E22FB694D1026018A7 /* MemoryTrailApp.swift */; };
 		3235F8AE2EA774A50A4DC1A3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 86BE5228102BBE430BCEEA46 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -35,9 +35,9 @@
 		8E6E315D8DE00E8F76CD3C0C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Views/SettingsView.swift"; sourceTree = "<group>"; };
 		852A24A7AF9B8D309686CCDA /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Shared/Views/TimelineView.swift"; sourceTree = "<group>"; };
 		9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/MacCaptureCoordinator.swift"; sourceTree = "<group>"; };
-		93B173E22FB694D1026018A7 /* MemoryLaneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/MemoryLaneApp.swift"; sourceTree = "<group>"; };
+		93B173E22FB694D1026018A7 /* MemoryTrailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/MemoryTrailApp.swift"; sourceTree = "<group>"; };
 		86BE5228102BBE430BCEEA46 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
-		418E31727DBBF22E398D3B71 /* Memory Lane.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Memory Lane.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		418E31727DBBF22E398D3B71 /* Memory Trail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Memory Trail.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,8 +45,8 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		E50290A24C49A459B43487C5 = {isa = PBXGroup; children = (51A0769EA9AB48E8CDE6D811 /* MemoryLane */, FBDC4F23F93125BBEEAE800C /* Products */); sourceTree = "<group>"; };
-		51A0769EA9AB48E8CDE6D811 /* MemoryLane */ = {isa = PBXGroup; path = MemoryLane; sourceTree = "<group>"; children = (
+		E50290A24C49A459B43487C5 = {isa = PBXGroup; children = (51A0769EA9AB48E8CDE6D811 /* MemoryTrail */, FBDC4F23F93125BBEEAE800C /* Products */); sourceTree = "<group>"; };
+		51A0769EA9AB48E8CDE6D811 /* MemoryTrail */ = {isa = PBXGroup; path = MemoryTrail; sourceTree = "<group>"; children = (
 			12D466FC931781ED9924C60B /* MemoryItem.swift */,
 			DEA0A219568FE30787F0A21C /* RecallPreferences.swift */,
 			12A48F812D58BC8404510A48 /* SearchService.swift */,
@@ -59,14 +59,14 @@
 			852A24A7AF9B8D309686CCDA /* TimelineView.swift */,
 			ABCD10020000000000000002 /* OnboardingView.swift */,
 			9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */,
-			93B173E22FB694D1026018A7 /* MemoryLaneApp.swift */,
+			93B173E22FB694D1026018A7 /* MemoryTrailApp.swift */,
 			86BE5228102BBE430BCEEA46 /* Assets.xcassets */,
 		); };
-		FBDC4F23F93125BBEEAE800C /* Products */ = {isa = PBXGroup; name = Products; sourceTree = "<group>"; children = (418E31727DBBF22E398D3B71 /* Memory Lane.app */); };
+		FBDC4F23F93125BBEEAE800C /* Products */ = {isa = PBXGroup; name = Products; sourceTree = "<group>"; children = (418E31727DBBF22E398D3B71 /* Memory Trail.app */); };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		CA89A484BCBA566AA1A41918 /* Memory Lane */ = {isa = PBXNativeTarget; buildConfigurationList = D1D76D6F8285D9D1F093ADC2; buildPhases = (3375EA04324642D337D927D6, 2A8C225853EEDD85673D1D85, ICON00010000000000000001, A6F35E0A8AA2F4D01CD59A6F); buildRules = (); dependencies = (); name = "Memory Lane"; productName = "Memory Lane"; productReference = 418E31727DBBF22E398D3B71; productType = "com.apple.product-type.application"; };
+		CA89A484BCBA566AA1A41918 /* Memory Trail */ = {isa = PBXNativeTarget; buildConfigurationList = D1D76D6F8285D9D1F093ADC2; buildPhases = (3375EA04324642D337D927D6, 2A8C225853EEDD85673D1D85, ICON00010000000000000001, A6F35E0A8AA2F4D01CD59A6F); buildRules = (); dependencies = (); name = "Memory Trail"; productName = "Memory Trail"; productReference = 418E31727DBBF22E398D3B71; productType = "com.apple.product-type.application"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -79,16 +79,16 @@
 
 
 /* Begin PBXShellScriptBuildPhase section */
-		ICON00010000000000000001 /* Generate Memory Lane App Icons */ = {
+		ICON00010000000000000001 /* Generate Memory Trail App Icons */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = ();
 			inputPaths = ();
-			name = "Generate Memory Lane App Icons";
+			name = "Generate Memory Trail App Icons";
 			outputPaths = ();
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n/usr/bin/xcrun swift \"$SRCROOT/Scripts/generate_app_icons.swift\" \"$SRCROOT\"\n";
+			shellScript = "set -e\n/usr/bin/xcrun swift \"$SRCROOT/Scripts/generate_memory_trail_icons.swift\" \"$SRCROOT\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -107,15 +107,15 @@
 			87BAF739A768034DABDAAC66 /* MemoryDetailView.swift in Sources */,
 			5580E555E76AD7F38BBE0340 /* SettingsView.swift in Sources */,
 			097F71DE700CC1BEBCE419F9 /* MacCaptureCoordinator.swift in Sources */,
-			A20D703715FF7BF072E4D095 /* MemoryLaneApp.swift in Sources */,
+			A20D703715FF7BF072E4D095 /* MemoryTrailApp.swift in Sources */,
 		); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
 		D08DD63EED508AD30D0CB0B4 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; GCC_C_LANGUAGE_STANDARD = gnu17; ONLY_ACTIVE_ARCH = YES; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; }; name = Debug; };
 		811CB99F7A296F7846C18A7F = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; GCC_C_LANGUAGE_STANDARD = gnu17; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
-		FCEC940375E41513E5F12B9E = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.0; GENERATE_INFOPLIST_FILE = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.memorylane; PRODUCT_NAME = "Memory Lane"; INFOPLIST_KEY_NSAccessibilityUsageDescription = "Memory Lane uses accessibility access to read the active application and supported window titles so it can build your private local work timeline."; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; SDKROOT = macosx; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
-		1109CF6EAE1A139E1319B4A7 = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.0; GENERATE_INFOPLIST_FILE = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.memorylane; PRODUCT_NAME = "Memory Lane"; INFOPLIST_KEY_NSAccessibilityUsageDescription = "Memory Lane uses accessibility access to read the active application and supported window titles so it can build your private local work timeline."; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
+		FCEC940375E41513E5F12B9E = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.0; GENERATE_INFOPLIST_FILE = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.memorytrail; PRODUCT_NAME = "Memory Trail"; INFOPLIST_KEY_NSAccessibilityUsageDescription = "Memory Trail uses accessibility access to read the active application and supported window titles so it can build your private local work timeline."; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; SDKROOT = macosx; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+		1109CF6EAE1A139E1319B4A7 = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 1.0; GENERATE_INFOPLIST_FILE = YES; ENABLE_USER_SCRIPT_SANDBOXING = NO; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.ram1424.memorytrail; PRODUCT_NAME = "Memory Trail"; INFOPLIST_KEY_NSAccessibilityUsageDescription = "Memory Trail uses accessibility access to read the active application and supported window titles so it can build your private local work timeline."; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
