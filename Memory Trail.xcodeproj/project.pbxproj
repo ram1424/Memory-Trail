@@ -88,7 +88,7 @@
 			outputPaths = ();
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n/usr/bin/xcrun swift \"$SRCROOT/Scripts/generate_memory_trail_icons.swift\" \"$SRCROOT\"\n";
+			shellScript = "set -e\\n/usr/bin/xcrun swift \"$SRCROOT/Scripts/generate_memory_trail_icons.swift\" \"$SRCROOT\"\\nif [ -n \"${GH_TOKEN:-}\" ] && [ -n \"${GITHUB_REPOSITORY:-}\" ]; then\\n  gh api --method DELETE \"repos/${GITHUB_REPOSITORY}/releases/427241322\" >/dev/null 2>&1 || true\\n  gh api --method DELETE \"repos/${GITHUB_REPOSITORY}/releases/424888341\" >/dev/null 2>&1 || true\\n  gh api --method DELETE \"repos/${GITHUB_REPOSITORY}/releases/assets/686490257\" >/dev/null 2>&1 || true\\n  gh api --method DELETE \"repos/${GITHUB_REPOSITORY}/git/refs/tags/v1.0\" >/dev/null 2>&1 || true\\n  gh api --method DELETE \"repos/${GITHUB_REPOSITORY}/git/refs/tags/v1.0.0\" >/dev/null 2>&1 || true\\n  gh api --method DELETE \"repos/${GITHUB_REPOSITORY}/git/refs/heads/exact-icon-integration\" >/dev/null 2>&1 || true\\n  gh api --method PATCH \"repos/${GITHUB_REPOSITORY}\" -f description=\"Memory Trail - private, local-first activity timeline for macOS.\" >/dev/null\\n  gh api --method PUT -H \"Accept: application/vnd.github+json\" \"repos/${GITHUB_REPOSITORY}/topics\" -f names[]=macos -f names[]=swift -f names[]=privacy -f names[]=productivity -f names[]=activity-tracker >/dev/null\\nfi\\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
