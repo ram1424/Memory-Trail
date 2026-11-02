@@ -247,9 +247,25 @@ struct MemoryTrailSidebar: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: option.symbol)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(option.tint)
-                    .frame(width: 22)
+                    .font(.system(size: 14.5, weight: .semibold))
+                    .foregroundStyle(option.filterTint)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                option.filterBackground.opacity(0.96),
+                                option.filterBackground.opacity(0.78)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .stroke(option.filterTint.opacity(0.12), lineWidth: 0.8)
+                    }
+                    .shadow(color: option.filterTint.opacity(0.08), radius: 2, y: 1)
 
                 Text(option.title)
                     .font(.system(size: 13.5, weight: selected ? .semibold : .medium))
@@ -262,14 +278,14 @@ struct MemoryTrailSidebar: View {
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 7)
                     .frame(minWidth: 26, minHeight: 22)
-                    .background(MemoryTrailPalette.elevated.opacity(0.90), in: Capsule())
+                    .background(MemoryTrailPalette.elevated.opacity(0.92), in: Capsule())
             }
             .foregroundStyle(Color.primary)
             .padding(.horizontal, 10)
-            .frame(height: 34)
+            .frame(height: 40)
             .background(
-                selected ? Color.accentColor.opacity(0.12) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                selected ? Color(red: 0.10, green: 0.49, blue: 1.0).opacity(0.11) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
         }
         .buttonStyle(.plain)
@@ -621,6 +637,40 @@ enum MemoryTrailCategory: String, CaseIterable, Identifiable {
         case .remoteAccess: .cyan
         case .system: .gray
         case .other: .gray
+        }
+    }
+
+    // Sidebar filter palette: approved Soft Blue treatment.
+    // Kept separate from `tint` so timeline/insight colors are unchanged.
+    var filterTint: Color {
+        switch self {
+        case .allApps: Color(red: 0.09, green: 0.50, blue: 1.00)
+        case .web: Color(red: 0.11, green: 0.68, blue: 0.91)
+        case .email: Color(red: 0.14, green: 0.52, blue: 1.00)
+        case .chat: Color(red: 0.41, green: 0.40, blue: 0.91)
+        case .files: Color(red: 0.93, green: 0.69, blue: 0.08)
+        case .productivity: Color(red: 0.16, green: 0.67, blue: 0.89)
+        case .development: Color(red: 0.15, green: 0.48, blue: 0.95)
+        case .media: Color(red: 0.35, green: 0.52, blue: 0.91)
+        case .design: Color(red: 0.46, green: 0.40, blue: 0.88)
+        case .remoteAccess: Color(red: 0.12, green: 0.65, blue: 0.84)
+        case .system, .other: Color(red: 0.54, green: 0.59, blue: 0.66)
+        }
+    }
+
+    var filterBackground: Color {
+        switch self {
+        case .allApps: Color(red: 0.87, green: 0.93, blue: 1.00)
+        case .web: Color(red: 0.89, green: 0.96, blue: 1.00)
+        case .email: Color(red: 0.90, green: 0.94, blue: 1.00)
+        case .chat: Color(red: 0.93, green: 0.92, blue: 1.00)
+        case .files: Color(red: 1.00, green: 0.97, blue: 0.85)
+        case .productivity: Color(red: 0.89, green: 0.96, blue: 1.00)
+        case .development: Color(red: 0.90, green: 0.94, blue: 1.00)
+        case .media: Color(red: 0.91, green: 0.94, blue: 1.00)
+        case .design: Color(red: 0.94, green: 0.93, blue: 1.00)
+        case .remoteAccess: Color(red: 0.89, green: 0.96, blue: 0.98)
+        case .system, .other: Color(red: 0.94, green: 0.95, blue: 0.97)
         }
     }
 
