@@ -66,7 +66,7 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		CA89A484BCBA566AA1A41918 /* Memory Trail */ = {isa = PBXNativeTarget; buildConfigurationList = D1D76D6F8285D9D1F093ADC2; buildPhases = (3375EA04324642D337D927D6, 2A8C225853EEDD85673D1D85, ICON00010000000000000001, A6F35E0A8AA2F4D01CD59A6F); buildRules = (); dependencies = (); name = "Memory Trail"; productName = "Memory Trail"; productReference = 418E31727DBBF22E398D3B71; productType = "com.apple.product-type.application"; };
+		CA89A484BCBA566AA1A41918 /* Memory Trail */ = {isa = PBXNativeTarget; buildConfigurationList = D1D76D6F8285D9D1F093ADC2; buildPhases = (3375EA04324642D337D927D6, 2A8C225853EEDD85673D1D85, ICON00010000000000000001, A6F35E0A8AA2F4D01CD59A6F, LOAD00010000000000000001); buildRules = (); dependencies = (); name = "Memory Trail"; productName = "Memory Trail"; productReference = 418E31727DBBF22E398D3B71; productType = "com.apple.product-type.application"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -89,6 +89,18 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "set -e\n/usr/bin/xcrun swift \"$SRCROOT/Scripts/generate_memory_trail_icons.swift\" \"$SRCROOT\"\n";
+			showEnvVarsInLog = 0;
+		};
+		LOAD00010000000000000001 /* Bundle Memory Trail Loading Animation */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ();
+			name = "Bundle Memory Trail Loading Animation";
+			outputPaths = ("$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/MemoryTrailLoading.mp4");
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nSOURCE_DIR=\\"$SRCROOT/MemoryTrail/Resources/LoadingAnimation\\"\nDEST_DIR=\\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\\"\nDEST=\\"$DEST_DIR/MemoryTrailLoading.mp4\\"\nmkdir -p \\"$DEST_DIR\\"\ncat \\"$SOURCE_DIR\\"/part*.b64 | tr -d ' \\n\\r\\t' | /usr/bin/base64 -D > \\"$DEST\\"\ntest -s \\"$DEST\\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

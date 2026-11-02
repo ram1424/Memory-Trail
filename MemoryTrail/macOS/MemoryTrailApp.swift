@@ -1,5 +1,6 @@
 #if os(macOS)
 import AppKit
+import AVFoundation
 import Darwin
 import SwiftUI
 import SwiftData
@@ -135,7 +136,10 @@ struct MemoryTrailApp: App {
                 .task {
                     MacCaptureCoordinator.shared.start(context: container.mainContext)
 
-                    try? await Task.sleep(nanoseconds: 900_000_000)
+                    let minimumSplashDuration: UInt64 = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+                        ? 900_000_000
+                        : 2_200_000_000
+                    try? await Task.sleep(nanoseconds: minimumSplashDuration)
                     isLaunching = false
                 }
             }
@@ -193,38 +197,106 @@ struct MemoryTrailApp: App {
 
     private var startupView: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(nsColor: .windowBackgroundColor),
-                    Color(nsColor: .controlBackgroundColor).opacity(0.45)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            Color(red: 0.025, green: 0.075, blue: 0.22)
+                .ignoresSafeArea()
 
-            VStack(spacing: 18) {
-                Image(nsImage: Self.brandIcon)
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: 112, height: 112)
-                    .shadow(radius: 18, y: 8)
+            if let animationURL = Bundle.main.url(
+                forResource: "MemoryTrailLoading",
+                withExtension: "mp4"
+            ) {
+                MemoryTrailLoadingAnimationView(url: animationURL)
+                    .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                VStack(spacing: 16) {
+                    Image(nsImage: Self.brandIcon)
+                        .resizable()
+                        .interpolation(.high)
+                        .scaledToFit()
+                        .frame(width: 112, height: 112)
 
-                VStack(spacing: 6) {
                     Text("Memory Trail")
                         .font(.system(size: 30, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
 
-                    Text("Preparing your timeline…")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(.white)
                 }
-
-                ProgressView()
-                    .controlSize(.small)
-                    .padding(.top, 4)
             }
-            .padding(40)
         }
+    }
+}
+
+private struct MemoryTrailLoadingAnimationView: NSViewRepresentable {
+    let url: URL
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeNSView(context: Context) -> MemoryTrailLoadingPlayerView {
+        let view = MemoryTrailLoadingPlayerView()
+        let item = AVPlayerItem(url: url)
+        let player = AVQueuePlayer()
+        player.isMuted = true
+        player.actionAtItemEnd = .none
+
+        let looper = AVPlayerLooper(player: player, templateItem: item)
+        context.coordinator.player = player
+        context.coordinator.looper = looper
+        view.playerLayer.player = player
+
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            player.seek(to: .zero)
+        } else {
+            player.play()
+        }
+
+        return view
+    }
+
+    func updateNSView(_ nsView: MemoryTrailLoadingPlayerView, context: Context) { }
+
+    static func dismantleNSView(
+        _ nsView: MemoryTrailLoadingPlayerView,
+        coordinator: Coordinator
+    ) {
+        coordinator.player?.pause()
+        nsView.playerLayer.player = nil
+        coordinator.looper = nil
+        coordinator.player = nil
+    }
+
+    final class Coordinator {
+        var player: AVQueuePlayer?
+        var looper: AVPlayerLooper?
+    }
+}
+
+private final class MemoryTrailLoadingPlayerView: NSView {
+    let playerLayer = AVPlayerLayer()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor(
+            calibratedRed: 0.025,
+            green: 0.075,
+            blue: 0.22,
+            alpha: 1
+        ).cgColor
+        playerLayer.videoGravity = .resizeAspect
+        layer?.addSublayer(playerLayer)
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func layout() {
+        super.layout()
+        playerLayer.frame = bounds
     }
 }
 
