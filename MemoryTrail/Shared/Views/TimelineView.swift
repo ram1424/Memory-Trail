@@ -57,7 +57,7 @@ struct TimelineView: View {
                 TimelineSummaryColumn(
                     dayItems: dayItems,
                     selectedItem: currentSelectedItem,
-                    selectedDuration: selectedItem.map { durations[$0.id] ?? 0 } ?? 0,
+                    selectedDuration: currentSelectedItem.map { durations[$0.id] ?? 0 } ?? 0,
                     selectedDay: selectedDay,
                     preferences: preferences,
                     onFavorite: toggleFavorite,
