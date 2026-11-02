@@ -389,10 +389,11 @@ struct OnboardingView: View {
                 Divider()
                     .frame(maxWidth: 225)
 
-                HStack(alignment: .top, spacing: 10) {
+                HStack(alignment: .center, spacing: 12) {
                     Image(systemName: "shield.fill")
+                        .font(.system(size: 38, weight: .semibold))
                         .foregroundStyle(.blue)
-                        .frame(width: 24)
+                        .frame(width: 44, height: 48, alignment: .center)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text("• No cloud sync")
