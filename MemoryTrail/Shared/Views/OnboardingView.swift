@@ -366,9 +366,12 @@ struct OnboardingView: View {
                         .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
 
                     Image(systemName: "lock.shield.fill")
-                        .font(.system(size: 40))
+                        .font(.system(size: 52, weight: .semibold))
                         .foregroundStyle(.white, .blue)
-                        .offset(x: 86, y: 86)
+                        .symbolRenderingMode(.palette)
+                        .frame(width: 58, height: 58)
+                        .shadow(color: .blue.opacity(0.18), radius: 6, y: 2)
+                        .offset(x: 88, y: 88)
                 }
 
                 Text("Your history stays on this Mac.")
