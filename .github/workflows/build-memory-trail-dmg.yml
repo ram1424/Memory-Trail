@@ -15,7 +15,10 @@ on:
       - "docs/**"
 
 permissions:
+  actions: write
   contents: write
+  deployments: write
+  pages: write
   statuses: write
 
 concurrency:
@@ -29,6 +32,35 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Remove obsolete GitHub Pages deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          echo "Disabling the unused GitHub Pages site."
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1 || true
+
+          echo "Removing stale github-pages deployments."
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/deployments?environment=github-pages&per_page=100" \
+            --jq '.[].id' 2>/dev/null | while IFS= read -r DEPLOYMENT_ID; do
+              [ -z "$DEPLOYMENT_ID" ] && continue
+
+              gh api \
+                --method POST \
+                "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOYMENT_ID}/statuses" \
+                -f state=inactive >/dev/null 2>&1 || true
+
+              gh api \
+                --method DELETE \
+                "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOYMENT_ID}" >/dev/null 2>&1 || true
+            done
+
+          echo "Removing the stale github-pages environment."
+          gh api \
+            --method DELETE \
+            "repos/${GITHUB_REPOSITORY}/environments/github-pages" >/dev/null 2>&1 || true
 
       - name: Apply Memory Trail safeguards
         run: bash "$PWD/Scripts/rebrand_memory_trail.sh"
