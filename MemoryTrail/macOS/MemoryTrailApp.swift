@@ -100,7 +100,7 @@ struct MemoryTrailApp: App {
             fatalError("Unable to initialize Memory Trail database: \(error)")
         }
 
-        NSApplication.shared.applicationIconImage = Self.dockIcon
+        NSApplication.shared.applicationIconImage = Self.brandIcon
     }
 
     var body: some Scene {
