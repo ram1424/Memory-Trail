@@ -394,10 +394,14 @@ struct OnboardingView: View {
                         .foregroundStyle(.blue)
                         .frame(width: 24)
 
-                    Text("No cloud sync. No external connectors.\nNo data leaves your computer.")
-                        .font(.caption)
-                        .foregroundStyle(secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("• No cloud sync")
+                        Text("• No external connectors")
+                        Text("• No data leaves your computer")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(12)
                 .frame(maxWidth: 235, alignment: .leading)

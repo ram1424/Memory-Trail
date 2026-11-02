@@ -144,9 +144,11 @@ final class MacCaptureCoordinator {
         let name = application.localizedName ?? "Application"
         let lowerBundleID = bundleID.lowercased()
 
-        if lowerBundleID == "com.microsoft.outlook" || isTeamsBundleID(lowerBundleID) {
-            // Restore the previously reliable behavior: after Outlook or Teams
-            // becomes active, let the UI settle and then read the selected item.
+        if lowerBundleID == "com.microsoft.outlook" ||
+            isTeamsBundleID(lowerBundleID) ||
+            lowerBundleID.contains("onenote") {
+            // Let complex app UIs settle, then read the selected item rather
+            // than logging only the application/window name.
             lastWindowSignature = ""
             lastWindowLoggedAt = .distantPast
 
@@ -323,6 +325,38 @@ final class MacCaptureCoordinator {
             return
         }
 
+        if lowerBundleID.contains("onenote") {
+            if result == .success,
+               let hitElement,
+               let hierarchy = oneNoteHierarchyFromClickedElement(
+                    hitElement,
+                    pid: app.processIdentifier
+               ),
+               !hierarchy.displayTitle.isEmpty {
+                logActivity(
+                    title: hierarchy.displayTitle,
+                    sourceURL: nil,
+                    applicationName: app.localizedName ?? "Microsoft OneNote",
+                    bundleID: bundleID
+                )
+                return
+            }
+
+            if let hierarchy = oneNoteSelectedHierarchy(pid: app.processIdentifier),
+               !hierarchy.displayTitle.isEmpty {
+                logActivity(
+                    title: hierarchy.displayTitle,
+                    sourceURL: nil,
+                    applicationName: app.localizedName ?? "Microsoft OneNote",
+                    bundleID: bundleID
+                )
+                return
+            }
+
+            pollFocusedWindow(forceExpensiveApps: true)
+            return
+        }
+
         if lowerBundleID == "com.apple.safari" ||
             fileAwareBundleIDs.contains(lowerBundleID) {
             pollFocusedWindow()
@@ -331,13 +365,7 @@ final class MacCaptureCoordinator {
 
         guard result == .success, let hitElement else { return }
 
-        let activity: ActivityContext?
-        if lowerBundleID.contains("onenote") {
-            activity = nearestRowOrSelectionContext(from: hitElement)
-                ?? contextFromElementHierarchy(hitElement)
-        } else {
-            activity = contextFromElementHierarchy(hitElement)
-        }
+        let activity = contextFromElementHierarchy(hitElement)
 
         guard let activity else { return }
 
@@ -396,7 +424,8 @@ final class MacCaptureCoordinator {
 
         let isExpensiveAccessibilityApp =
             lowerBundleID == "com.microsoft.outlook" ||
-            isTeamsBundleID(lowerBundleID)
+            isTeamsBundleID(lowerBundleID) ||
+            lowerBundleID.contains("onenote")
 
         if isExpensiveAccessibilityApp && !forceExpensiveApps {
             let now = Date()
@@ -430,6 +459,18 @@ final class MacCaptureCoordinator {
 
             logActivity(
                 title: conversation,
+                sourceURL: nil,
+                applicationName: appName,
+                bundleID: bundleID
+            )
+            return
+        }
+
+        if lowerBundleID.contains("onenote"),
+           let hierarchy = oneNoteSelectedHierarchy(pid: app.processIdentifier),
+           !hierarchy.displayTitle.isEmpty {
+            logActivity(
+                title: hierarchy.displayTitle,
                 sourceURL: nil,
                 applicationName: appName,
                 bundleID: bundleID
@@ -2301,6 +2342,376 @@ final class MacCaptureCoordinator {
         if lower.contains("; sent by ") { return false }
 
         return true
+    }
+
+    private enum OneNoteHierarchyKind {
+        case notebook
+        case section
+        case page
+    }
+
+    private struct OneNoteCandidate {
+        let value: String
+        let score: Int
+    }
+
+    private struct OneNoteHierarchy {
+        let notebook: String?
+        let section: String?
+        let page: String?
+
+        var displayTitle: String {
+            var seen = Set<String>()
+            var parts: [String] = []
+
+            for value in [notebook, section, page] {
+                guard let value else { continue }
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { continue }
+
+                let key = trimmed.lowercased()
+                guard !seen.contains(key) else { continue }
+                seen.insert(key)
+                parts.append(trimmed)
+            }
+
+            return parts.joined(separator: " > ")
+        }
+    }
+
+    private func oneNoteSelectedHierarchy(pid: pid_t) -> OneNoteHierarchy? {
+        let appElement = AXUIElementCreateApplication(pid)
+
+        var focusedWindowValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        ) == .success,
+        let focusedWindowValue,
+        CFGetTypeID(focusedWindowValue) == AXUIElementGetTypeID()
+        else {
+            return nil
+        }
+
+        let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
+        var notebookCandidates: [OneNoteCandidate] = []
+        var sectionCandidates: [OneNoteCandidate] = []
+        var pageCandidates: [OneNoteCandidate] = []
+
+        func collect(_ element: AXUIElement, bonus: Int) {
+            guard let semantic = oneNoteSemanticKind(for: element),
+                  let label = bestOneNoteLabel(in: element)
+            else {
+                return
+            }
+
+            let candidate = OneNoteCandidate(
+                value: label,
+                score: semantic.score + bonus + min(label.count, 80)
+            )
+
+            switch semantic.kind {
+            case .notebook:
+                notebookCandidates.append(candidate)
+            case .section:
+                sectionCandidates.append(candidate)
+            case .page:
+                pageCandidates.append(candidate)
+            }
+        }
+
+        var queue: [AXUIElement] = [window]
+        var index = 0
+        var inspected = 0
+
+        while index < queue.count, inspected < 650 {
+            let element = queue[index]
+            index += 1
+            inspected += 1
+
+            var selectedRowsValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXSelectedRowsAttribute as CFString,
+                &selectedRowsValue
+            ) == .success,
+            let selectedRows = selectedRowsValue as? [AXUIElement] {
+                for selected in selectedRows.prefix(10) {
+                    collect(selected, bonus: 190)
+                }
+            }
+
+            var selectedChildrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXSelectedChildrenAttribute as CFString,
+                &selectedChildrenValue
+            ) == .success,
+            let selectedChildren = selectedChildrenValue as? [AXUIElement] {
+                for selected in selectedChildren.prefix(10) {
+                    collect(selected, bonus: 170)
+                }
+            }
+
+            var tabsValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXTabsAttribute as CFString,
+                &tabsValue
+            ) == .success,
+            let tabs = tabsValue as? [AXUIElement] {
+                for tab in tabs where attributeBool(tab, kAXSelectedAttribute as CFString) == true {
+                    collect(tab, bonus: 180)
+                }
+            }
+
+            if attributeBool(element, kAXSelectedAttribute as CFString) == true {
+                collect(element, bonus: 150)
+            }
+
+            appendChildren(of: element, to: &queue, limit: 75)
+        }
+
+        if let focused = focusedAccessibilityElement(in: appElement) {
+            collect(focused, bonus: 210)
+
+            var current: AXUIElement? = focused
+            var depth = 0
+            while let element = current, depth < 8 {
+                collect(element, bonus: max(80, 180 - depth * 15))
+                current = parentElement(of: element)
+                depth += 1
+            }
+        }
+
+        let notebook = notebookCandidates.max(by: { $0.score < $1.score })?.value
+        let section = sectionCandidates.max(by: { $0.score < $1.score })?.value
+        var page = pageCandidates.max(by: { $0.score < $1.score })?.value
+
+        // Some OneNote builds do not label the page list semantically. When
+        // that happens, the focused/selected row is still a useful page title.
+        if page == nil,
+           let focused = focusedAccessibilityElement(in: appElement),
+           let fallback = nearestRowOrSelectionContext(from: focused)?.title,
+           let cleaned = sanitizedOneNoteLabel(fallback),
+           cleaned.caseInsensitiveCompare(notebook ?? "") != .orderedSame,
+           cleaned.caseInsensitiveCompare(section ?? "") != .orderedSame {
+            page = cleaned
+        }
+
+        let hierarchy = OneNoteHierarchy(
+            notebook: notebook,
+            section: section,
+            page: page
+        )
+
+        return hierarchy.displayTitle.isEmpty ? nil : hierarchy
+    }
+
+    private func oneNoteHierarchyFromClickedElement(
+        _ element: AXUIElement,
+        pid: pid_t
+    ) -> OneNoteHierarchy? {
+        let selected = oneNoteSelectedHierarchy(pid: pid)
+
+        var clickedNotebook: String?
+        var clickedSection: String?
+        var clickedPage: String?
+
+        var current: AXUIElement? = element
+        var depth = 0
+
+        while let candidate = current, depth < 12 {
+            if let semantic = oneNoteSemanticKind(for: candidate),
+               let label = bestOneNoteLabel(in: candidate) {
+                switch semantic.kind {
+                case .notebook:
+                    if clickedNotebook == nil { clickedNotebook = label }
+                case .section:
+                    if clickedSection == nil { clickedSection = label }
+                case .page:
+                    if clickedPage == nil { clickedPage = label }
+                }
+            }
+
+            current = parentElement(of: candidate)
+            depth += 1
+        }
+
+        if clickedPage == nil,
+           let fallback = nearestRowOrSelectionContext(from: element)?.title,
+           let cleaned = sanitizedOneNoteLabel(fallback),
+           cleaned.caseInsensitiveCompare(clickedNotebook ?? selected?.notebook ?? "") != .orderedSame,
+           cleaned.caseInsensitiveCompare(clickedSection ?? selected?.section ?? "") != .orderedSame {
+            clickedPage = cleaned
+        }
+
+        let hierarchy = OneNoteHierarchy(
+            notebook: clickedNotebook ?? selected?.notebook,
+            section: clickedSection ?? selected?.section,
+            page: clickedPage ?? selected?.page
+        )
+
+        return hierarchy.displayTitle.isEmpty ? nil : hierarchy
+    }
+
+    private func oneNoteSemanticKind(
+        for element: AXUIElement
+    ) -> (kind: OneNoteHierarchyKind, score: Int)? {
+        var current: AXUIElement? = element
+        var depth = 0
+
+        while let candidate = current, depth < 7 {
+            let role = attributeString(candidate, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+            let roleDescription = attributeString(
+                candidate,
+                kAXRoleDescriptionAttribute as CFString
+            )?.lowercased() ?? ""
+            let identifier = attributeString(
+                candidate,
+                kAXIdentifierAttribute as CFString
+            )?.lowercased() ?? ""
+            let help = attributeString(candidate, "AXHelp" as CFString)?.lowercased() ?? ""
+            let title = attributeString(
+                candidate,
+                kAXTitleAttribute as CFString
+            )?.lowercased() ?? ""
+            let description = attributeString(
+                candidate,
+                kAXDescriptionAttribute as CFString
+            )?.lowercased() ?? ""
+
+            let metadata = [role, roleDescription, identifier, help, title, description]
+                .joined(separator: " ")
+
+            let score = max(60, 210 - depth * 24)
+
+            if identifier.contains("page") ||
+                roleDescription.contains("page") ||
+                metadata.contains("page list") ||
+                title == "pages" ||
+                description == "pages" {
+                return (.page, score + 35)
+            }
+
+            if identifier.contains("section") ||
+                roleDescription.contains("section") ||
+                metadata.contains("section tab") ||
+                metadata.contains("section list") ||
+                title == "sections" ||
+                description == "sections" {
+                return (.section, score + 30)
+            }
+
+            if identifier.contains("notebook") ||
+                roleDescription.contains("notebook") ||
+                metadata.contains("notebook list") ||
+                title == "notebooks" ||
+                description == "notebooks" {
+                return (.notebook, score + 25)
+            }
+
+            current = parentElement(of: candidate)
+            depth += 1
+        }
+
+        return nil
+    }
+
+    private func bestOneNoteLabel(in root: AXUIElement) -> String? {
+        var queue: [(element: AXUIElement, depth: Int)] = [(root, 0)]
+        var index = 0
+        var inspected = 0
+        var candidates: [(value: String, score: Int)] = []
+
+        while index < queue.count, inspected < 42 {
+            let entry = queue[index]
+            index += 1
+            inspected += 1
+
+            for (attribute, baseScore) in [
+                (kAXTitleAttribute as CFString, 130),
+                (kAXValueAttribute as CFString, 105),
+                (kAXDescriptionAttribute as CFString, 85),
+                ("AXHelp" as CFString, 60)
+            ] {
+                guard let raw = attributeString(entry.element, attribute),
+                      let value = sanitizedOneNoteLabel(raw)
+                else {
+                    continue
+                }
+
+                candidates.append((
+                    value: value,
+                    score: baseScore - entry.depth * 18 + min(value.count, 60)
+                ))
+            }
+
+            guard entry.depth < 2 else { continue }
+
+            var childrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                entry.element,
+                kAXChildrenAttribute as CFString,
+                &childrenValue
+            ) == .success,
+            let children = childrenValue as? [AXUIElement] {
+                for child in children.prefix(entry.depth == 0 ? 18 : 10) {
+                    queue.append((child, entry.depth + 1))
+                }
+            }
+        }
+
+        return candidates.max(by: { $0.score < $1.score })?.value
+    }
+
+    private func sanitizedOneNoteLabel(_ rawValue: String) -> String? {
+        var value = rawValue
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !value.isEmpty else { return nil }
+
+        for prefix in [
+            "Selected, ",
+            "Page, ",
+            "Section, ",
+            "Notebook, "
+        ] where value.lowercased().hasPrefix(prefix.lowercased()) {
+            value = String(value.dropFirst(prefix.count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            break
+        }
+
+        if value.lowercased().hasSuffix(", selected") {
+            value = String(value.dropLast(", selected".count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        guard value.count >= 1, value.count <= 180 else { return nil }
+        guard !looksLikeURL(value), !looksLikeTimestampOrDate(value) else { return nil }
+
+        let generic = Set([
+            "onenote", "microsoft onenote",
+            "pages", "page", "page list", "add page", "new page",
+            "sections", "section", "section list", "add section", "new section",
+            "notebooks", "notebook", "notebook list",
+            "navigation", "navigation pane", "search", "search notebooks",
+            "home", "insert", "draw", "view", "help", "sync", "share"
+        ])
+
+        let lower = value.lowercased()
+        guard !generic.contains(lower) else { return nil }
+
+        let genericSuffixes = [
+            " button", " toolbar", " menu", " navigation", " list"
+        ]
+        guard !genericSuffixes.contains(where: { lower.hasSuffix($0) }) else {
+            return nil
+        }
+
+        return String(value.prefix(180))
     }
 
     private func selectedTabContext(in root: AXUIElement) -> ActivityContext? {
