@@ -100,7 +100,7 @@
 			outputPaths = ("$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/MemoryTrailLoading.mp4");
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nSOURCE_DIR=\\"$SRCROOT/MemoryTrail/Resources/LoadingAnimation\\"\nDEST_DIR=\\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\\"\nDEST=\\"$DEST_DIR/MemoryTrailLoading.mp4\\"\nmkdir -p \\"$DEST_DIR\\"\ncat \\"$SOURCE_DIR\\"/part*.b64 | tr -d ' \\n\\r\\t' | /usr/bin/base64 -D > \\"$DEST\\"\ntest -s \\"$DEST\\"\n";
+			shellScript = "set -e\nSOURCE_DIR=\"$SRCROOT/MemoryTrail/Resources/LoadingAnimation\"\nDEST_DIR=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nDEST=\"$DEST_DIR/MemoryTrailLoading.mp4\"\nmkdir -p \"$DEST_DIR\"\ncat \"$SOURCE_DIR\"/part*.b64 | tr -d ' \\n\\r\\t' | /usr/bin/base64 -D > \"$DEST\"\ntest -s \"$DEST\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
