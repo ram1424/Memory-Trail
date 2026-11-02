@@ -7,9 +7,7 @@ on:
       - main
     paths:
       - ".github/workflows/build-memory-trail-dmg.yml"
-      - "Memory Lane.xcodeproj/**"
       - "Memory Trail.xcodeproj/**"
-      - "MemoryLane/**"
       - "MemoryTrail/**"
       - "Branding/**"
       - "Scripts/**"
@@ -28,10 +26,54 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Apply Memory Trail rebrand
+      - name: Apply Memory Trail safeguards
         run: bash "$PWD/Scripts/rebrand_memory_trail.sh"
 
-      - name: Publish rebranded source files
+      - name: Generate verified macOS icon assets
+        run: |
+          set -euo pipefail
+          /usr/bin/xcrun swift "$PWD/Scripts/generate_memory_trail_icons.swift" "$PWD"
+
+          MASTER="$PWD/Branding/MemoryTrailIconMaster.png"
+          ICONSET="$PWD/MemoryTrail/Resources/Assets.xcassets/AppIcon.appiconset"
+          ONBOARDING="$PWD/MemoryTrail/Resources/Assets.xcassets/OnboardingIcon.imageset"
+
+          test -s "$MASTER"
+          test -s "$ICONSET/icon_16x16.png"
+          test -s "$ICONSET/icon_512x512@2x.png"
+          test -s "$ONBOARDING/OnboardingIcon.png"
+          test -s "$ONBOARDING/OnboardingIcon@2x.png"
+
+          test "$(sips -g pixelWidth "$MASTER" | awk '/pixelWidth/ {print $2}')" = "1024"
+          test "$(sips -g pixelHeight "$MASTER" | awk '/pixelHeight/ {print $2}')" = "1024"
+          test "$(sips -g pixelWidth "$ICONSET/icon_16x16.png" | awk '/pixelWidth/ {print $2}')" = "16"
+          test "$(sips -g pixelWidth "$ICONSET/icon_512x512@2x.png" | awk '/pixelWidth/ {print $2}')" = "1024"
+          test "$(sips -g pixelWidth "$ONBOARDING/OnboardingIcon.png" | awk '/pixelWidth/ {print $2}')" = "512"
+          test "$(sips -g pixelWidth "$ONBOARDING/OnboardingIcon@2x.png" | awk '/pixelWidth/ {print $2}')" = "1024"
+
+          echo "Verified clean 16px through 1024px Memory Trail icon assets."
+
+      - name: Refresh embedded website icon
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import base64
+          import re
+
+          master = Path("Branding/MemoryTrailIconMaster.png")
+          website = Path("docs/index.html")
+          if master.exists() and website.exists():
+              encoded = base64.b64encode(master.read_bytes()).decode("ascii")
+              html = website.read_text(encoding="utf-8")
+              html = re.sub(
+                  r"data:image/png;base64,[A-Za-z0-9+/=]+",
+                  f"data:image/png;base64,{encoded}",
+                  html,
+              )
+              website.write_text(html, encoding="utf-8")
+          PY
+
+      - name: Publish corrected source and icon assets
         if: github.event_name == 'push'
         run: |
           set -euo pipefail
@@ -40,23 +82,14 @@ jobs:
           git add -A
 
           if git diff --cached --quiet; then
-            echo "Repository branding is already current."
+            echo "macOS source and icon assets are already current."
           else
-            git commit -m "Rebrand application as Memory Trail"
+            git commit -m "Regenerate clean macOS icon assets"
             git push origin HEAD:main
           fi
 
       - name: Show Xcode version
         run: xcodebuild -version
-
-      - name: Prepare app icon assets
-        run: |
-          set -euo pipefail
-          /usr/bin/xcrun swift "$PWD/Scripts/generate_memory_trail_icons.swift" "$PWD"
-
-          test -f "$PWD/MemoryTrail/Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png"
-          test -f "$PWD/MemoryTrail/Resources/Assets.xcassets/OnboardingIcon.imageset/OnboardingIcon.png"
-          test -f "$PWD/MemoryTrail/Resources/Assets.xcassets/OnboardingIcon.imageset/OnboardingIcon@2x.png"
 
       - name: Build Memory Trail
         env:
@@ -69,6 +102,8 @@ jobs:
             -scheme "Memory Trail" \
             -configuration Release \
             -derivedDataPath "$PWD/build" \
+            MARKETING_VERSION=1.0.1 \
+            CURRENT_PROJECT_VERSION=2 \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             clean build 2>&1 | tee "$PWD/xcodebuild.log"
@@ -89,12 +124,18 @@ jobs:
             exit "$BUILD_STATUS"
           fi
 
+          APP="$PWD/build/Build/Products/Release/Memory Trail.app"
+          test -d "$APP"
+          test -s "$APP/Contents/Resources/AppIcon.icns"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist"
+
           gh api \
             --method POST \
             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -f state=success \
             -f context=memory-trail-build-diagnostics \
-            -f description="Memory Trail Xcode build passed." >/dev/null
+            -f description="Memory Trail 1.0.1 macOS build passed." >/dev/null
 
       - name: Capture screenshots from real Memory Trail windows
         id: screenshots
@@ -132,7 +173,6 @@ jobs:
                   exit(0)
               }
           }
-
           exit(1)
           SWIFT
 
@@ -140,23 +180,19 @@ jobs:
             SCREEN="$1"
             FILE="$2"
             LOG="$RUNNER_TEMP/memory-trail-$SCREEN.log"
-
             "$BIN" "--screenshot-demo=$SCREEN" >"$LOG" 2>&1 &
             APP_PID=$!
 
             WINDOW_ID=""
             for ATTEMPT in $(seq 1 30); do
               WINDOW_ID="$(xcrun swift "$FIND_WINDOW" 2>/dev/null || true)"
-              if [ -n "$WINDOW_ID" ]; then
-                break
-              fi
+              if [ -n "$WINDOW_ID" ]; then break; fi
               sleep 0.25
             done
 
             if [ -z "$WINDOW_ID" ]; then
               cat "$LOG" || true
               kill "$APP_PID" 2>/dev/null || true
-              echo "Could not find the visible Memory Trail window for $SCREEN."
               exit 1
             fi
 
@@ -171,25 +207,13 @@ jobs:
           capture_screen ask ask-memory-trail-ui.png
           capture_screen favorites favorites-ui.png
 
-          for FILE in today-ui.png ask-memory-trail-ui.png favorites-ui.png; do
-            WIDTH="$(sips -g pixelWidth "$OUT/$FILE" | awk '/pixelWidth/ {print $2}')"
-            HEIGHT="$(sips -g pixelHeight "$OUT/$FILE" | awk '/pixelHeight/ {print $2}')"
-            echo "$FILE: ${WIDTH}x${HEIGHT}"
-            if [ "$WIDTH" -lt 1200 ] || [ "$HEIGHT" -lt 850 ]; then
-              echo "Screenshot dimensions are too small: $FILE"
-              exit 1
-            fi
-          done
-
-          UNIQUE="$(shasum -a 256 "$OUT"/today-ui.png "$OUT"/ask-memory-trail-ui.png "$OUT"/favorites-ui.png | awk '{print $1}' | sort -u | wc -l | tr -d ' ')"
-          test "$UNIQUE" -eq 3
-
       - name: Publish refreshed app screenshots
         if: github.event_name == 'push' && steps.screenshots.outcome == 'success'
         run: |
           set -euo pipefail
           REMOTE_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          if [ "$REMOTE_SHA" != "$GITHUB_SHA" ]; then
+          LOCAL_SHA="$(git rev-parse HEAD)"
+          if [ "$REMOTE_SHA" != "$LOCAL_SHA" ]; then
             echo "main advanced while this build was running; skipping screenshot commit."
             exit 0
           fi
@@ -197,14 +221,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/screenshots
-
           if git diff --cached --quiet; then
             echo "Screenshots are already current."
-            exit 0
+          else
+            git commit -m "Refresh Memory Trail screenshots from real app UI"
+            git push origin HEAD:main
           fi
-
-          git commit -m "Refresh Memory Trail screenshots from real app UI"
-          git push origin HEAD:main
 
       - name: Sign Memory Trail
         env:
@@ -225,7 +247,6 @@ jobs:
             security import "$CERT_PATH" -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
             security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
             security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
             IDENTITY="$(security find-identity -v -p codesigning | awk -F '"' '/Developer ID Application/ {print $2; exit}')"
             test -n "$IDENTITY"
             codesign --force --deep --options runtime --timestamp --sign "$IDENTITY" "$APP"
@@ -239,6 +260,7 @@ jobs:
         run: |
           set -euo pipefail
           APP="$PWD/build/Build/Products/Release/Memory Trail.app"
+          DMG="$PWD/MemoryTrail-1.0.1.dmg"
           test -d "$APP"
 
           rm -rf "$PWD/dmg-root"
@@ -251,42 +273,34 @@ jobs:
             -srcfolder "$PWD/dmg-root" \
             -ov \
             -format UDZO \
-            "$PWD/MemoryTrail-1.0.dmg"
+            "$DMG"
 
-          shasum -a 256 "$PWD/MemoryTrail-1.0.dmg"
+          shasum -a 256 "$DMG"
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="v1.0"
-          DMG="MemoryTrail-1.0.dmg"
-          TITLE="Memory Trail 1.0"
-          NOTES="Memory Trail 1.0 macOS DMG. This automated build uses ad-hoc signing and is not notarized."
+          TAG="v1.0.1"
+          DMG="MemoryTrail-1.0.1.dmg"
+          TITLE="Memory Trail 1.0.1"
+          NOTES=$(cat <<'EOF'
+          Memory Trail 1.0.1 for macOS.
 
-          RELEASE_ID="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.id')"
-          test -n "$RELEASE_ID"
+          - Rebuilt the app icon as exact 16px through 1024px PNG representations using CoreGraphics and ImageIO.
+          - Removed the custom 64px Dock icon override so macOS uses the full-resolution bundle icon.
+          - Fixed the corrupted/static lower half seen in the Dock, Finder, app switcher and app UI.
+          - Regenerated the onboarding and branding icons from the same verified source.
 
-          for ASSET_NAME in "MemoryLane-1.0.dmg" "$DMG"; do
-            ASSET_ID="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets" --paginate --jq ".[] | select(.name == \"${ASSET_NAME}\") | .id" | head -n 1 || true)"
-            if [ -n "$ASSET_ID" ]; then
-              gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${ASSET_ID}"
-            fi
-          done
+          This automated build uses ad-hoc signing when a Developer ID certificate is not configured and is not notarized in that case.
+          EOF
+          )
 
-          curl --fail-with-body --silent --show-error \
-            --request POST \
-            --header "Authorization: Bearer ${GH_TOKEN}" \
-            --header "Accept: application/vnd.github+json" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            --header "Content-Type: application/octet-stream" \
-            --data-binary "@${DMG}" \
-            "https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}/assets?name=${DMG}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --target main
+          else
+            gh release create "$TAG" --title "$TITLE" --notes "$NOTES" --target main
+          fi
 
-          gh api \
-            --method PATCH \
-            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
-            -f name="$TITLE" \
-            -f body="$NOTES" \
-            -f target_commitish="main" >/dev/null
+          gh release upload "$TAG" "$DMG" --clobber

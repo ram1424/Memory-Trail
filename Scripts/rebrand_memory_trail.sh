@@ -76,7 +76,20 @@ for path in root.rglob("*"):
     if updated != text:
         path.write_text(updated, encoding="utf-8")
 
-# Refresh embedded website logo/icon data URIs using the approved master asset.
+# Never replace the high-resolution macOS application icon with a custom 64px
+# image. The bundle icon and OnboardingIcon asset contain the complete 1x/2x
+# representations that the Dock, app switcher, Finder and About panel need.
+app_file = root / "MemoryTrail" / "macOS" / "MemoryTrailApp.swift"
+if app_file.exists():
+    text = app_file.read_text(encoding="utf-8")
+    text = text.replace(
+        "NSApplication.shared.applicationIconImage = Self.dockIcon",
+        "NSApplication.shared.applicationIconImage = Self.brandIcon",
+    )
+    app_file.write_text(text, encoding="utf-8")
+
+# Refresh embedded website logo/icon data URIs using the current master asset.
+# The build workflow repeats this step after regenerating the clean icon.
 master = root / "Branding" / "MemoryTrailIconMaster.png"
 website = root / "docs" / "index.html"
 if master.exists() and website.exists():
@@ -111,4 +124,4 @@ if readme.exists():
     readme.write_text(text, encoding="utf-8")
 PY
 
-printf 'Memory Trail rebrand applied successfully.\n'
+printf 'Memory Trail rebrand and macOS icon safeguards applied successfully.\n'
