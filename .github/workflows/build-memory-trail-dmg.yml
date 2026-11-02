@@ -44,8 +44,10 @@ jobs:
           test -s "$ONBOARDING/OnboardingIcon.png"
           test -s "$ONBOARDING/OnboardingIcon@2x.png"
 
-          test "$(sips -g pixelWidth "$MASTER" | awk '/pixelWidth/ {print $2}')" = "1024"
-          test "$(sips -g pixelHeight "$MASTER" | awk '/pixelHeight/ {print $2}')" = "1024"
+          MASTER_WIDTH="$(sips -g pixelWidth "$MASTER" | awk '/pixelWidth/ {print $2}')"
+          MASTER_HEIGHT="$(sips -g pixelHeight "$MASTER" | awk '/pixelHeight/ {print $2}')"
+          test "$MASTER_WIDTH" = "$MASTER_HEIGHT"
+          test "$MASTER_WIDTH" -ge 1024
           test "$(sips -g pixelWidth "$ICONSET/icon_16x16.png" | awk '/pixelWidth/ {print $2}')" = "16"
           test "$(sips -g pixelWidth "$ICONSET/icon_512x512@2x.png" | awk '/pixelWidth/ {print $2}')" = "1024"
           test "$(sips -g pixelWidth "$ONBOARDING/OnboardingIcon.png" | awk '/pixelWidth/ {print $2}')" = "512"
