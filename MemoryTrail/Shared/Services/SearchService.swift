@@ -21,7 +21,8 @@ enum SearchService {
         "application", "focused", "window", "page", "item", "activity", "opened",
         "email", "emails", "message", "messages", "subject", "about", "regarding",
         "titled", "called", "containing", "contains", "read", "received", "sent",
-        "lookup", "looking", "please"
+        "lookup", "looking", "please", "worked", "recent", "recently",
+        "file", "files", "document", "documents"
     ])
 
     static func tokens(for query: String) -> [String] {
@@ -472,11 +473,13 @@ enum SearchService {
     private enum ContentIntent {
         case web
         case conversations
+        case files
 
         var displayName: String {
             switch self {
             case .web: "Web activity"
             case .conversations: "Conversations"
+            case .files: "Files & Documents"
             }
         }
 
@@ -491,6 +494,12 @@ enum SearchService {
                 return [
                     "conversation", "conversations", "chat", "chats", "chatting",
                     "message", "messages", "messaging", "talked", "talking"
+                ]
+            case .files:
+                return [
+                    "file", "files", "document", "documents", "doc", "docs",
+                    "spreadsheet", "spreadsheets", "workbook", "workbooks",
+                    "presentation", "presentations"
                 ]
             }
         }
@@ -513,6 +522,29 @@ enum SearchService {
                     "whatsapp", "telegram"
                 ]
                 return chatAliases.contains { app.contains($0) }
+
+            case .files:
+                if item.sourceKind == .file {
+                    return true
+                }
+
+                let documentAppAliases = [
+                    "finder", "preview", "microsoft word", "word",
+                    "microsoft excel", "excel", "microsoft powerpoint", "powerpoint",
+                    "onenote", "pages", "numbers", "keynote", "textedit",
+                    "adobe acrobat", "acrobat"
+                ]
+                if documentAppAliases.contains(where: { app.contains($0) }) {
+                    return true
+                }
+
+                let fileText = "(item.displayTitle) (item.sourceURL ?? "")".lowercased()
+                let documentExtensions = [
+                    ".doc", ".docx", ".xls", ".xlsx", ".xlsm", ".csv",
+                    ".ppt", ".pptx", ".pdf", ".rtf", ".txt", ".md",
+                    ".pages", ".numbers", ".key", ".one"
+                ]
+                return documentExtensions.contains { fileText.contains($0) }
             }
         }
 
@@ -523,6 +555,8 @@ enum SearchService {
                     return "I couldn't find browser activity matching “\(query)”."
                 case .conversations:
                     return "I couldn't find chat or messaging activity matching “\(query)”."
+                case .files:
+                    return "I couldn't find file or document activity matching “\(query)”."
                 }
             }
 
@@ -534,6 +568,8 @@ enum SearchService {
                 return "I found \(items.count) browser activit\(items.count == 1 ? "y" : "ies")\(appPhrase.isEmpty ? "" : " across \(appPhrase)")."
             case .conversations:
                 return "I found \(items.count) conversation activit\(items.count == 1 ? "y" : "ies")\(appPhrase.isEmpty ? "" : " across \(appPhrase)")."
+            case .files:
+                return "I found \(items.count) file or document activit\(items.count == 1 ? "y" : "ies")\(appPhrase.isEmpty ? "" : " across \(appPhrase)")."
             }
         }
     }
@@ -551,12 +587,22 @@ enum SearchService {
             "message", "messages", "messaging"
         ]
 
+        let fileTerms: Set<String> = [
+            "file", "files", "document", "documents", "doc", "docs",
+            "spreadsheet", "spreadsheets", "workbook", "workbooks",
+            "presentation", "presentations"
+        ]
+
         if !queryTokens.isDisjoint(with: webTerms) {
             return .web
         }
 
         if !queryTokens.isDisjoint(with: conversationTerms) {
             return .conversations
+        }
+
+        if !queryTokens.isDisjoint(with: fileTerms) {
+            return .files
         }
 
         return nil
