@@ -202,7 +202,7 @@ struct SettingsView: View {
                     )
 
                     privacyStatement(
-                        icon: "link.badge.minus",
+                        icon: "link",
                         title: "No external data connectors",
                         text: "Memory Trail does not use external data connectors, cloud sync, analytics services, or a remote account for its capture and storage workflow."
                     )
@@ -238,13 +238,24 @@ struct SettingsView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Label("About Memory Trail", systemImage: "info.circle")
-                        .font(.caption.weight(.semibold))
+                    Link(destination: URL(string: "https://github.com/ram1424/Memory-Lane")!) {
+                        HStack(spacing: 5) {
+                            Label("About Memory Trail", systemImage: "info.circle")
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.caption2)
+                        }
+                    }
+                    .font(.caption.weight(.semibold))
+                    .buttonStyle(.plain)
+                    .help("Open the Memory Trail GitHub page")
 
                     Text("Version \(appVersion) (Build \(buildNumber))")
                         .font(.caption2)
 
                     Text("Created By: Roman Zakharov")
+                        .font(.caption2)
+
+                    Text("Source code, privacy details, documentation, and the latest release are available on GitHub.")
                         .font(.caption2)
                 }
                 .foregroundStyle(.secondary)

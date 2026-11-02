@@ -6,17 +6,33 @@
 
 <p align="center"><strong>Your workday, remembered locally.</strong></p>
 
-Memory Trail is a privacy-first macOS activity timeline that helps you retrace what you were doing across browsers, email, chat, files, documents, and the clipboard.
+Memory Trail is a privacy-first macOS activity timeline for retracing what you were doing across browsers, email, chat, files, documents, and the clipboard. It turns useful local app/window context into a searchable chronological history without requiring a cloud account or external data connector.
 
-It captures useful context exposed by supported apps, stores it locally on your Mac, and presents it as a searchable chronological history. Memory Trail does not send your activity to an external service and does not generate AI summaries of your timeline.
+**Current release: Memory Trail 1.0 (Build 1)**
 
 ## Download
 
-**Latest release: Memory Trail 1.0.1**
+[Download Memory Trail 1.0 for macOS](https://github.com/ram1424/Memory-Lane/releases/latest/download/MemoryTrail-1.0.dmg)
 
-[Download Memory Trail 1.0.1 for macOS](https://github.com/ram1424/Memory-Lane/releases/download/v1.0.1/MemoryTrail-1.0.1.dmg)
+Requires **macOS 14 or later**. Detailed window and activity capture requires macOS Accessibility permission.
 
-Requires macOS 14 or later. Detailed activity capture requires macOS Accessibility permission.
+## What Memory Trail Does
+
+- **Live activity timeline** with the newest activity first
+- **Ask Memory Trail** search across locally stored history
+- **Browser context** including page/tab titles and URLs when exposed by supported browsers
+- **Outlook and Mail context** including subject-level activity when available
+- **Teams context** including supported conversation/window titles
+- **Files and documents** from Finder and supported productivity apps
+- **Clipboard history** for supported copied text, links, and code when enabled
+- **Favorites** for important timeline entries
+- **Manual memories** for notes and references you want to save yourself
+- **App/process exclusions** so selected software is not recorded
+- **Pause capture** control
+- **Menu bar operation**
+- **Local SwiftData storage**
+- **Privacy-focused onboarding and Settings controls**
+- **No AI timeline summarization**
 
 ## Screenshots
 
@@ -31,43 +47,62 @@ Requires macOS 14 or later. Detailed activity capture requires macOS Accessibili
 
 _All screenshots use generic demo data._
 
-## Core Features
-
-- **Live activity timeline** with the newest activity first
-- **Ask Memory Trail** search across your local history
-- **Browser context** including page and tab titles when available
-- **Outlook and Mail context** including subject-level activity
-- **Teams conversation context** including participant names when exposed through Accessibility
-- **Files and documents** from Finder, Word, Excel, PowerPoint, Preview, OneNote, and supported apps
-- **Clipboard history** for supported text, links, and code snippets
-- **Favorites and manual memories**
-- **App exclusions and pause controls**
-- **Menu bar operation**
-- **Local-only storage** using SwiftData
-
 ## Privacy
 
-Memory Trail is designed to keep your activity on your computer.
+Memory Trail is designed around a simple principle: **your captured activity history stays on your Mac.**
 
-- No Memory Trail account
-- No analytics SDK
-- No advertising SDK
-- No cloud timeline storage
-- No external connectors
-- Apps can be excluded from capture
-- Passwords and Wallet are excluded by default
-- Clipboard capture can be disabled
-- Source code is available in this repository for review
+### Local capture and storage
 
-Memory Trail is intended as a personal productivity and activity-retracing tool. It is not designed as employee monitoring software, a keylogger, or a screen recorder.
+- Activity is sourced from local macOS application/window context and supported local metadata.
+- Captured history is processed locally.
+- Captured history is stored locally on the Mac using SwiftData.
+- Clipboard history is local and can be disabled at any time.
+
+### No external data pipeline
+
+- **No cloud timeline sync**
+- **No external data connectors**
+- **No Memory Trail account**
+- **No remote account required for capture**
+- **No analytics SDK**
+- **No advertising SDK**
+- **No transmission of captured timeline history to an external service**
+- **No AI-generated summaries of your timeline**
+
+### User controls
+
+- Pause all capture at any time.
+- Enable or disable clipboard capture.
+- Exclude installed apps and processes from capture.
+- Passwords and Wallet are excluded by default.
+- Clear cached capture state/preferences without deleting activity history.
+- Review the source code in this repository to verify capture, storage, and privacy behavior.
+
+Memory Trail is intended as a personal productivity and activity-retracing tool. It is **not** designed as employee monitoring software, a keylogger, or a screen recorder.
 
 ## Accessibility Permission
 
-For detailed window and app context, enable Memory Trail under:
+Memory Trail uses macOS Accessibility access to read the active application and supported focused-window titles so it can build a useful local timeline.
+
+Enable it under:
 
 **System Settings → Privacy & Security → Accessibility**
 
 If Memory Trail does not appear automatically, use the **+** button to add **Memory Trail.app**, enable it, and relaunch the app.
+
+## Data Sources
+
+Depending on the app and what macOS exposes, Memory Trail can retain useful context such as:
+
+- Active application names
+- Focused window titles
+- Browser page/tab titles and URLs
+- Email subject lines
+- Supported chat/conversation titles
+- Folder, file, and document names/paths
+- Copied text, links, and code when clipboard capture is enabled
+
+Memory Trail records metadata/context exposed by supported apps; it is not a screen recorder.
 
 ## Build From Source
 
@@ -77,8 +112,12 @@ If Memory Trail does not appear automatically, use the **+** button to add **Mem
 4. Build and run the macOS target.
 5. Grant Accessibility permission when prompted.
 
-**Bundle identifier:** `com.ram1424.memorytrail`
+**Bundle identifier:** `com.ram1424.memorytrail`  
+**Marketing version:** `1.0`  
+**Build:** `1`
 
-## Current Release
+## Release
 
-**Version 1.0.1** is the active macOS release.
+Only the current production release is retained on the GitHub Releases page.
+
+**Memory Trail 1.0 (Build 1)** is the current macOS release.
