@@ -538,7 +538,7 @@ enum SearchService {
                     return true
                 }
 
-                let fileText = "(item.displayTitle) (item.sourceURL ?? "")".lowercased()
+                let fileText = "\(item.displayTitle) \(item.sourceURL ?? "")".lowercased()
                 let documentExtensions = [
                     ".doc", ".docx", ".xls", ".xlsx", ".xlsm", ".csv",
                     ".ppt", ".pptx", ".pdf", ".rtf", ".txt", ".md",
