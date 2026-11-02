@@ -393,9 +393,10 @@ struct OnboardingView: View {
                     .frame(maxWidth: 225)
 
                 HStack(alignment: .center, spacing: 12) {
-                    Image(systemName: "shield.fill")
+                    Image(systemName: "lock.shield.fill")
                         .font(.system(size: 38, weight: .semibold))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(.white, .blue)
+                        .symbolRenderingMode(.palette)
                         .frame(width: 44, height: 48, alignment: .center)
 
                     VStack(alignment: .leading, spacing: 4) {
