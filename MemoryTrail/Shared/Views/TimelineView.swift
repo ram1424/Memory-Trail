@@ -755,49 +755,79 @@ private struct TimelineSummaryColumn: View {
     @ViewBuilder
     private func detailCard(_ item: MemoryItem) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 detailIcon(item)
+                    .padding(.top, 2)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 7) {
                     Text(item.displayTitle)
                         .font(.headline)
                         .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                    HStack(spacing: 5) {
-                        Text(item.sourceApp)
-                        Text("•")
-                        Text(detailType(item))
-                        Text("•")
-                        Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                    Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 3) {
+                        GridRow {
+                            Text("App")
+                                .foregroundStyle(.tertiary)
+                                .frame(width: 48, alignment: .leading)
+                            Text(item.sourceApp)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+
+                        GridRow {
+                            Text("Type")
+                                .foregroundStyle(.tertiary)
+                                .frame(width: 48, alignment: .leading)
+                            Text(detailType(item))
+                                .lineLimit(1)
+                        }
+
+                        GridRow {
+                            Text("Time")
+                                .foregroundStyle(.tertiary)
+                                .frame(width: 48, alignment: .leading)
+                            Text(item.createdAt.formatted(date: .omitted, time: .shortened))
+                                .lineLimit(1)
+                        }
+
                         if selectedDuration >= 60 {
-                            Text("•")
-                            Text(durationLabel)
+                            GridRow {
+                                Text("Duration")
+                                    .foregroundStyle(.tertiary)
+                                    .frame(width: 48, alignment: .leading)
+                                Text(durationLabel)
+                                    .lineLimit(1)
+                            }
                         }
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer()
-
-                Button(action: onFavorite) {
-                    Image(systemName: item.isFavorite ? "star.fill" : "star")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(item.isFavorite ? Color.orange : Color.secondary)
-                }
-                .buttonStyle(.plain)
-
-                Menu {
-                    Button("Delete", systemImage: "trash", role: .destructive) {
-                        onDelete()
+                VStack(spacing: 8) {
+                    Button(action: onFavorite) {
+                        Image(systemName: item.isFavorite ? "star.fill" : "star")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(item.isFavorite ? Color.orange : Color.secondary)
+                            .frame(width: 28, height: 28)
                     }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.secondary)
+                    .buttonStyle(.plain)
+
+                    Menu {
+                        Button("Delete", systemImage: "trash", role: .destructive) {
+                            onDelete()
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28, height: 28)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
                 }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
             }
 
             Divider()
