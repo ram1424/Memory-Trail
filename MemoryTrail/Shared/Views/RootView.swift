@@ -16,6 +16,7 @@ enum MemoryTrailPalette {
 
 struct RootView: View {
     @Environment(RecallPreferences.self) private var preferences
+    @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
     @State private var selection: SidebarItem?
     @State private var category: MemoryTrailCategory = .allApps
     @State private var showingAddMemory = false
@@ -48,6 +49,7 @@ struct RootView: View {
 
         return HStack(spacing: 0) {
             MemoryTrailSidebar(
+                memories: memories,
                 selection: Binding(
                     get: { forcedSelection ?? selection },
                     set: { value in
@@ -77,15 +79,15 @@ struct RootView: View {
                 Group {
                     switch activeSelection {
                     case .today:
-                        TimelineView(category: $category)
+                        TimelineView(memories: memories, category: $category)
                     case .search:
-                        SearchView()
+                        SearchView(memories: memories)
                     case .favorites:
-                        FavoritesView()
+                        FavoritesView(memories: memories)
                     case .clipboard:
-                        ClipboardHistoryView()
+                        ClipboardHistoryView(memories: memories)
                     case .insights:
-                        InsightsView()
+                        InsightsView(memories: memories)
                     case .settings:
                         SettingsView()
                     }
@@ -111,10 +113,11 @@ struct RootView: View {
 
 struct MemoryTrailSidebar: View {
     @Environment(RecallPreferences.self) private var preferences
-    @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
 
+    let memories: [MemoryItem]
     @Binding var selection: SidebarItem?
     @Binding var category: MemoryTrailCategory
+    @State private var categoryCounts: [MemoryTrailCategory: Int] = [:]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -176,15 +179,28 @@ struct MemoryTrailSidebar: View {
                 endPoint: .bottom
             )
         )
+        .onAppear(perform: refreshCategoryCounts)
+        .onChange(of: memories.count) { _, _ in
+            refreshCategoryCounts()
+        }
     }
 
     private var availableCategories: [MemoryTrailCategory] {
-        let captured = memories.filter { !$0.isCaptureNoise }
-        let used = Set(captured.map { MemoryTrailCategory.category(for: $0) })
-
-        return [.allApps] + MemoryTrailCategory.allCases.filter {
-            $0 != .allApps && used.contains($0)
+        [.allApps] + MemoryTrailCategory.allCases.filter {
+            $0 != .allApps && categoryCounts[$0, default: 0] > 0
         }
+    }
+
+    private func refreshCategoryCounts() {
+        var counts: [MemoryTrailCategory: Int] = [:]
+        counts.reserveCapacity(MemoryTrailCategory.allCases.count)
+
+        for item in memories where !item.isCaptureNoise {
+            counts[.allApps, default: 0] += 1
+            counts[MemoryTrailCategory.category(for: item), default: 0] += 1
+        }
+
+        categoryCounts = counts
     }
 
     private var brandHeader: some View {
@@ -238,7 +254,7 @@ struct MemoryTrailSidebar: View {
     }
 
     private func categoryButton(_ option: MemoryTrailCategory) -> some View {
-        let count = memories.lazy.filter { !$0.isCaptureNoise && option.matches($0) }.count
+        let count = categoryCounts[option, default: 0]
         let selected = category == option && selection == .today
 
         return Button {
@@ -329,6 +345,7 @@ struct MemoryTrailSidebar: View {
 
 struct MemoryTrailScreenshotShell: View {
     @Environment(RecallPreferences.self) private var preferences
+    @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
     let selection: SidebarItem
 
     @State private var category: MemoryTrailCategory = .allApps
@@ -336,6 +353,7 @@ struct MemoryTrailScreenshotShell: View {
     var body: some View {
         HStack(spacing: 0) {
             MemoryTrailSidebar(
+                memories: memories,
                 selection: .constant(selection),
                 category: $category
             )
@@ -359,15 +377,15 @@ struct MemoryTrailScreenshotShell: View {
                 Group {
                     switch selection {
                     case .today:
-                        TimelineView(category: $category)
+                        TimelineView(memories: memories, category: $category)
                     case .search:
-                        SearchView()
+                        SearchView(memories: memories)
                     case .favorites:
-                        FavoritesView()
+                        FavoritesView(memories: memories)
                     case .clipboard:
-                        ClipboardHistoryView()
+                        ClipboardHistoryView(memories: memories)
                     case .insights:
-                        InsightsView()
+                        InsightsView(memories: memories)
                     case .settings:
                         SettingsView()
                     }
@@ -379,7 +397,7 @@ struct MemoryTrailScreenshotShell: View {
 }
 
 struct ClipboardHistoryView: View {
-    @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
+    let memories: [MemoryItem]
     @State private var searchText = ""
 
     private var items: [MemoryItem] {
@@ -390,7 +408,9 @@ struct ClipboardHistoryView: View {
     }
 
     var body: some View {
-        ScrollView {
+        let visibleItems = items
+
+        return ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 pageHeader(
                     "Clipboard History",
@@ -414,7 +434,7 @@ struct ClipboardHistoryView: View {
                         .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
                 }
 
-                if items.isEmpty {
+                if visibleItems.isEmpty {
                     ContentUnavailableView(
                         "No Clipboard Items",
                         systemImage: "doc.on.clipboard",
@@ -423,7 +443,7 @@ struct ClipboardHistoryView: View {
                     .frame(maxWidth: .infinity, minHeight: 420)
                 } else {
                     LazyVStack(spacing: 9) {
-                        ForEach(items) { item in
+                        ForEach(visibleItems) { item in
                             MemoryRow(item: item)
                         }
                     }
@@ -435,14 +455,16 @@ struct ClipboardHistoryView: View {
 }
 
 struct InsightsView: View {
-    @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
+    let memories: [MemoryItem]
 
     private var todayItems: [MemoryItem] {
         memories.filter { Calendar.current.isDateInToday($0.createdAt) && !$0.isCaptureNoise }
     }
 
     var body: some View {
-        ScrollView {
+        let todayItems = self.todayItems
+
+        return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 pageHeader(
                     "Insights",
@@ -573,7 +595,7 @@ enum SidebarItem: Hashable {
     case settings
 }
 
-enum MemoryTrailCategory: String, CaseIterable, Identifiable {
+enum MemoryTrailCategory: String, CaseIterable, Identifiable, Hashable {
     case allApps
     case web
     case email

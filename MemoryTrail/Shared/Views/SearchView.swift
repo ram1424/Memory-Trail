@@ -3,7 +3,7 @@ import SwiftUI
 import SwiftData
 
 struct SearchView: View {
-    @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
+    let memories: [MemoryItem]
 
     @State private var query = ""
     @State private var answer: MemoryTrailAnswer?

@@ -5,8 +5,8 @@ import SwiftData
 struct TimelineView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(RecallPreferences.self) private var preferences
-    @Query(sort: \MemoryItem.createdAt, order: .reverse) private var memories: [MemoryItem]
 
+    let memories: [MemoryItem]
     @Binding var category: MemoryTrailCategory
 
     @State private var selectedMemoryID: UUID?
@@ -19,6 +19,10 @@ struct TimelineView: View {
         let dayItems = itemsForSelectedDay
         let visibleItems = filteredItems(dayItems)
         let durations = durationLookup(for: dayItems)
+        let latestItemID = dayItems.first?.id
+        let currentSelectedItem = selectedMemoryID.flatMap { id in
+            dayItems.first { $0.id == id }
+        }
 
         HStack(spacing: 0) {
             VStack(spacing: 0) {
@@ -36,7 +40,8 @@ struct TimelineView: View {
                             dayHeading(count: visibleItems.count)
                             activityList(
                                 visibleItems,
-                                durations: durations
+                                durations: durations,
+                                latestItemID: latestItemID
                             )
                         }
                     }
@@ -51,7 +56,7 @@ struct TimelineView: View {
 
                 TimelineSummaryColumn(
                     dayItems: dayItems,
-                    selectedItem: selectedItem,
+                    selectedItem: currentSelectedItem,
                     selectedDuration: selectedItem.map { durations[$0.id] ?? 0 } ?? 0,
                     selectedDay: selectedDay,
                     preferences: preferences,
@@ -149,6 +154,7 @@ struct TimelineView: View {
     }
 
     private func quickFilters(dayItems: [MemoryItem]) -> some View {
+        let counts = categoryCounts(for: dayItems)
         let used = Set(dayItems.map { MemoryTrailCategory.category(for: $0) })
         let dynamicOptions = [.allApps] + MemoryTrailCategory.allCases.filter {
             $0 != .allApps && used.contains($0)
@@ -158,7 +164,7 @@ struct TimelineView: View {
 
         return HStack(spacing: 8) {
             ForEach(primaryOptions) { option in
-                let count = dayItems.filter { option.matches($0) }.count
+                let count = counts[option, default: 0]
                 Button {
                     withAnimation(.easeOut(duration: 0.12)) {
                         category = option
@@ -287,7 +293,8 @@ struct TimelineView: View {
     @ViewBuilder
     private func activityList(
         _ items: [MemoryItem],
-        durations: [UUID: TimeInterval]
+        durations: [UUID: TimeInterval],
+        latestItemID: UUID?
     ) -> some View {
         LazyVStack(spacing: 1) {
             ForEach(items) { item in
@@ -295,7 +302,7 @@ struct TimelineView: View {
                     item: item,
                     duration: durations[item.id] ?? 0,
                     isSelected: selectedMemoryID == item.id,
-                    latestBadge: latestBadge(for: item),
+                    latestBadge: latestBadge(for: item, latestItemID: latestItemID),
                     timelineTint: .blue,
                     onSelect: {
                         selectedMemoryID = item.id
@@ -346,20 +353,40 @@ struct TimelineView: View {
         let start = calendar.startOfDay(for: selectedDay)
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
 
-        return memories.filter {
-            $0.createdAt >= start &&
-            $0.createdAt < end &&
-            !$0.isCaptureNoise
+        var result: [MemoryItem] = []
+        for item in memories {
+            if item.createdAt >= end {
+                continue
+            }
+            if item.createdAt < start {
+                break
+            }
+            if !item.isCaptureNoise {
+                result.append(item)
+            }
         }
+        return result
+    }
+
+    private func categoryCounts(for items: [MemoryItem]) -> [MemoryTrailCategory: Int] {
+        var counts: [MemoryTrailCategory: Int] = [:]
+        counts.reserveCapacity(MemoryTrailCategory.allCases.count)
+
+        for item in items {
+            counts[.allApps, default: 0] += 1
+            counts[MemoryTrailCategory.category(for: item), default: 0] += 1
+        }
+
+        return counts
     }
 
     private func filteredItems(_ dayItems: [MemoryItem]) -> [MemoryItem] {
         dayItems.filter { category.matches($0) }
     }
 
-    private func latestBadge(for item: MemoryItem) -> LatestActivityBadge? {
+    private func latestBadge(for item: MemoryItem, latestItemID: UUID?) -> LatestActivityBadge? {
         guard dayOffset == 0,
-              item.id == itemsForSelectedDay.first?.id
+              item.id == latestItemID
         else {
             return nil
         }

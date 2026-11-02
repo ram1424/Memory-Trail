@@ -2,11 +2,16 @@ import SwiftUI
 import SwiftData
 
 struct FavoritesView: View {
-    @Query(filter: #Predicate<MemoryItem> { $0.isFavorite }, sort: \MemoryItem.createdAt, order: .reverse)
-    private var favorites: [MemoryItem]
+    let memories: [MemoryItem]
+
+    private var favorites: [MemoryItem] {
+        memories.filter(\.isFavorite)
+    }
 
     var body: some View {
-        ScrollView {
+        let favorites = self.favorites
+
+        return ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
                     VStack(alignment: .leading, spacing: 6) {

@@ -154,7 +154,7 @@ struct MemoryTrailApp: App {
                 preferences.capturePaused.toggle()
             }
             Divider()
-            Text("Memory Trail is local-first")
+            Text("Your activity stays on this Mac")
                 .foregroundStyle(.secondary)
             Button("Quit Memory Trail") {
                 NSApplication.shared.terminate(nil)
