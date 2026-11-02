@@ -238,9 +238,16 @@ func validate(_ url: URL, pixels: Int) throws {
     }
 }
 
-let master = masterIcon()
-try writePNG(master, to: masterURL)
-try validate(masterURL, pixels: 1024)
+guard let exactSource = CGImageSourceCreateWithURL(masterURL as CFURL, nil),
+      let master = CGImageSourceCreateImageAtIndex(exactSource, 0, nil) else {
+    fputs("Unable to load exact Memory Trail master icon.\n", stderr)
+    exit(4)
+}
+
+guard master.width == master.height else {
+    fputs("Memory Trail master icon must be square.\n", stderr)
+    exit(5)
+}
 
 let appTargets = [
     ("icon_16x16.png", 16), ("icon_16x16@2x.png", 32),
