@@ -1,6 +1,7 @@
 #if os(macOS)
 import AppKit
 import Darwin
+import Foundation
 import SwiftUI
 import SwiftData
 
@@ -10,6 +11,11 @@ struct MemoryTrailApp: App {
     @State private var preferences = RecallPreferences.shared
     @State private var isLaunching = true
     @State private var splashProgress = 0.02
+    @State private var updatePresentation: MemoryTrailUpdatePresentation?
+    @State private var isCheckingForUpdates = false
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @AppStorage("memoryTrail.lastPresentedWhatsNewVersion") private var lastPresentedWhatsNewVersion = ""
+    @AppStorage("memoryTrail.lastUpdateCheckEpoch") private var lastUpdateCheckEpoch = 0.0
 
     private static let screenshotDemoSelection: SidebarItem? = {
         guard let argument = ProcessInfo.processInfo.arguments.first(where: {
@@ -106,7 +112,8 @@ struct MemoryTrailApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if let selection = Self.screenshotDemoSelection {
+            Group {
+                if let selection = Self.screenshotDemoSelection {
                 RootView(
                     initialSelection: selection,
                     forceMainInterface: true
@@ -134,7 +141,35 @@ struct MemoryTrailApp: App {
                 }
                 .animation(.easeOut(duration: 0.28), value: isLaunching)
                 .task {
-                    await runStartupSequence()
+                    await launchAndMonitorUpdates()
+                }
+            }
+            }
+            .sheet(item: $updatePresentation) { presentation in
+                MemoryTrailUpdateSheet(
+                    presentation: presentation,
+                    icon: Self.brandIcon,
+                    currentVersion: Self.appVersion,
+                    onDownload: { url in
+                        NSWorkspace.shared.open(url)
+                        updatePresentation = nil
+                    },
+                    onOpenReleases: {
+                        if let url = URL(string: "https://github.com/ram1424/Memory-Trail/releases/latest") {
+                            NSWorkspace.shared.open(url)
+                        }
+                        updatePresentation = nil
+                    },
+                    onDismiss: {
+                        updatePresentation = nil
+                    }
+                )
+            }
+            .onChange(of: hasCompletedOnboarding) { _, completed in
+                guard completed, Self.screenshotDemoSelection == nil else { return }
+                Task {
+                    await presentWhatsNewIfNeeded()
+                    await performAutomaticUpdateCheckIfNeeded()
                 }
             }
         }
@@ -143,6 +178,19 @@ struct MemoryTrailApp: App {
             CommandGroup(replacing: .appInfo) {
                 Button("About Memory Trail") {
                     showAboutPanel()
+                }
+
+                Divider()
+
+                Button(isCheckingForUpdates ? "Checking for Updates…" : "Check for Updates…") {
+                    Task {
+                        await checkForUpdates(manual: true)
+                    }
+                }
+                .disabled(isCheckingForUpdates)
+
+                Button("What’s New in Memory Trail…") {
+                    updatePresentation = .whatsNew(Self.currentChangelog)
                 }
             }
         }
@@ -168,7 +216,50 @@ struct MemoryTrailApp: App {
     }
 
     private static var buildNumber: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "2"
+    }
+
+    private static var currentChangelog: MemoryTrailChangelog {
+        MemoryTrailChangelog(
+            version: appVersion,
+            headline: "A faster start and a smarter way to stay current.",
+            summary: "Memory Trail now launches faster, checks for new releases without sending your timeline anywhere, and gives every new version a polished What’s New experience.",
+            sections: [
+                MemoryTrailChangeSection(
+                    title: "Faster Launch",
+                    symbol: "bolt.fill",
+                    items: [
+                        "The animated loading screen now completes in 2 seconds.",
+                        "Local database warm-up and capture startup continue during the splash so the app is ready when it opens."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Built-in Updates",
+                    symbol: "arrow.triangle.2.circlepath",
+                    items: [
+                        "Choose Check for Updates… from the Memory Trail app menu at any time.",
+                        "Memory Trail also checks periodically for a newer release when you do not check manually.",
+                        "When an update is available, Download Update opens the current signed DMG release."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "What’s New",
+                    symbol: "sparkles",
+                    items: [
+                        "The first launch of each new version presents a clean, visual changelog.",
+                        "You can reopen the changelog anytime from Memory Trail → What’s New in Memory Trail…"
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Privacy Preserved",
+                    symbol: "lock.shield.fill",
+                    items: [
+                        "Update checks request only a tiny version manifest.",
+                        "Your captured timeline, clipboard history, files, conversations, and searches are never included in an update request."
+                    ]
+                )
+            ]
+        )
     }
 
     private func showAboutPanel() {
@@ -199,10 +290,10 @@ struct MemoryTrailApp: App {
     @MainActor
     private func runStartupSequence() async {
         let startupBeganAt = Date()
-        let minimumSplashDuration: TimeInterval = 2.5
+        let minimumSplashDuration: TimeInterval = 2.0
 
         splashProgress = 0.02
-        withAnimation(.linear(duration: 2.35)) {
+        withAnimation(.linear(duration: 1.85)) {
             splashProgress = 1.0
         }
 
@@ -218,7 +309,7 @@ struct MemoryTrailApp: App {
 
         await Task.yield()
 
-        // Keep the simple animated splash visible for its full 2.5-second run.
+        // Keep the simple animated splash visible for its full 2-second run.
         let elapsed = Date().timeIntervalSince(startupBeganAt)
         let remaining = max(0, minimumSplashDuration - elapsed)
         if remaining > 0 {
@@ -229,6 +320,79 @@ struct MemoryTrailApp: App {
 
         splashProgress = 1.0
         isLaunching = false
+    }
+
+    @MainActor
+    private func launchAndMonitorUpdates() async {
+        await runStartupSequence()
+
+        if hasCompletedOnboarding {
+            await presentWhatsNewIfNeeded()
+            await performAutomaticUpdateCheckIfNeeded()
+        }
+
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 6 * 60 * 60 * 1_000_000_000)
+            guard !Task.isCancelled else { return }
+            await performAutomaticUpdateCheckIfNeeded()
+        }
+    }
+
+    @MainActor
+    private func presentWhatsNewIfNeeded() async {
+        guard hasCompletedOnboarding,
+              lastPresentedWhatsNewVersion != Self.appVersion,
+              updatePresentation == nil
+        else {
+            return
+        }
+
+        try? await Task.sleep(nanoseconds: 350_000_000)
+        guard updatePresentation == nil else { return }
+
+        lastPresentedWhatsNewVersion = Self.appVersion
+        updatePresentation = .whatsNew(Self.currentChangelog)
+    }
+
+    @MainActor
+    private func performAutomaticUpdateCheckIfNeeded() async {
+        let now = Date().timeIntervalSince1970
+        let sixHours: TimeInterval = 6 * 60 * 60
+
+        guard now - lastUpdateCheckEpoch >= sixHours,
+              updatePresentation == nil
+        else {
+            return
+        }
+
+        await checkForUpdates(manual: false)
+    }
+
+    @MainActor
+    private func checkForUpdates(manual: Bool) async {
+        guard !isCheckingForUpdates else { return }
+        isCheckingForUpdates = true
+        defer { isCheckingForUpdates = false }
+
+        lastUpdateCheckEpoch = Date().timeIntervalSince1970
+
+        do {
+            let manifest = try await MemoryTrailUpdateService.fetchLatest()
+            if MemoryTrailUpdateService.isNewer(
+                manifest,
+                thanVersion: Self.appVersion,
+                build: Int(Self.buildNumber) ?? 0
+            ) {
+                updatePresentation = .updateAvailable(manifest)
+            } else if manual {
+                updatePresentation = .upToDate(Self.appVersion)
+            }
+        } catch {
+            guard manual else { return }
+            updatePresentation = .unavailable(
+                "Memory Trail could not reach the update manifest. The source repository is private, so automatic checks use the public update manifest rather than embedding GitHub credentials in the app."
+            )
+        }
     }
 }
 
@@ -494,6 +658,445 @@ private struct MemoryTrailSplashWaveShape: Shape {
         }
 
         return path
+    }
+}
+
+
+private struct MemoryTrailChangeSection: Codable, Hashable, Identifiable {
+    let title: String
+    let symbol: String
+    let items: [String]
+
+    var id: String { "\(symbol)-\(title)" }
+}
+
+private struct MemoryTrailChangelog: Hashable {
+    let version: String
+    let headline: String
+    let summary: String
+    let sections: [MemoryTrailChangeSection]
+}
+
+private struct MemoryTrailUpdateManifest: Decodable, Hashable {
+    let version: String
+    let build: Int
+    let publishedAt: String?
+    let downloadURL: String
+    let releaseURL: String
+    let highlights: [String]
+    let changelog: [MemoryTrailChangeSection]
+}
+
+private enum MemoryTrailUpdatePresentation: Identifiable {
+    case whatsNew(MemoryTrailChangelog)
+    case updateAvailable(MemoryTrailUpdateManifest)
+    case upToDate(String)
+    case unavailable(String)
+
+    var id: String {
+        switch self {
+        case .whatsNew(let changelog):
+            return "whats-new-\(changelog.version)"
+        case .updateAvailable(let manifest):
+            return "update-\(manifest.version)-\(manifest.build)"
+        case .upToDate(let version):
+            return "up-to-date-\(version)"
+        case .unavailable:
+            return "update-unavailable"
+        }
+    }
+}
+
+private enum MemoryTrailUpdateService {
+    private static let manifestURL = URL(
+        string: "https://ram1424.github.io/Memory-Trail/update.json"
+    )!
+
+    static func fetchLatest() async throws -> MemoryTrailUpdateManifest {
+        var components = URLComponents(url: manifestURL, resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "t", value: String(Int(Date().timeIntervalSince1970)))
+        ]
+
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(
+            url: url,
+            cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
+            timeoutInterval: 8
+        )
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(
+            "MemoryTrail/\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200...299).contains(http.statusCode)
+        else {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(MemoryTrailUpdateManifest.self, from: data)
+    }
+
+    static func isNewer(
+        _ manifest: MemoryTrailUpdateManifest,
+        thanVersion currentVersion: String,
+        build currentBuild: Int
+    ) -> Bool {
+        let result = compare(manifest.version, currentVersion)
+        if result != 0 {
+            return result > 0
+        }
+        return manifest.build > currentBuild
+    }
+
+    private static func compare(_ lhs: String, _ rhs: String) -> Int {
+        let left = lhs.split(separator: ".").map { Int($0) ?? 0 }
+        let right = rhs.split(separator: ".").map { Int($0) ?? 0 }
+        let count = max(left.count, right.count)
+
+        for index in 0..<count {
+            let l = index < left.count ? left[index] : 0
+            let r = index < right.count ? right[index] : 0
+            if l != r {
+                return l > r ? 1 : -1
+            }
+        }
+        return 0
+    }
+}
+
+private struct MemoryTrailUpdateSheet: View {
+    let presentation: MemoryTrailUpdatePresentation
+    let icon: NSImage
+    let currentVersion: String
+    let onDownload: (URL) -> Void
+    let onOpenReleases: () -> Void
+    let onDismiss: () -> Void
+
+    private let primaryText = Color(red: 0.07, green: 0.14, blue: 0.27)
+    private let secondaryText = Color(red: 0.30, green: 0.37, blue: 0.48)
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.91, green: 0.96, blue: 1.00),
+                    Color(red: 0.97, green: 0.985, blue: 1.00),
+                    Color.white
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            Circle()
+                .fill(Color.blue.opacity(0.08))
+                .frame(width: 360, height: 360)
+                .blur(radius: 70)
+                .offset(x: 270, y: -250)
+
+            content
+                .padding(32)
+        }
+        .frame(width: 700, height: 640)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch presentation {
+        case .whatsNew(let changelog):
+            whatsNewView(changelog)
+
+        case .updateAvailable(let manifest):
+            updateAvailableView(manifest)
+
+        case .upToDate(let version):
+            statusView(
+                symbol: "checkmark.seal.fill",
+                symbolColor: .green,
+                title: "Memory Trail is up to date",
+                message: "You’re running version \(version). No newer release is available.",
+                primaryButton: "Done",
+                primaryAction: onDismiss
+            )
+
+        case .unavailable(let message):
+            statusView(
+                symbol: "wifi.exclamationmark",
+                symbolColor: .orange,
+                title: "Couldn’t check for updates",
+                message: message,
+                primaryButton: "Open Releases",
+                primaryAction: onOpenReleases
+            )
+        }
+    }
+
+    private func whatsNewView(_ changelog: MemoryTrailChangelog) -> some View {
+        VStack(spacing: 0) {
+            sheetHeader(
+                eyebrow: "VERSION \(changelog.version)",
+                title: "What’s New in Memory Trail",
+                subtitle: changelog.headline
+            )
+
+            Text(changelog.summary)
+                .font(.system(size: 15.5, weight: .medium))
+                .foregroundStyle(secondaryText)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 570)
+                .padding(.top, 12)
+                .padding(.bottom, 22)
+
+            ScrollView {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 14),
+                        GridItem(.flexible(), spacing: 14)
+                    ],
+                    spacing: 14
+                ) {
+                    ForEach(changelog.sections) { section in
+                        changeCard(section)
+                    }
+                }
+                .padding(.horizontal, 2)
+                .padding(.bottom, 8)
+            }
+
+            footer(
+                primaryTitle: "Continue",
+                primaryAction: onDismiss,
+                secondaryTitle: nil,
+                secondaryAction: nil
+            )
+        }
+    }
+
+    private func updateAvailableView(_ manifest: MemoryTrailUpdateManifest) -> some View {
+        VStack(spacing: 0) {
+            sheetHeader(
+                eyebrow: "UPDATE AVAILABLE",
+                title: "Memory Trail \(manifest.version)",
+                subtitle: "A newer version is ready to download."
+            )
+
+            HStack(spacing: 12) {
+                versionPill("Current", value: currentVersion, tint: .gray)
+                Image(systemName: "arrow.right")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                versionPill("New", value: manifest.version, tint: .blue)
+            }
+            .padding(.top, 18)
+            .padding(.bottom, 18)
+
+            ScrollView {
+                VStack(spacing: 14) {
+                    if !manifest.highlights.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Highlights")
+                                .font(.headline)
+                                .foregroundStyle(primaryText)
+
+                            ForEach(manifest.highlights, id: \.self) { item in
+                                bulletRow(item)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(18)
+                        .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 18))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(MemoryTrailPalette.border, lineWidth: 1)
+                        }
+                    }
+
+                    ForEach(manifest.changelog) { section in
+                        changeCard(section)
+                    }
+                }
+                .padding(.horizontal, 2)
+                .padding(.bottom, 8)
+            }
+
+            Text("Only update metadata is checked. Your Memory Trail activity remains local to this Mac.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 14)
+
+            footer(
+                primaryTitle: "Download Update",
+                primaryAction: {
+                    if let url = URL(string: manifest.downloadURL) {
+                        onDownload(url)
+                    }
+                },
+                secondaryTitle: "Later",
+                secondaryAction: onDismiss
+            )
+        }
+    }
+
+    private func statusView(
+        symbol: String,
+        symbolColor: Color,
+        title: String,
+        message: String,
+        primaryButton: String,
+        primaryAction: @escaping () -> Void
+    ) -> some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .fill(symbolColor.opacity(0.12))
+                    .frame(width: 96, height: 96)
+
+                Image(systemName: symbol)
+                    .font(.system(size: 44, weight: .semibold))
+                    .foregroundStyle(symbolColor)
+            }
+
+            Text(title)
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .foregroundStyle(primaryText)
+
+            Text(message)
+                .font(.system(size: 15.5, weight: .medium))
+                .foregroundStyle(secondaryText)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 520)
+
+            Spacer()
+
+            Button(primaryButton, action: primaryAction)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .keyboardShortcut(.defaultAction)
+
+            Button("Close", action: onDismiss)
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+        }
+        .padding(20)
+    }
+
+    private func sheetHeader(
+        eyebrow: String,
+        title: String,
+        subtitle: String
+    ) -> some View {
+        VStack(spacing: 10) {
+            Image(nsImage: icon)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 90, height: 90)
+                .shadow(color: Color.blue.opacity(0.18), radius: 18, y: 8)
+
+            Text(eyebrow)
+                .font(.caption.weight(.bold))
+                .tracking(2.2)
+                .foregroundStyle(Color.blue)
+
+            Text(title)
+                .font(.system(size: 33, weight: .bold, design: .rounded))
+                .foregroundStyle(primaryText)
+
+            Text(subtitle)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(secondaryText)
+                .multilineTextAlignment(.center)
+        }
+    }
+
+    private func changeCard(_ section: MemoryTrailChangeSection) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: section.symbol)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.blue)
+                    .frame(width: 34, height: 34)
+                    .background(Color.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+
+                Text(section.title)
+                    .font(.headline)
+                    .foregroundStyle(primaryText)
+            }
+
+            ForEach(section.items, id: \.self) { item in
+                bulletRow(item)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+        .padding(17)
+        .background(Color.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 18))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(MemoryTrailPalette.border, lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(0.035), radius: 9, y: 4)
+    }
+
+    private func bulletRow(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 9) {
+            Circle()
+                .fill(Color.blue.opacity(0.72))
+                .frame(width: 6, height: 6)
+                .padding(.top, 6)
+
+            Text(text)
+                .font(.system(size: 13.5, weight: .medium))
+                .foregroundStyle(secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func versionPill(_ label: String, value: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .fontWeight(.bold)
+                .foregroundStyle(tint == .gray ? primaryText : tint)
+        }
+        .font(.system(size: 14, weight: .semibold))
+        .padding(.horizontal, 14)
+        .frame(height: 36)
+        .background(tint.opacity(0.10), in: Capsule())
+    }
+
+    private func footer(
+        primaryTitle: String,
+        primaryAction: @escaping () -> Void,
+        secondaryTitle: String?,
+        secondaryAction: (() -> Void)?
+    ) -> some View {
+        HStack {
+            if let secondaryTitle, let secondaryAction {
+                Button(secondaryTitle, action: secondaryAction)
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+            }
+
+            Spacer()
+
+            Button(primaryTitle, action: primaryAction)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .keyboardShortcut(.defaultAction)
+        }
+        .padding(.top, 18)
     }
 }
 

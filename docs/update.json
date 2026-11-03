@@ -1,0 +1,48 @@
+{
+  "version": "1.1",
+  "build": 2,
+  "publishedAt": "2026-11-03",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/latest/download/MemoryTrail-1.1.dmg",
+  "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
+  "highlights": [
+    "Faster 2-second startup.",
+    "Check for Updates… in the Memory Trail app menu.",
+    "Automatic periodic update checks without embedding GitHub credentials.",
+    "A polished What’s New changelog on first launch of each new version."
+  ],
+  "changelog": [
+    {
+      "title": "Faster Launch",
+      "symbol": "bolt.fill",
+      "items": [
+        "The animated loading screen now completes in 2 seconds.",
+        "Startup work continues during the splash so Memory Trail is ready when the window appears."
+      ]
+    },
+    {
+      "title": "Built-in Updates",
+      "symbol": "arrow.triangle.2.circlepath",
+      "items": [
+        "Check manually from Memory Trail → Check for Updates….",
+        "Memory Trail also checks periodically for newer releases.",
+        "Download Update opens the latest DMG release."
+      ]
+    },
+    {
+      "title": "What’s New",
+      "symbol": "sparkles",
+      "items": [
+        "Each new version can present a polished first-launch changelog.",
+        "Reopen it anytime from the Memory Trail app menu."
+      ]
+    },
+    {
+      "title": "Privacy Preserved",
+      "symbol": "lock.shield.fill",
+      "items": [
+        "Update checks request version metadata only.",
+        "Timeline data, clipboard history, files, conversations, and searches remain local."
+      ]
+    }
+  ]
+}
