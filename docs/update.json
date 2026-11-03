@@ -1,47 +1,124 @@
 {
   "version": "1.1",
-  "build": 2,
+  "build": 3,
   "publishedAt": "2026-11-03",
   "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/latest/download/MemoryTrail-1.1.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "Faster 2-second startup.",
-    "Check for Updates… in the Memory Trail app menu.",
-    "Automatic periodic update checks without embedding GitHub credentials.",
-    "A polished What’s New changelog on first launch of each new version."
+    "First official release of Memory Trail.",
+    "Privacy-first local activity timeline with newest activity first.",
+    "Ask Memory Trail search across locally stored history.",
+    "Browser, email, chat, files, documents, clipboard, favorites, manual memories, and Insights.",
+    "Built-in update checking and a comprehensive What’s New experience."
   ],
   "changelog": [
     {
-      "title": "Faster Launch",
-      "symbol": "bolt.fill",
+      "title": "Your Day, Remembered",
+      "symbol": "clock.arrow.circlepath",
       "items": [
-        "The animated loading screen now completes in 2 seconds.",
-        "Startup work continues during the splash so Memory Trail is ready when the window appears."
+        "Chronological local activity timeline with newest activity first.",
+        "Live Activity keeps recent context easy to find.",
+        "No AI-generated timeline summaries."
       ]
     },
     {
-      "title": "Built-in Updates",
-      "symbol": "arrow.triangle.2.circlepath",
+      "title": "Ask Memory Trail",
+      "symbol": "magnifyingglass",
       "items": [
-        "Check manually from Memory Trail → Check for Updates….",
-        "Memory Trail also checks periodically for newer releases.",
-        "Download Update opens the latest DMG release."
+        "Natural-language local search by time, app, subject, page, conversation, filename, and nearby activity.",
+        "Ask what you were doing, what happened before or after something, or which conversations you had today."
       ]
     },
     {
-      "title": "What’s New",
-      "symbol": "sparkles",
+      "title": "Conversations & Chat",
+      "symbol": "bubble.left.and.bubble.right.fill",
       "items": [
-        "Each new version can present a polished first-launch changelog.",
-        "Reopen it anytime from the Memory Trail app menu."
+        "Supported Microsoft Teams conversation and selected-chat capture.",
+        "Generic conversation-title capture for Slack, Discord, Zoom, Webex, Signal, WhatsApp, Telegram, Mattermost, Google Chat, Messages, and compatible chat apps when context is exposed."
       ]
     },
     {
-      "title": "Privacy Preserved",
+      "title": "Email",
+      "symbol": "envelope.fill",
+      "items": [
+        "Supported Outlook subject and sender context.",
+        "Useful Mail/email window context when macOS exposes it."
+      ]
+    },
+    {
+      "title": "Web & Browsers",
+      "symbol": "globe",
+      "items": [
+        "Supported browser page/tab titles.",
+        "URLs when exposed by the browser."
+      ]
+    },
+    {
+      "title": "Files & Documents",
+      "symbol": "folder.fill",
+      "items": [
+        "Supported Finder, Preview, Word, Excel, PowerPoint, and OneNote context.",
+        "File, folder, document, notebook, page, and path information when available."
+      ]
+    },
+    {
+      "title": "Clipboard History",
+      "symbol": "doc.on.clipboard.fill",
+      "items": [
+        "Local history of supported copied text, links, and code.",
+        "Clipboard capture can be disabled at any time."
+      ]
+    },
+    {
+      "title": "Favorites & Manual Memories",
+      "symbol": "star.fill",
+      "items": [
+        "Favorite important timeline entries.",
+        "Create manual notes and memories for context you want to preserve yourself."
+      ]
+    },
+    {
+      "title": "Insights & Filters",
+      "symbol": "chart.bar.fill",
+      "items": [
+        "Insights for locally captured activity.",
+        "Dynamic Today filters based on the activity actually present in your history."
+      ]
+    },
+    {
+      "title": "Privacy First",
       "symbol": "lock.shield.fill",
       "items": [
-        "Update checks request version metadata only.",
-        "Timeline data, clipboard history, files, conversations, and searches remain local."
+        "Captured activity is sourced, processed, and stored locally using SwiftData.",
+        "No Memory Trail account, cloud timeline sync, analytics SDK, advertising SDK, or external timeline service.",
+        "Source code is available for review."
+      ]
+    },
+    {
+      "title": "Your Controls",
+      "symbol": "slider.horizontal.3",
+      "items": [
+        "Pause/resume capture.",
+        "App/process exclusions with Wallet and Passwords excluded by default.",
+        "Clipboard controls and privacy settings."
+      ]
+    },
+    {
+      "title": "Menu Bar & Updates",
+      "symbol": "menubar.rectangle",
+      "items": [
+        "Menu bar operation with quick capture controls.",
+        "Manual Check for Updates plus periodic automatic checks.",
+        "Version metadata only is used for update checks."
+      ]
+    },
+    {
+      "title": "Designed for macOS",
+      "symbol": "laptopcomputer",
+      "items": [
+        "Native macOS interface and Accessibility integration.",
+        "Fast 2-second animated startup.",
+        "Requires macOS 14 or later."
       ]
     }
   ]

@@ -109,7 +109,7 @@ jobs:
             -configuration Release \
             -derivedDataPath "$PWD/build" \
             MARKETING_VERSION=1.1 \
-            CURRENT_PROJECT_VERSION=2 \
+            CURRENT_PROJECT_VERSION=3 \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             clean build 2>&1 | tee "$PWD/xcodebuild.log"
@@ -141,7 +141,7 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -f state=success \
             -f context=memory-trail-build-diagnostics \
-            -f description="Memory Trail 1.1 (Build 2) macOS build passed." >/dev/null
+            -f description="Memory Trail 1.1 (Build 3) macOS build passed." >/dev/null
 
       - name: Capture screenshots from real Memory Trail windows
         id: screenshots
@@ -290,17 +290,25 @@ jobs:
           set -euo pipefail
           TAG="v1.1"
           DMG="MemoryTrail-1.1.dmg"
-          TITLE="Memory Trail 1.1 (Build 2)"
+          TITLE="Memory Trail 1.1 (Build 3) — First Official Release"
           NOTES=$(cat <<'EOF'
-          Memory Trail 1.1 (Build 2) for macOS.
+          Memory Trail 1.1 (Build 3) — First Official Release for macOS.
+
+          First Official Release
 
           Highlights:
-          - Faster 2-second animated startup experience.
-          - Built-in Memory Trail menu commands for Check for Updates and What’s New.
-          - Automatic periodic update checks using a credential-free update manifest.
-          - Download Update action for newer releases.
-          - Beautiful first-launch changelog for each new version.
           - Privacy-first local activity timeline with newest activity first.
+          - Ask Memory Trail natural-language search across locally stored history.
+          - Supported browser page/tab titles and URLs.
+          - Outlook/Mail subject context.
+          - Microsoft Teams and compatible chat conversation-title capture, including Slack and other supported chat apps.
+          - Finder, Preview, Word, Excel, PowerPoint, and OneNote document context.
+          - Local clipboard history, Favorites, manual memories, Insights, filters, and a details panel.
+          - Pause capture, clipboard controls, app/process exclusions, and Wallet/Passwords excluded by default.
+          - Native menu bar operation.
+          - Built-in manual and automatic update checking.
+          - Comprehensive first-launch What's New experience.
+          - Fast 2-second animated startup.
           - Ask Memory Trail search across locally stored activity history.
           - Browser, Outlook/Mail, Teams, files/documents, clipboard, favorites, and manual memories.
           - Menu bar operation, pause controls, app exclusions, and configurable clipboard capture.

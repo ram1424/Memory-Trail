@@ -14,7 +14,7 @@ struct MemoryTrailApp: App {
     @State private var updatePresentation: MemoryTrailUpdatePresentation?
     @State private var isCheckingForUpdates = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage("memoryTrail.lastPresentedWhatsNewVersion") private var lastPresentedWhatsNewVersion = ""
+    @AppStorage("memoryTrail.lastPresentedWhatsNewRelease") private var lastPresentedWhatsNewRelease = ""
     @AppStorage("memoryTrail.lastUpdateCheckEpoch") private var lastUpdateCheckEpoch = 0.0
 
     private static let screenshotDemoSelection: SidebarItem? = {
@@ -219,43 +219,152 @@ struct MemoryTrailApp: App {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "2"
     }
 
+    private static var releaseIdentity: String {
+        "\(appVersion) (\(buildNumber))"
+    }
+
     private static var currentChangelog: MemoryTrailChangelog {
         MemoryTrailChangelog(
             version: appVersion,
-            headline: "A faster start and a smarter way to stay current.",
-            summary: "Memory Trail now launches faster, checks for new releases without sending your timeline anywhere, and gives every new version a polished What’s New experience.",
+            headline: "First Official Release",
+            summary: "Welcome to the first official release of Memory Trail — a privacy-first, local activity history for rediscovering what you worked on, viewed, discussed, opened, and copied throughout your day.",
             sections: [
                 MemoryTrailChangeSection(
-                    title: "Faster Launch",
-                    symbol: "bolt.fill",
+                    title: "Your Day, Remembered",
+                    symbol: "clock.arrow.circlepath",
                     items: [
-                        "The animated loading screen now completes in 2 seconds.",
-                        "Local database warm-up and capture startup continue during the splash so the app is ready when it opens."
+                        "Builds a chronological local timeline of the activity Memory Trail can observe on your Mac.",
+                        "Keeps the newest activity at the top with Live Activity so your most recent context is easy to find.",
+                        "Records meaningful app and window context instead of rewriting your history into AI-generated summaries."
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "Built-in Updates",
-                    symbol: "arrow.triangle.2.circlepath",
+                    title: "Ask Memory Trail",
+                    symbol: "magnifyingglass",
                     items: [
-                        "Choose Check for Updates… from the Memory Trail app menu at any time.",
-                        "Memory Trail also checks periodically for a newer release when you do not check manually.",
-                        "When an update is available, Download Update opens the current signed DMG release."
+                        "Search your locally stored history using natural-language questions.",
+                        "Find activity by time, app, subject, page, conversation, filename, document, or nearby activity.",
+                        "Use questions such as what you were doing around a certain time, what happened before or after another activity, or which conversations you had today."
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "What’s New",
-                    symbol: "sparkles",
+                    title: "Conversations & Chat",
+                    symbol: "bubble.left.and.bubble.right.fill",
                     items: [
-                        "The first launch of each new version presents a clean, visual changelog.",
-                        "You can reopen the changelog anytime from Memory Trail → What’s New in Memory Trail…"
+                        "Captures supported Microsoft Teams conversation and chat titles, including selected chats when macOS exposes them.",
+                        "Supports generic conversation-title capture for Slack, Discord, Zoom, Webex, Signal, WhatsApp, Telegram, Mattermost, Google Chat, Messages, and other compatible chat apps.",
+                        "Conversation capture stores useful local context such as the chat or conversation title — not audio recordings or screen recordings."
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "Privacy Preserved",
+                    title: "Email",
+                    symbol: "envelope.fill",
+                    items: [
+                        "Captures supported Microsoft Outlook message subject context and sender information when available.",
+                        "Retains useful Mail and email-window context exposed through macOS Accessibility.",
+                        "Helps you retrace which message or subject you were working with without creating a cloud copy of your mailbox."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Web & Browsers",
+                    symbol: "globe",
+                    items: [
+                        "Captures supported browser page and tab titles as you work.",
+                        "Stores URLs when the browser exposes them to Memory Trail.",
+                        "Keeps web activity searchable alongside email, chat, files, and other local activity."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Files & Documents",
+                    symbol: "folder.fill",
+                    items: [
+                        "Tracks supported Finder, Preview, Word, Excel, PowerPoint, and OneNote context.",
+                        "Captures useful file, folder, document, notebook, page, or path information when macOS and the source app expose it.",
+                        "Makes documents easier to rediscover later without uploading their contents to Memory Trail."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Clipboard History",
+                    symbol: "doc.on.clipboard.fill",
+                    items: [
+                        "Keeps a local history of supported copied text, links, and code when clipboard capture is enabled.",
+                        "Clipboard capture is enabled by default and can be turned off at any time.",
+                        "Clipboard history remains stored locally with the rest of your Memory Trail data."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Favorites & Manual Memories",
+                    symbol: "star.fill",
+                    items: [
+                        "Mark important timeline entries as Favorites for quick access later.",
+                        "Create manual memories for notes, references, or context you want to preserve yourself.",
+                        "Use Memory Trail as both an automatic activity trail and a lightweight personal reference history."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Insights & Filters",
+                    symbol: "chart.bar.fill",
+                    items: [
+                        "Use Insights to understand the locally captured activity represented in your history.",
+                        "Filter the Today timeline by the activity categories that are actually present in your data.",
+                        "Quickly narrow your history to web, email, chat, files, clipboard, favorites, and other supported activity types."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Details & Navigation",
+                    symbol: "rectangle.righthalf.inset.filled",
+                    items: [
+                        "Select activity to inspect its captured details in the right-side panel.",
+                        "Use the newest-first Today view to retrace work without scrolling through unrelated history.",
+                        "Memory Trail avoids duplicate/noisy entries where possible so the timeline stays useful."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Privacy First",
                     symbol: "lock.shield.fill",
                     items: [
-                        "Update checks request only a tiny version manifest.",
-                        "Your captured timeline, clipboard history, files, conversations, and searches are never included in an update request."
+                        "Captured activity is sourced, processed, and stored locally on your Mac using SwiftData.",
+                        "There is no Memory Trail account, no cloud timeline sync, no advertising SDK, and no analytics SDK.",
+                        "Captured timeline data is not sent to an external service, and Memory Trail does not generate AI summaries of your timeline.",
+                        "The source code is available for review so the app's capture and storage behavior can be verified."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Your Controls",
+                    symbol: "slider.horizontal.3",
+                    items: [
+                        "Pause and resume capture whenever you want.",
+                        "Exclude apps and processes from capture; Wallet and Passwords are excluded by default.",
+                        "Enable or disable clipboard capture and review privacy information directly in Settings.",
+                        "Memory Trail requests Accessibility permission only to read supported active-app and window context needed for your local timeline."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Menu Bar",
+                    symbol: "menubar.rectangle",
+                    items: [
+                        "Keep Memory Trail available from the macOS menu bar while the main window is closed or minimized.",
+                        "Pause or resume capture quickly from the menu bar.",
+                        "See the reminder that your activity stays on this Mac and quit Memory Trail directly from the menu."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Updates",
+                    symbol: "arrow.triangle.2.circlepath",
+                    items: [
+                        "Choose Memory Trail → Check for Updates… at any time.",
+                        "Memory Trail periodically checks a small version manifest for newer releases when you do not check manually.",
+                        "When a newer version is available, Download Update takes you to the current DMG.",
+                        "Update checks use version metadata only and never include your timeline, clipboard history, files, conversations, or searches."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Designed for macOS",
+                    symbol: "laptopcomputer",
+                    items: [
+                        "Built as a native macOS app with an Apple-style interface, local SwiftData storage, and macOS Accessibility integration.",
+                        "Includes a fast 2-second animated startup experience.",
+                        "Requires macOS 14 or later."
                     ]
                 )
             ]
@@ -341,7 +450,7 @@ struct MemoryTrailApp: App {
     @MainActor
     private func presentWhatsNewIfNeeded() async {
         guard hasCompletedOnboarding,
-              lastPresentedWhatsNewVersion != Self.appVersion,
+              lastPresentedWhatsNewRelease != Self.releaseIdentity,
               updatePresentation == nil
         else {
             return
@@ -350,7 +459,7 @@ struct MemoryTrailApp: App {
         try? await Task.sleep(nanoseconds: 350_000_000)
         guard updatePresentation == nil else { return }
 
-        lastPresentedWhatsNewVersion = Self.appVersion
+        lastPresentedWhatsNewRelease = Self.releaseIdentity
         updatePresentation = .whatsNew(Self.currentChangelog)
     }
 
@@ -804,7 +913,7 @@ private struct MemoryTrailUpdateSheet: View {
             content
                 .padding(32)
         }
-        .frame(width: 700, height: 640)
+        .frame(width: 760, height: 720)
     }
 
     @ViewBuilder
@@ -841,8 +950,8 @@ private struct MemoryTrailUpdateSheet: View {
     private func whatsNewView(_ changelog: MemoryTrailChangelog) -> some View {
         VStack(spacing: 0) {
             sheetHeader(
-                eyebrow: "VERSION \(changelog.version)",
-                title: "What’s New in Memory Trail",
+                eyebrow: "FIRST OFFICIAL RELEASE • VERSION \(changelog.version)",
+                title: "Welcome to Memory Trail",
                 subtitle: changelog.headline
             )
 

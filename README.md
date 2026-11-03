@@ -8,11 +8,11 @@
 
 Memory Trail is a privacy-first macOS activity timeline for retracing what you were doing across browsers, email, chat, files, documents, and the clipboard. It turns useful local app/window context into a searchable chronological history without requiring a cloud account or external data connector.
 
-**Current release: Memory Trail 1.0 (Build 1)**
+**Current release: Memory Trail 1.1 (Build 3) — First Official Release**
 
 ## Download
 
-[Download Memory Trail 1.0 for macOS](https://github.com/ram1424/Memory-Lane/releases/latest/download/MemoryTrail-1.0.dmg)
+[Download Memory Trail 1.1 for macOS](https://github.com/ram1424/Memory-Trail/releases/latest/download/MemoryTrail-1.1.dmg)
 
 Requires **macOS 14 or later**. Detailed window and activity capture requires macOS Accessibility permission.
 
@@ -23,6 +23,7 @@ Requires **macOS 14 or later**. Detailed window and activity capture requires ma
 - **Browser context** including page/tab titles and URLs when exposed by supported browsers
 - **Outlook and Mail context** including subject-level activity when available
 - **Teams context** including supported conversation/window titles
+- **Chat context** for Slack, Discord, Zoom, Webex, Signal, WhatsApp, Telegram, Mattermost, Google Chat, Messages, and other compatible chat apps when useful conversation context is exposed
 - **Files and documents** from Finder and supported productivity apps
 - **Clipboard history** for supported copied text, links, and code when enabled
 - **Favorites** for important timeline entries
@@ -30,6 +31,9 @@ Requires **macOS 14 or later**. Detailed window and activity capture requires ma
 - **App/process exclusions** so selected software is not recorded
 - **Pause capture** control
 - **Menu bar operation**
+- **Insights and dynamic timeline filters**
+- **Built-in update checking** from the Memory Trail app menu plus periodic automatic checks
+- **First-launch What's New** release overview
 - **Local SwiftData storage**
 - **Privacy-focused onboarding and Settings controls**
 - **No AI timeline summarization**
@@ -113,11 +117,11 @@ Memory Trail records metadata/context exposed by supported apps; it is not a scr
 5. Grant Accessibility permission when prompted.
 
 **Bundle identifier:** `com.ram1424.memorytrail`  
-**Marketing version:** `1.0`  
-**Build:** `1`
+**Marketing version:** `1.1`  
+**Build:** `3`
 
 ## Release
 
 Only the current production release is retained on the GitHub Releases page.
 
-**Memory Trail 1.0 (Build 1)** is the current macOS release.
+**Memory Trail 1.1 (Build 3) — First Official Release** is the current macOS release.
