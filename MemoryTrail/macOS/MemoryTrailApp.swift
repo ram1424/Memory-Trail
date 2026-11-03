@@ -16,6 +16,7 @@ struct MemoryTrailApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("memoryTrail.lastPresentedWhatsNewRelease") private var lastPresentedWhatsNewRelease = ""
     @AppStorage("memoryTrail.lastUpdateCheckEpoch") private var lastUpdateCheckEpoch = 0.0
+    @AppStorage("memoryTrail.didRequestInitialFullScreen") private var didRequestInitialFullScreen = false
 
     private static let screenshotDemoSelection: SidebarItem? = {
         guard let argument = ProcessInfo.processInfo.arguments.first(where: {
@@ -216,7 +217,7 @@ struct MemoryTrailApp: App {
     }
 
     private static var buildNumber: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "2"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
     }
 
     private static var releaseIdentity: String {
@@ -434,6 +435,7 @@ struct MemoryTrailApp: App {
     @MainActor
     private func launchAndMonitorUpdates() async {
         await runStartupSequence()
+        await enterFullScreenOnFirstLaunchIfNeeded()
 
         if hasCompletedOnboarding {
             await presentWhatsNewIfNeeded()
@@ -444,6 +446,30 @@ struct MemoryTrailApp: App {
             try? await Task.sleep(nanoseconds: 6 * 60 * 60 * 1_000_000_000)
             guard !Task.isCancelled else { return }
             await performAutomaticUpdateCheckIfNeeded()
+        }
+    }
+
+    @MainActor
+    private func enterFullScreenOnFirstLaunchIfNeeded() async {
+        guard Self.screenshotDemoSelection == nil,
+              !didRequestInitialFullScreen
+        else {
+            return
+        }
+
+        // Give SwiftUI/AppKit a moment to finish presenting the main window
+        // after the splash before asking macOS to enter native full screen.
+        for _ in 0..<20 {
+            if let window = NSApplication.shared.keyWindow
+                ?? NSApplication.shared.windows.first(where: { $0.isVisible && $0.level == .normal }) {
+                if !window.styleMask.contains(.fullScreen) {
+                    window.toggleFullScreen(nil)
+                }
+                didRequestInitialFullScreen = true
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: 100_000_000)
         }
     }
 
