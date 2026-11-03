@@ -517,12 +517,7 @@ enum SearchService {
                 return browserAliases.contains { app.contains($0) }
 
             case .conversations:
-                let chatAliases = [
-                    "teams", "msteams", "slack", "messages", "imessage",
-                    "discord", "zoom", "webex", "ciscospark", "google chat",
-                    "googlechat", "signal", "whatsapp", "telegram", "mattermost"
-                ]
-                return chatAliases.contains { app.contains($0) }
+                return SearchService.isConversationMemory(item)
 
             case .files:
                 if item.sourceKind == .file {
@@ -573,6 +568,43 @@ enum SearchService {
                 return "I found \(items.count) file or document activit\(items.count == 1 ? "y" : "ies")\(appPhrase.isEmpty ? "" : " across \(appPhrase)")."
             }
         }
+    }
+
+    private static func isConversationMemory(_ item: MemoryItem) -> Bool {
+        let app = "\(item.sourceApp) \(item.sourceBundleID)".lowercased()
+        let chatAliases = [
+            "teams", "msteams", "slack", "messages", "imessage",
+            "discord", "zoom", "webex", "ciscospark", "google chat",
+            "googlechat", "signal", "whatsapp", "telegram", "mattermost",
+            "mobilesms", "ichat"
+        ]
+
+        if chatAliases.contains(where: { app.contains($0) }) {
+            return true
+        }
+
+        guard item.sourceKind == .appActivity else { return false }
+
+        let title = item.displayTitle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        if title.hasPrefix("chat with ") ||
+            title.hasPrefix("conversation with ") ||
+            title.hasPrefix("group chat ") ||
+            title.hasPrefix("#") {
+            return true
+        }
+
+        // Some chat clients expose channel/person names without a recognizable
+        // bundle ID. Preserve those captures when the app identifies itself
+        // generically as a chat or messaging client.
+        let genericChatAppNames = [
+            "chat", "messaging", "messenger", "messages"
+        ]
+        return genericChatAppNames.contains { app.contains($0) } &&
+            title.count >= 2 &&
+            !["chat", "chats", "message", "messages"].contains(title)
     }
 
     private static func detectedContentIntent(in query: String) -> ContentIntent? {

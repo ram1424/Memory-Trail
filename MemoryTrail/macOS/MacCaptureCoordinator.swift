@@ -450,14 +450,19 @@ final class MacCaptureCoordinator {
         let appName = app.localizedName ?? "Application"
         let lowerBundleID = bundleID.lowercased()
 
+        let isChatAccessibilityApp = isChatBundleID(lowerBundleID)
         let isExpensiveAccessibilityApp =
             lowerBundleID == "com.microsoft.outlook" ||
-            isChatBundleID(lowerBundleID) ||
+            isChatAccessibilityApp ||
             lowerBundleID.contains("onenote")
 
         if isExpensiveAccessibilityApp && !forceExpensiveApps {
             let now = Date()
-            guard now.timeIntervalSince(lastExpensiveWindowPollAt) >= 9.0 else {
+            // Conversation changes are short-lived and easy to miss, so chat
+            // clients are sampled on every 3-second focused-window timer tick.
+            // Outlook and OneNote keep the slower accessibility-tree throttle.
+            let minimumPollInterval: TimeInterval = isChatAccessibilityApp ? 3.0 : 9.0
+            guard now.timeIntervalSince(lastExpensiveWindowPollAt) >= minimumPollInterval else {
                 return
             }
             lastExpensiveWindowPollAt = now
