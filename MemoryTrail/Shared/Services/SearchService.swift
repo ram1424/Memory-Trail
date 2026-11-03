@@ -623,7 +623,7 @@ enum SearchService {
             ("Zoom", ["zoom"]),
             ("Webex", ["webex", "ciscospark"]),
             ("Mattermost", ["mattermost"]),
-            ("Messages", ["messages", "imessage"]),
+            ("Messages", ["imessage"]),
             ("Signal", ["signal"]),
             ("WhatsApp", ["whatsapp"]),
             ("Telegram", ["telegram"]),
