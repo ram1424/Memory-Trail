@@ -337,8 +337,7 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" \
               --title "$TITLE" \
-              --notes "$NOTES" \
-              --latest
+              --notes "$NOTES"
             gh release upload "$TAG" "$DMG" --clobber
           else
             gh release create "$TAG" "$DMG" \
