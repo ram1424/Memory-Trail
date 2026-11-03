@@ -118,8 +118,7 @@ struct SearchView: View {
                 HStack(spacing: 8) {
                     ForEach(examples, id: \.self) { example in
                         Button {
-                            query = example
-                            runQuery()
+                            runQuery(example)
                         } label: {
                             Text(example)
                                 .font(.caption)
@@ -232,12 +231,17 @@ struct SearchView: View {
     }
 
     private func runQuery() {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        runQuery(query)
+    }
+
+    private func runQuery(_ requestedQuery: String) {
+        let trimmed = requestedQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             answer = nil
             return
         }
 
+        query = requestedQuery
         answer = SearchService.ask(trimmed, memories: memories)
     }
 }

@@ -304,6 +304,7 @@ final class MacCaptureCoordinator {
             // so fall back to the selected conversation or focused window title.
             if conversation == nil {
                 conversation = teamsSelectedConversationTitle(pid: app.processIdentifier)
+                    ?? teamsConversationHeaderTitle(pid: app.processIdentifier)
                     ?? teamsConversationTitleFromFocusedWindow(pid: app.processIdentifier)
             }
 
@@ -479,6 +480,7 @@ final class MacCaptureCoordinator {
 
         if isTeamsBundleID(lowerBundleID) {
             guard let conversation = teamsSelectedConversationTitle(pid: app.processIdentifier)
+                ?? teamsConversationHeaderTitle(pid: app.processIdentifier)
                 ?? teamsConversationTitleFromFocusedWindow(pid: app.processIdentifier)
             else {
                 return
@@ -1132,12 +1134,14 @@ final class MacCaptureCoordinator {
             "discord",
             "zoom",
             "webex",
+            "ciscospark",
             "signal",
             "whatsapp",
             "telegram",
             "mattermost",
             "googlechat",
             "google.chat",
+            "mobilesms",
             "com.apple.ichat",
             "com.apple.messages"
         ]
@@ -1155,9 +1159,9 @@ final class MacCaptureCoordinator {
         }
 
         let candidates = [
+            windowContext.title,
             windowContext.selectedContent?.title,
-            windowContext.focusedContent?.title,
-            windowContext.title
+            windowContext.focusedContent?.title
         ].compactMap { $0 }
 
         for candidate in candidates {

@@ -22,7 +22,8 @@ enum SearchService {
         "email", "emails", "message", "messages", "subject", "about", "regarding",
         "titled", "called", "containing", "contains", "read", "received", "sent",
         "lookup", "looking", "please", "worked", "recent", "recently",
-        "file", "files", "document", "documents"
+        "conversation", "conversations", "chat", "chats", "chatting", "messaging",
+        "talked", "talking", "file", "files", "document", "documents"
     ])
 
     static func tokens(for query: String) -> [String] {
@@ -518,8 +519,8 @@ enum SearchService {
             case .conversations:
                 let chatAliases = [
                     "teams", "msteams", "slack", "messages", "imessage",
-                    "discord", "zoom", "webex", "google chat", "signal",
-                    "whatsapp", "telegram"
+                    "discord", "zoom", "webex", "ciscospark", "google chat",
+                    "googlechat", "signal", "whatsapp", "telegram", "mattermost"
                 ]
                 return chatAliases.contains { app.contains($0) }
 
@@ -584,7 +585,7 @@ enum SearchService {
 
         let conversationTerms: Set<String> = [
             "conversation", "conversations", "chat", "chats", "chatting",
-            "message", "messages", "messaging"
+            "message", "messages", "messaging", "talked", "talking"
         ]
 
         let fileTerms: Set<String> = [
@@ -620,7 +621,8 @@ enum SearchService {
             ("Slack", ["slack"]),
             ("Discord", ["discord"]),
             ("Zoom", ["zoom"]),
-            ("Webex", ["webex"]),
+            ("Webex", ["webex", "ciscospark"]),
+            ("Mattermost", ["mattermost"]),
             ("Messages", ["messages", "imessage"]),
             ("Signal", ["signal"]),
             ("WhatsApp", ["whatsapp"]),
