@@ -288,7 +288,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="v1.1"
+          TAG="v1.1-build3"
           DMG="MemoryTrail-1.1.dmg"
           TITLE="Memory Trail 1.1 (Build 3) — First Official Release"
           NOTES=$(cat <<'EOF'
