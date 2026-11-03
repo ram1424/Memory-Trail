@@ -888,11 +888,11 @@ private struct MemoryTrailUpdateSheet: View {
             )
 
             HStack(spacing: 12) {
-                versionPill("Current", value: currentVersion, tint: .gray)
+                versionPill("Current", value: currentVersion, tint: .gray, valueColor: primaryText)
                 Image(systemName: "arrow.right")
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.secondary)
-                versionPill("New", value: manifest.version, tint: .blue)
+                versionPill("New", value: manifest.version, tint: .blue, valueColor: .blue)
             }
             .padding(.top, 18)
             .padding(.bottom, 18)
@@ -1062,13 +1062,18 @@ private struct MemoryTrailUpdateSheet: View {
         }
     }
 
-    private func versionPill(_ label: String, value: String, tint: Color) -> some View {
+    private func versionPill(
+        _ label: String,
+        value: String,
+        tint: Color,
+        valueColor: Color
+    ) -> some View {
         HStack(spacing: 8) {
             Text(label)
                 .foregroundStyle(.secondary)
             Text(value)
                 .fontWeight(.bold)
-                .foregroundStyle(tint == .gray ? primaryText : tint)
+                .foregroundStyle(valueColor)
         }
         .font(.system(size: 14, weight: .semibold))
         .padding(.horizontal, 14)
