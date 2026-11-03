@@ -200,6 +200,9 @@ struct MemoryTrailApp: App {
 
     @MainActor
     private func runStartupSequence() async {
+        let startupBeganAt = Date()
+        let minimumSplashDuration: TimeInterval = 3.5
+
         updateLaunchProgress(0.12, status: "Opening your private timeline…")
 
         // A real SwiftData read verifies the local store is ready before capture starts.
@@ -219,10 +222,15 @@ struct MemoryTrailApp: App {
         await Task.yield()
         updateLaunchProgress(1.0, status: "Ready")
 
-        let handoffDelay: UInt64 = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-            ? 80_000_000
-            : 220_000_000
-        try? await Task.sleep(nanoseconds: handoffDelay)
+        // Keep the loading screen visible for at least 3.5 seconds total.
+        let elapsed = Date().timeIntervalSince(startupBeganAt)
+        let remaining = max(0, minimumSplashDuration - elapsed)
+        if remaining > 0 {
+            try? await Task.sleep(
+                nanoseconds: UInt64(remaining * 1_000_000_000)
+            )
+        }
+
         isLaunching = false
     }
 
