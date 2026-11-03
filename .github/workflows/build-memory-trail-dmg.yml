@@ -333,17 +333,24 @@ jobs:
           EOF
           )
 
-          echo "Removing previous GitHub releases so only the current release remains."
+          echo "Publishing or updating the current GitHub release."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "$TITLE" \
+              --notes "$NOTES" \
+              --latest
+            gh release upload "$TAG" "$DMG" --clobber
+          else
+            gh release create "$TAG" "$DMG" \
+              --title "$TITLE" \
+              --notes "$NOTES" \
+              --target main \
+              --latest
+          fi
+
+          echo "Removing older releases while preserving $TAG."
           gh release list --limit 100 --json tagName --jq '.[].tagName' | while IFS= read -r OLD_TAG; do
             [ -z "$OLD_TAG" ] && continue
-            gh release delete "$OLD_TAG" --cleanup-tag --yes
+            [ "$OLD_TAG" = "$TAG" ] && continue
+            gh release delete "$OLD_TAG" --cleanup-tag --yes || true
           done
-
-          # Remove a lingering target tag if it exists without a release.
-          git push origin ":refs/tags/$TAG" >/dev/null 2>&1 || true
-
-          gh release create "$TAG" "$DMG" \
-            --title "$TITLE" \
-            --notes "$NOTES" \
-            --target main \
-            --latest
