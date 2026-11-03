@@ -16,7 +16,7 @@ struct MemoryTrailApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("memoryTrail.lastPresentedWhatsNewRelease") private var lastPresentedWhatsNewRelease = ""
     @AppStorage("memoryTrail.lastUpdateCheckEpoch") private var lastUpdateCheckEpoch = 0.0
-    @AppStorage("memoryTrail.didOpenMainWindowOnFirstLaunch") private var didOpenMainWindowOnFirstLaunch = false
+    @AppStorage("memoryTrail.didRequestInitialFullScreen") private var didRequestInitialFullScreen = false
 
     private static let screenshotDemoSelection: SidebarItem? = {
         guard let argument = ProcessInfo.processInfo.arguments.first(where: {
@@ -435,7 +435,7 @@ struct MemoryTrailApp: App {
     @MainActor
     private func launchAndMonitorUpdates() async {
         await runStartupSequence()
-        await presentMainWindowOnFirstLaunchIfNeeded()
+        await enterFullScreenOnFirstLaunchIfNeeded()
 
         if hasCompletedOnboarding {
             await presentWhatsNewIfNeeded()
@@ -450,18 +450,18 @@ struct MemoryTrailApp: App {
     }
 
     @MainActor
-    private func presentMainWindowOnFirstLaunchIfNeeded() async {
+    private func enterFullScreenOnFirstLaunchIfNeeded() async {
         guard Self.screenshotDemoSelection == nil,
-              !didOpenMainWindowOnFirstLaunch
+              !didRequestInitialFullScreen
         else {
             return
         }
 
-        // On the first real launch, behave like a normal foreground Mac app:
-        // surface the main/onboarding window without forcing native full screen.
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
 
+        // Wait until SwiftUI/AppKit has presented the first real app window,
+        // then enter native macOS full screen exactly once.
         for _ in 0..<20 {
             if let window = NSApplication.shared.keyWindow
                 ?? NSApplication.shared.windows.first(where: {
@@ -472,7 +472,12 @@ struct MemoryTrailApp: App {
                 }
 
                 window.makeKeyAndOrderFront(nil)
-                didOpenMainWindowOnFirstLaunch = true
+
+                if !window.styleMask.contains(.fullScreen) {
+                    window.toggleFullScreen(nil)
+                }
+
+                didRequestInitialFullScreen = true
                 return
             }
 
