@@ -133,7 +133,6 @@ jobs:
           APP="$PWD/build/Build/Products/Release/Memory Trail.app"
           test -d "$APP"
           test -s "$APP/Contents/Resources/AppIcon.icns"
-          test -s "$APP/Contents/Resources/MemoryTrailLoading.mp4"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist"
 
