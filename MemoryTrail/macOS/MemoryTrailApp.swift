@@ -245,7 +245,9 @@ private struct MemoryTrailSimpleSplashView: View {
                 let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
                 let waveShift = reduceMotion ? 0 : CGFloat(sin(time * 0.90) * 8)
                 let secondWaveShift = reduceMotion ? 0 : CGFloat(cos(time * 0.72) * 10)
-                let iconScale = reduceMotion ? 1.0 : 1.0 + (sin(time * 1.75) * 0.012)
+                let iconScale: CGFloat = reduceMotion
+                    ? 1.0
+                    : CGFloat(1.0 + (sin(time * 1.75) * 0.012))
                 let glowOpacity = reduceMotion ? 0.16 : 0.14 + (sin(time * 1.45) + 1) * 0.035
                 let contentWidth = min(760.0, max(520.0, size.width * 0.58))
                 let iconSize = min(166.0, max(122.0, size.width * 0.115))
@@ -341,7 +343,6 @@ private struct MemoryTrailSimpleSplashView: View {
                             Image(nsImage: icon)
                                 .resizable()
                                 .interpolation(.high)
-                                .antialiased(true)
                                 .scaledToFit()
                                 .frame(width: iconSize, height: iconSize)
                                 .scaleEffect(iconScale)
