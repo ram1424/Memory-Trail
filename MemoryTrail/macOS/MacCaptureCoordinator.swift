@@ -145,7 +145,7 @@ final class MacCaptureCoordinator {
         let lowerBundleID = bundleID.lowercased()
 
         if lowerBundleID == "com.microsoft.outlook" ||
-            isTeamsBundleID(lowerBundleID) ||
+            isChatBundleID(lowerBundleID) ||
             lowerBundleID.contains("onenote") {
             // Let complex app UIs settle, then read the selected item rather
             // than logging only the application/window name.
@@ -184,9 +184,7 @@ final class MacCaptureCoordinator {
         let bundleID = (application.bundleIdentifier ?? "").lowercased()
         let shouldEnable =
             bundleID == "com.microsoft.outlook" ||
-            bundleID == "com.microsoft.teams2" ||
-            bundleID.contains("msteams") ||
-            bundleID.contains("teams") ||
+            isChatBundleID(bundleID) ||
             bundleID.contains("electron") ||
             bundleID.contains("onenote")
 
@@ -325,6 +323,35 @@ final class MacCaptureCoordinator {
             return
         }
 
+        if isChatBundleID(lowerBundleID) {
+            var conversation: String?
+
+            if result == .success, let hitElement {
+                conversation = genericChatConversationFromClickedElement(
+                    hitElement,
+                    applicationName: app.localizedName ?? "Chat"
+                )
+            }
+
+            if conversation == nil {
+                conversation = genericChatConversationTitle(
+                    pid: app.processIdentifier,
+                    bundleID: bundleID,
+                    applicationName: app.localizedName ?? "Chat"
+                )
+            }
+
+            guard let conversation else { return }
+
+            logActivity(
+                title: conversation,
+                sourceURL: nil,
+                applicationName: app.localizedName ?? "Chat",
+                bundleID: bundleID
+            )
+            return
+        }
+
         if lowerBundleID.contains("onenote") {
             if result == .success,
                let hitElement,
@@ -424,7 +451,7 @@ final class MacCaptureCoordinator {
 
         let isExpensiveAccessibilityApp =
             lowerBundleID == "com.microsoft.outlook" ||
-            isTeamsBundleID(lowerBundleID) ||
+            isChatBundleID(lowerBundleID) ||
             lowerBundleID.contains("onenote")
 
         if isExpensiveAccessibilityApp && !forceExpensiveApps {
@@ -457,6 +484,21 @@ final class MacCaptureCoordinator {
                 return
             }
 
+            logActivity(
+                title: conversation,
+                sourceURL: nil,
+                applicationName: appName,
+                bundleID: bundleID
+            )
+            return
+        }
+
+        if isChatBundleID(lowerBundleID),
+           let conversation = genericChatConversationTitle(
+                pid: app.processIdentifier,
+                bundleID: bundleID,
+                applicationName: appName
+           ) {
             logActivity(
                 title: conversation,
                 sourceURL: nil,
@@ -577,6 +619,7 @@ final class MacCaptureCoordinator {
         let lowerBundleID = bundleID.lowercased()
         let needsSelectionContext =
             lowerBundleID == "com.apple.mail" ||
+            isChatBundleID(lowerBundleID) ||
             lowerBundleID.contains("onenote")
 
         let selected = needsSelectionContext ? selectedContentContext(in: windowElement) : nil
@@ -1077,6 +1120,175 @@ final class MacCaptureCoordinator {
         lowerBundleID == "com.microsoft.teams2" ||
             lowerBundleID.contains("msteams") ||
             lowerBundleID.contains("teams")
+    }
+
+    private func isChatBundleID(_ lowerBundleID: String) -> Bool {
+        if isTeamsBundleID(lowerBundleID) {
+            return true
+        }
+
+        let chatBundleFragments = [
+            "slack",
+            "discord",
+            "zoom",
+            "webex",
+            "signal",
+            "whatsapp",
+            "telegram",
+            "mattermost",
+            "googlechat",
+            "google.chat",
+            "com.apple.ichat",
+            "com.apple.messages"
+        ]
+
+        return chatBundleFragments.contains { lowerBundleID.contains($0) }
+    }
+
+    private func genericChatConversationTitle(
+        pid: pid_t,
+        bundleID: String,
+        applicationName: String
+    ) -> String? {
+        guard let windowContext = focusedWindowContext(pid: pid, bundleID: bundleID) else {
+            return nil
+        }
+
+        let candidates = [
+            windowContext.selectedContent?.title,
+            windowContext.focusedContent?.title,
+            windowContext.title
+        ].compactMap { $0 }
+
+        for candidate in candidates {
+            if let title = sanitizedGenericChatTitle(
+                candidate,
+                applicationName: applicationName
+            ) {
+                return title
+            }
+        }
+
+        return nil
+    }
+
+    private func genericChatConversationFromClickedElement(
+        _ element: AXUIElement,
+        applicationName: String
+    ) -> String? {
+        var current: AXUIElement? = element
+        var depth = 0
+        var candidates: [(title: String, score: Int)] = []
+
+        while let candidate = current, depth < 12 {
+            let role = attributeString(candidate, kAXRoleAttribute as CFString)?.lowercased() ?? ""
+            let isConversationContainer =
+                role.contains("row") ||
+                role.contains("cell") ||
+                role.contains("group") ||
+                role.contains("outline") ||
+                role.contains("link")
+
+            if isConversationContainer {
+                for (attribute, baseScore) in [
+                    (kAXTitleAttribute as CFString, 150),
+                    (kAXDescriptionAttribute as CFString, 125),
+                    (kAXValueAttribute as CFString, 90)
+                ] {
+                    if let raw = attributeString(candidate, attribute),
+                       let title = sanitizedGenericChatTitle(
+                            raw,
+                            applicationName: applicationName
+                       ) {
+                        candidates.append((title, baseScore - depth * 6))
+                    }
+                }
+            }
+
+            current = parentElement(of: candidate)
+            depth += 1
+        }
+
+        return candidates.max(by: { $0.score < $1.score })?.title
+    }
+
+    private func sanitizedGenericChatTitle(
+        _ rawValue: String,
+        applicationName: String
+    ) -> String? {
+        var value = rawValue
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard value.count >= 2, value.count <= 180 else { return nil }
+
+        let appLower = applicationName.lowercased()
+        var lower = value.lowercased()
+
+        let suffixes = [
+            " | \(applicationName)",
+            " - \(applicationName)",
+            " — \(applicationName)"
+        ]
+
+        for suffix in suffixes where value.hasSuffix(suffix) {
+            value.removeLast(suffix.count)
+            value = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            lower = value.lowercased()
+        }
+
+        let generic = Set([
+            "",
+            appLower,
+            "chat",
+            "chats",
+            "messages",
+            "message",
+            "activity",
+            "home",
+            "search",
+            "settings",
+            "preferences",
+            "new message",
+            "new chat",
+            "compose",
+            "threads",
+            "mentions & reactions",
+            "later",
+            "canvas",
+            "huddles",
+            "more",
+            "direct messages",
+            "channels"
+        ])
+
+        guard !generic.contains(lower) else { return nil }
+        guard !lower.contains("type a message"),
+              !lower.contains("send a message"),
+              !lower.contains("message field"),
+              !lower.contains("search messages")
+        else {
+            return nil
+        }
+
+        if value.hasPrefix("#") {
+            return value
+        }
+
+        // Slack commonly exposes "channel | workspace" or "person | workspace".
+        // Keep the conversation identity and drop the workspace/app suffix.
+        let parts = value
+            .components(separatedBy: " | ")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if parts.count >= 2,
+           let first = parts.first,
+           !generic.contains(first.lowercased()) {
+            return first
+        }
+
+        return String(value.prefix(180))
     }
 
     private func teamsConversationFromClickedElement(_ element: AXUIElement) -> String? {
@@ -3079,6 +3291,14 @@ final class MacCaptureCoordinator {
         let suffixes = [
             " - Microsoft Outlook", " — Microsoft Outlook",
             " | Microsoft Teams", " - Microsoft Teams", " — Microsoft Teams",
+            " | Slack", " - Slack", " — Slack",
+            " | Discord", " - Discord", " — Discord",
+            " | Zoom", " - Zoom", " — Zoom",
+            " | Webex", " - Webex", " — Webex",
+            " | Signal", " - Signal", " — Signal",
+            " | WhatsApp", " - WhatsApp", " — WhatsApp",
+            " | Telegram", " - Telegram", " — Telegram",
+            " | Messages", " - Messages", " — Messages",
             " - Safari", " — Safari",
             " - Mail", " — Mail",
             " - Google Chrome", " — Google Chrome",
@@ -3140,8 +3360,9 @@ final class MacCaptureCoordinator {
         let generic = Set([
             "button", "group", "table", "list", "row", "scroll area",
             "split group", "toolbar", "mail", "inbox", "focused", "other",
-            "microsoft outlook", "microsoft teams", "teams", "safari", "window",
-            "tab group", "web area", "main", "finder", "preview"
+            "microsoft outlook", "microsoft teams", "teams", "slack", "discord",
+            "zoom", "webex", "signal", "whatsapp", "telegram", "messages",
+            "safari", "window", "tab group", "web area", "main", "finder", "preview"
         ])
 
         return !generic.contains(value.lowercased())

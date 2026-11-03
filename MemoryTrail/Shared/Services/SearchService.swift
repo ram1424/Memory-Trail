@@ -12,7 +12,7 @@ enum SearchService {
         "doing", "find", "for", "from", "i", "in", "into", "is", "it", "me",
         "my", "of", "on", "open", "opened", "opening", "or", "show", "the",
         "this", "to", "today", "was", "were", "what", "when", "where", "with",
-        "yesterday", "view", "viewed", "working"
+        "yesterday", "view", "viewed", "working", "have", "had"
     ]
 
     private static let genericTerms: Set<String> = stopWords.union([
@@ -617,6 +617,14 @@ enum SearchService {
         let map: [(String, [String])] = [
             ("Outlook", ["outlook"]),
             ("Teams", ["teams", "msteams"]),
+            ("Slack", ["slack"]),
+            ("Discord", ["discord"]),
+            ("Zoom", ["zoom"]),
+            ("Webex", ["webex"]),
+            ("Messages", ["messages", "imessage"]),
+            ("Signal", ["signal"]),
+            ("WhatsApp", ["whatsapp"]),
+            ("Telegram", ["telegram"]),
             ("Safari", ["safari"]),
             ("Finder", ["finder"]),
             ("OneNote", ["onenote"]),
