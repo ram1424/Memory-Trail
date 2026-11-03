@@ -16,7 +16,7 @@ struct MemoryTrailApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("memoryTrail.lastPresentedWhatsNewRelease") private var lastPresentedWhatsNewRelease = ""
     @AppStorage("memoryTrail.lastUpdateCheckEpoch") private var lastUpdateCheckEpoch = 0.0
-    @AppStorage("memoryTrail.didRequestInitialFullScreen") private var didRequestInitialFullScreen = false
+    @AppStorage("memoryTrail.didOpenMainWindowOnFirstLaunch") private var didOpenMainWindowOnFirstLaunch = false
 
     private static let screenshotDemoSelection: SidebarItem? = {
         guard let argument = ProcessInfo.processInfo.arguments.first(where: {
@@ -435,7 +435,7 @@ struct MemoryTrailApp: App {
     @MainActor
     private func launchAndMonitorUpdates() async {
         await runStartupSequence()
-        await enterFullScreenOnFirstLaunchIfNeeded()
+        await presentMainWindowOnFirstLaunchIfNeeded()
 
         if hasCompletedOnboarding {
             await presentWhatsNewIfNeeded()
@@ -450,22 +450,29 @@ struct MemoryTrailApp: App {
     }
 
     @MainActor
-    private func enterFullScreenOnFirstLaunchIfNeeded() async {
+    private func presentMainWindowOnFirstLaunchIfNeeded() async {
         guard Self.screenshotDemoSelection == nil,
-              !didRequestInitialFullScreen
+              !didOpenMainWindowOnFirstLaunch
         else {
             return
         }
 
-        // Give SwiftUI/AppKit a moment to finish presenting the main window
-        // after the splash before asking macOS to enter native full screen.
+        // On the first real launch, behave like a normal foreground Mac app:
+        // surface the main/onboarding window without forcing native full screen.
+        NSApplication.shared.setActivationPolicy(.regular)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+
         for _ in 0..<20 {
             if let window = NSApplication.shared.keyWindow
-                ?? NSApplication.shared.windows.first(where: { $0.isVisible && $0.level == .normal }) {
-                if !window.styleMask.contains(.fullScreen) {
-                    window.toggleFullScreen(nil)
+                ?? NSApplication.shared.windows.first(where: {
+                    $0.isVisible && $0.level == .normal && $0.canBecomeKey
+                }) {
+                if window.isMiniaturized {
+                    window.deminiaturize(nil)
                 }
-                didRequestInitialFullScreen = true
+
+                window.makeKeyAndOrderFront(nil)
+                didOpenMainWindowOnFirstLaunch = true
                 return
             }
 
