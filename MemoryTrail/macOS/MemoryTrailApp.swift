@@ -252,7 +252,7 @@ private struct MemoryTrailNativeLoadingView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            TimelineView(.animation) { timeline in
+            SwiftUI.TimelineView(.animation) { timeline in
                 let size = geometry.size
                 let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
                 let barWidth = min(470.0, max(320.0, size.width * 0.34))
