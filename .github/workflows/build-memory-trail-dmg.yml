@@ -291,7 +291,12 @@ jobs:
           TAG="v1.1-build3"
           DMG="MemoryTrail-1.1.dmg"
           TITLE="Memory Trail 1.1 (Build 3) — First Official Release"
-          NOTES=$(cat <<'EOF'
+          API="https://api.github.com/repos/$GITHUB_REPOSITORY"
+          AUTH_HEADER="Authorization: Bearer $GH_TOKEN"
+          ACCEPT_HEADER="Accept: application/vnd.github+json"
+          VERSION_HEADER="X-GitHub-Api-Version: 2022-11-28"
+
+          cat > release-notes.md <<'EOF'
           Memory Trail 1.1 (Build 3) — First Official Release for macOS.
 
           First Official Release
@@ -309,10 +314,6 @@ jobs:
           - Built-in manual and automatic update checking.
           - Comprehensive first-launch What's New experience.
           - Fast 2-second animated startup.
-          - Ask Memory Trail search across locally stored activity history.
-          - Browser, Outlook/Mail, Teams, files/documents, clipboard, favorites, and manual memories.
-          - Menu bar operation, pause controls, app exclusions, and configurable clipboard capture.
-          - Refined onboarding and Settings privacy visuals with consistent shield/lock iconography.
 
           Privacy:
           - Captured activity is sourced, processed, and stored locally on the Mac.
@@ -331,25 +332,109 @@ jobs:
 
           This automated build uses ad-hoc signing when a Developer ID certificate is not configured and is not notarized in that case.
           EOF
-          )
 
-          echo "Publishing or updating the current GitHub release."
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" \
-              --title "$TITLE" \
-              --notes "$NOTES"
-            gh release upload "$TAG" "$DMG" --clobber
+          BODY="$(cat release-notes.md)"
+          TARGET_SHA="$(git rev-parse HEAD)"
+
+          EXISTING_CODE="$(curl -sS -o existing-release.json -w '%{http_code}' \
+            -H "$AUTH_HEADER" \
+            -H "$ACCEPT_HEADER" \
+            -H "$VERSION_HEADER" \
+            "$API/releases/tags/$TAG")"
+
+          if [ "$EXISTING_CODE" = "200" ]; then
+            RELEASE_ID="$(jq -r '.id' existing-release.json)"
+            jq -n \
+              --arg title "$TITLE" \
+              --arg body "$BODY" \
+              '{name:$title, body:$body, draft:false, prerelease:false, make_latest:"true"}' \
+              > release-payload.json
+
+            curl -fsSL -X PATCH \
+              -H "$AUTH_HEADER" \
+              -H "$ACCEPT_HEADER" \
+              -H "$VERSION_HEADER" \
+              -H "Content-Type: application/json" \
+              "$API/releases/$RELEASE_ID" \
+              --data-binary @release-payload.json \
+              > published-release.json
           else
-            gh release create "$TAG" "$DMG" \
-              --title "$TITLE" \
-              --notes "$NOTES" \
-              --target main \
-              --latest
+            jq -n \
+              --arg tag "$TAG" \
+              --arg target "$TARGET_SHA" \
+              --arg title "$TITLE" \
+              --arg body "$BODY" \
+              '{tag_name:$tag, target_commitish:$target, name:$title, body:$body, draft:false, prerelease:false, make_latest:"true"}' \
+              > release-payload.json
+
+            curl -fsSL -X POST \
+              -H "$AUTH_HEADER" \
+              -H "$ACCEPT_HEADER" \
+              -H "$VERSION_HEADER" \
+              -H "Content-Type: application/json" \
+              "$API/releases" \
+              --data-binary @release-payload.json \
+              > published-release.json
+
+            RELEASE_ID="$(jq -r '.id' published-release.json)"
           fi
 
-          echo "Removing older releases while preserving $TAG."
-          gh release list --limit 100 --json tagName --jq '.[].tagName' | while IFS= read -r OLD_TAG; do
-            [ -z "$OLD_TAG" ] && continue
-            [ "$OLD_TAG" = "$TAG" ] && continue
-            gh release delete "$OLD_TAG" --cleanup-tag --yes || true
-          done
+          RELEASE_ID="${RELEASE_ID:-$(jq -r '.id' published-release.json)}"
+          test -n "$RELEASE_ID"
+          test "$RELEASE_ID" != "null"
+
+          ASSET_ID="$(curl -fsSL \
+            -H "$AUTH_HEADER" \
+            -H "$ACCEPT_HEADER" \
+            -H "$VERSION_HEADER" \
+            "$API/releases/$RELEASE_ID/assets" \
+            | jq -r --arg name "$DMG" '.[] | select(.name == $name) | .id' \
+            | head -n 1)"
+
+          if [ -n "$ASSET_ID" ]; then
+            curl -fsSL -X DELETE \
+              -H "$AUTH_HEADER" \
+              -H "$ACCEPT_HEADER" \
+              -H "$VERSION_HEADER" \
+              "$API/releases/assets/$ASSET_ID" \
+              >/dev/null
+          fi
+
+          curl -fsSL -X POST \
+            -H "$AUTH_HEADER" \
+            -H "$ACCEPT_HEADER" \
+            -H "$VERSION_HEADER" \
+            -H "Content-Type: application/x-apple-diskimage" \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=$DMG" \
+            --data-binary @"$DMG" \
+            > uploaded-asset.json
+
+          test "$(jq -r '.state' uploaded-asset.json)" = "uploaded"
+          echo "Published $(jq -r '.name' uploaded-asset.json) to $TAG."
+
+          # Keep older test releases from blocking the official release.
+          curl -fsSL \
+            -H "$AUTH_HEADER" \
+            -H "$ACCEPT_HEADER" \
+            -H "$VERSION_HEADER" \
+            "$API/releases?per_page=100" \
+            > all-releases.json
+
+          jq -r --arg tag "$TAG" '.[] | select(.tag_name != $tag) | [.id, .tag_name] | @tsv' all-releases.json \
+            | while IFS=$'\t' read -r OLD_ID OLD_TAG; do
+                [ -z "$OLD_ID" ] && continue
+                curl -fsSL -X DELETE \
+                  -H "$AUTH_HEADER" \
+                  -H "$ACCEPT_HEADER" \
+                  -H "$VERSION_HEADER" \
+                  "$API/releases/$OLD_ID" \
+                  >/dev/null || true
+
+                ENCODED_TAG="$(printf '%s' "$OLD_TAG" | jq -sRr @uri)"
+                curl -fsSL -X DELETE \
+                  -H "$AUTH_HEADER" \
+                  -H "$ACCEPT_HEADER" \
+                  -H "$VERSION_HEADER" \
+                  "$API/git/refs/tags/$ENCODED_TAG" \
+                  >/dev/null || true
+              done
