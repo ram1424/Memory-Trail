@@ -405,7 +405,7 @@ private struct MemoryTrailSplashProgressBar: View {
         GeometryReader { geometry in
             let width = geometry.size.width
             let height = geometry.size.height
-            let clamped = min(max(progress, 0), 1)
+            let clamped = CGFloat(min(max(progress, 0), 1))
             let fillWidth = max(height, width * clamped)
             let beadSize = max(12.0, height * 0.72)
 
