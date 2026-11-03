@@ -20,6 +20,7 @@
 		097F71DE700CC1BEBCE419F9 /* MacCaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */; };
 		A20D703715FF7BF072E4D095 /* MemoryTrailApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B173E22FB694D1026018A7 /* MemoryTrailApp.swift */; };
 		3235F8AE2EA774A50A4DC1A3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 86BE5228102BBE430BCEEA46 /* Assets.xcassets */; };
+		B1C2D3E4F5061728394A5B6C /* MemoryTrailLoading.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* MemoryTrailLoading.mp4 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +38,7 @@
 		9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/MacCaptureCoordinator.swift"; sourceTree = "<group>"; };
 		93B173E22FB694D1026018A7 /* MemoryTrailApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "macOS/MemoryTrailApp.swift"; sourceTree = "<group>"; };
 		86BE5228102BBE430BCEEA46 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Resources/Assets.xcassets; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5C /* MemoryTrailLoading.mp4 */ = {isa = PBXFileReference; lastKnownFileType = video.mp4; path = Resources/MemoryTrailLoading.mp4; sourceTree = "<group>"; };
 		418E31727DBBF22E398D3B71 /* Memory Trail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Memory Trail.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -61,6 +63,7 @@
 			9F526AA5EF8EB178891ADB71 /* MacCaptureCoordinator.swift */,
 			93B173E22FB694D1026018A7 /* MemoryTrailApp.swift */,
 			86BE5228102BBE430BCEEA46 /* Assets.xcassets */,
+			A1B2C3D4E5F60718293A4B5C /* MemoryTrailLoading.mp4 */,
 		); };
 		FBDC4F23F93125BBEEAE800C /* Products */ = {isa = PBXGroup; name = Products; sourceTree = "<group>"; children = (418E31727DBBF22E398D3B71 /* Memory Trail.app */); };
 /* End PBXGroup section */
@@ -74,7 +77,7 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		A6F35E0A8AA2F4D01CD59A6F = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (3235F8AE2EA774A50A4DC1A3); runOnlyForDeploymentPostprocessing = 0; };
+		A6F35E0A8AA2F4D01CD59A6F = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (3235F8AE2EA774A50A4DC1A3, B1C2D3E4F5061728394A5B6C); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 
