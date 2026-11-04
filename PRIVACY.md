@@ -7,7 +7,15 @@ Memory Trail is designed as a privacy-first, locally run activity-history applic
 
 ## 1. Privacy by design
 
-Memory Trail processes and stores captured activity locally on your Mac. Memory Trail does not require a Memory Trail account and does not operate a cloud service for your timeline.
+Memory Trail processes and stores captured activity locally on your Mac.
+
+**Memory Trail has no external data connectors of any kind.** It does not connect your captured activity to email accounts, cloud drives, calendars, collaboration platforms, browser-sync accounts, AI providers, analytics platforms, advertising systems, data brokers, or other external services for ingestion, enrichment, synchronization, or analysis.
+
+**There is no Memory Trail account to create, no sign-in, no subscription account, and no remote user profile.** Memory Trail does not require credentials for a Memory Trail service because no such account service exists.
+
+**Memory Trail does not process, transmit, upload, synchronize, back up, or store your captured activity data on any cloud service.** Captured timeline data, clipboard history, files and paths, conversation context, searches, Favorites, and manual memories remain on your Mac unless you intentionally move or copy them yourself outside the app.
+
+**Memory Trail does not perform AI data scraping of any kind.** It does not harvest captured activity for AI datasets, send captured activity to an AI provider, use captured activity to train or fine-tune AI models, create embeddings in a cloud service, or perform remote AI summarization, profiling, or inference on your activity history.
 
 Memory Trail does not sell your personal information, does not use your captured activity for advertising, and does not include an advertising SDK or analytics SDK.
 
@@ -66,9 +74,11 @@ The **Clear App Cache** feature resets temporary capture state and preferences. 
 
 ## 7. Network connections and update checks
 
-Memory Trail's captured timeline, clipboard history, files, conversations, searches, and manual memories are not sent as part of update checks.
+Memory Trail has **no data connectors** and does not connect to any external service to import, export, enrich, analyze, synchronize, or store your captured activity.
 
-Memory Trail may connect to GitHub-hosted resources for limited purposes such as:
+Memory Trail's captured timeline, clipboard history, files, paths, conversations, searches, Favorites, and manual memories are never included in update checks or GitHub requests.
+
+The only routine external network activity built into Memory Trail is limited to GitHub-hosted resources for software maintenance and documentation, such as:
 
 - Checking whether a newer Memory Trail release is available.
 - Downloading a Memory Trail update after you choose to update.
@@ -76,13 +86,19 @@ Memory Trail may connect to GitHub-hosted resources for limited purposes such as
 
 These requests may expose ordinary network information to GitHub, such as your IP address, user agent, and request timestamp, as is typical when accessing a website or downloading a file. GitHub's handling of that information is governed by GitHub's own privacy practices.
 
-Memory Trail does not embed GitHub account credentials in the application for update checking.
+Memory Trail does not embed GitHub account credentials in the application for update checking, does not require you to sign in to GitHub, and does not access your GitHub account or repositories through the app.
 
-## 8. Analytics, tracking, advertising, and profiling
+This limited GitHub connectivity is **not a data connector**. It is used only to check release metadata, download application updates you choose to install, and open public project documentation or source-code pages.
 
-Memory Trail does not include third-party analytics, advertising SDKs, behavioral advertising, or a remote account system for captured activity.
+## 8. Analytics, tracking, advertising, profiling, and AI
+
+Memory Trail does not include third-party analytics, advertising SDKs, behavioral advertising, telemetry services for captured activity, or a remote account system.
 
 Memory Trail does not use your captured timeline to create advertising profiles.
+
+Memory Trail does not scrape your activity for AI use. It does not send captured activity to OpenAI, Anthropic, Google, Microsoft, or any other AI provider; it does not use captured activity to train, fine-tune, evaluate, or improve AI models; and it does not create a cloud-based AI profile of your activity.
+
+Memory Trail does not perform remote AI summarization or remote AI analysis of your captured history.
 
 ## 9. Sharing and sale of captured activity
 
@@ -132,4 +148,12 @@ https://github.com/ram1424/Memory-Trail/issues
 
 ## Plain-language summary
 
-Memory Trail is built to keep your activity history **on your Mac**. It can locally remember supported app/window context, browser activity, email subjects, chat titles, file/document context, and clipboard text when enabled. It does not operate a cloud timeline, sell your captured history, or use analytics/advertising SDKs. The main external connection used by the app is GitHub for update checks, update downloads, source-code links, releases, and this privacy policy.
+Memory Trail is built to keep your activity history **on your Mac**.
+
+- **No connectors:** Memory Trail has no external data connectors of any kind.
+- **No accounts:** there is no Memory Trail account, sign-in, remote profile, or account creation.
+- **No cloud data processing:** captured activity is not processed, transmitted, synchronized, backed up, or stored on cloud services.
+- **No AI scraping:** captured activity is not harvested for AI datasets, sent to AI providers, used for model training, or remotely summarized/analyzed by AI.
+- **No analytics or advertising SDKs:** Memory Trail does not profile your activity for ads or telemetry.
+
+The app may make limited requests to public GitHub resources only for update checks, update downloads, source-code links, releases, and this privacy policy. Those requests do not contain your captured timeline, clipboard history, files, conversations, searches, Favorites, or manual memories.

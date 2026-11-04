@@ -248,8 +248,26 @@ struct SettingsView: View {
 
                     privacyStatement(
                         icon: "link",
-                        title: "No external data connectors",
-                        text: "Memory Trail does not use external data connectors, cloud sync, analytics services, or a remote account for its capture and storage workflow."
+                        title: "No connectors of any kind",
+                        text: "Memory Trail has no external data connectors. It does not connect your captured activity to cloud drives, email accounts, calendars, collaboration platforms, AI providers, analytics services, advertising systems, or other external services."
+                    )
+
+                    privacyStatement(
+                        icon: "person.crop.circle.badge.xmark",
+                        title: "No account to create",
+                        text: "There is no Memory Trail account, sign-in, subscription account, remote profile, or cloud identity required to use the app."
+                    )
+
+                    privacyStatement(
+                        icon: "icloud.slash.fill",
+                        title: "No cloud processing or storage",
+                        text: "Captured timeline data, clipboard history, files and paths, conversations, searches, Favorites, and manual memories are not processed, sent, synchronized, backed up, or stored on cloud services by Memory Trail."
+                    )
+
+                    privacyStatement(
+                        icon: "brain.head.profile",
+                        title: "No AI scraping or training",
+                        text: "Memory Trail does not scrape your activity for AI, send captured data to AI providers, use it to train or fine-tune models, or perform remote AI summarization, profiling, embeddings, or inference."
                     )
 
                     privacyStatement(
