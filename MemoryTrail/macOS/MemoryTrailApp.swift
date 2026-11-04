@@ -539,7 +539,7 @@ struct MemoryTrailApp: App {
         } catch {
             guard manual else { return }
             updatePresentation = .unavailable(
-                "Memory Trail could not reach the update manifest. The source repository is private, so automatic checks use the public update manifest rather than embedding GitHub credentials in the app."
+                "Memory Trail could not reach the update service. Check your internet connection and try again, or open Releases to download the latest version manually."
             )
         }
     }
@@ -857,39 +857,50 @@ private enum MemoryTrailUpdatePresentation: Identifiable {
 }
 
 private enum MemoryTrailUpdateService {
-    private static let manifestURL = URL(
-        string: "https://ram1424.github.io/Memory-Trail/update.json"
-    )!
+    private static let manifestURLs = [
+        URL(string: "https://raw.githubusercontent.com/ram1424/Memory-Trail/main/docs/update.json")!,
+        URL(string: "https://ram1424.github.io/Memory-Trail/update.json")!
+    ]
 
     static func fetchLatest() async throws -> MemoryTrailUpdateManifest {
-        var components = URLComponents(url: manifestURL, resolvingAgainstBaseURL: false)!
-        components.queryItems = [
-            URLQueryItem(name: "t", value: String(Int(Date().timeIntervalSince1970)))
-        ]
+        var lastError: Error = URLError(.badServerResponse)
 
-        guard let url = components.url else {
-            throw URLError(.badURL)
+        for manifestURL in manifestURLs {
+            do {
+                var components = URLComponents(url: manifestURL, resolvingAgainstBaseURL: false)!
+                components.queryItems = [
+                    URLQueryItem(name: "t", value: String(Int(Date().timeIntervalSince1970)))
+                ]
+
+                guard let url = components.url else {
+                    throw URLError(.badURL)
+                }
+
+                var request = URLRequest(
+                    url: url,
+                    cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
+                    timeoutInterval: 8
+                )
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+                request.setValue(
+                    "MemoryTrail/\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")",
+                    forHTTPHeaderField: "User-Agent"
+                )
+
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let http = response as? HTTPURLResponse,
+                      (200...299).contains(http.statusCode)
+                else {
+                    throw URLError(.badServerResponse)
+                }
+
+                return try JSONDecoder().decode(MemoryTrailUpdateManifest.self, from: data)
+            } catch {
+                lastError = error
+            }
         }
 
-        var request = URLRequest(
-            url: url,
-            cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
-            timeoutInterval: 8
-        )
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue(
-            "MemoryTrail/\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")",
-            forHTTPHeaderField: "User-Agent"
-        )
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse,
-              (200...299).contains(http.statusCode)
-        else {
-            throw URLError(.badServerResponse)
-        }
-
-        return try JSONDecoder().decode(MemoryTrailUpdateManifest.self, from: data)
+        throw lastError
     }
 
     static func isNewer(
