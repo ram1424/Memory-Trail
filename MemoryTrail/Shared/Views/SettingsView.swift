@@ -197,7 +197,7 @@ struct SettingsView: View {
 
                     HStack {
                         Label(
-                            "Version \(appVersion) • Build \(buildNumber)",
+                            "Version \(appVersion)",
                             systemImage: "shippingbox.fill"
                         )
                         .font(.footnote.weight(.medium))
@@ -289,7 +289,7 @@ struct SettingsView: View {
                     .buttonStyle(.plain)
                     .help("Open the Memory Trail GitHub page")
 
-                    Text("Version \(appVersion) (Build \(buildNumber))")
+                    Text("Version \(appVersion)")
                         .font(.caption2)
 
                     Text("Created By: Roman Zakharov")
@@ -380,10 +380,6 @@ struct SettingsView: View {
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
-    }
-
-    private var buildNumber: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
     }
 
     private var alwaysExcludedOptions: [RecallExclusionOption] {

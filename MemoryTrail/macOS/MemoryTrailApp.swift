@@ -14,6 +14,8 @@ struct MemoryTrailApp: App {
     @State private var updatePresentation: MemoryTrailUpdatePresentation?
     @State private var isCheckingForUpdates = false
     @State private var isInstallingUpdate = false
+    @State private var showAccessibilityPrompt = false
+    @State private var didPromptAccessibilityThisLaunch = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("memoryTrail.lastPresentedWhatsNewRelease") private var lastPresentedWhatsNewRelease = ""
     @AppStorage("memoryTrail.lastUpdateCheckEpoch") private var lastUpdateCheckEpoch = 0.0
@@ -153,7 +155,6 @@ struct MemoryTrailApp: App {
                     presentation: presentation,
                     icon: Self.brandIcon,
                     currentVersion: Self.appVersion,
-                    currentBuild: Self.buildNumber,
                     isInstallingUpdate: isInstallingUpdate,
                     onUpdate: { manifest in
                         updatePresentation = nil
@@ -165,20 +166,36 @@ struct MemoryTrailApp: App {
                             skippedUpdateVersion = ""
                         }
                         updatePresentation = nil
+                        refreshAccessibilityAndPromptIfNeeded()
                     },
                     onSkipVersion: { manifest in
                         skippedUpdateVersion = manifest.version
                         remindUpdateAfterEpoch = 0
                         updatePresentation = nil
+                        refreshAccessibilityAndPromptIfNeeded()
                     },
                     onOpenReleases: {
                         if let url = URL(string: "https://github.com/ram1424/Memory-Trail/releases/latest") {
                             NSWorkspace.shared.open(url)
                         }
                         updatePresentation = nil
+                        refreshAccessibilityAndPromptIfNeeded()
                     },
                     onDismiss: {
                         updatePresentation = nil
+                        refreshAccessibilityAndPromptIfNeeded()
+                    }
+                )
+            }
+            .sheet(isPresented: $showAccessibilityPrompt) {
+                MemoryTrailAccessibilityPrompt(
+                    onOpenSettings: {
+                        MacCaptureCoordinator.shared.requestAccessibilityPermission()
+                        MacCaptureCoordinator.shared.openAccessibilitySettings()
+                        showAccessibilityPrompt = false
+                    },
+                    onNotNow: {
+                        showAccessibilityPrompt = false
                     }
                 )
             }
@@ -187,11 +204,20 @@ struct MemoryTrailApp: App {
                     await checkForUpdates(manual: true)
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                MacCaptureCoordinator.shared.refreshAccessibilityStatus()
+                if MacCaptureCoordinator.shared.hasAccessibilityPermission {
+                    showAccessibilityPrompt = false
+                } else {
+                    refreshAccessibilityAndPromptIfNeeded()
+                }
+            }
             .onChange(of: hasCompletedOnboarding) { _, completed in
                 guard completed, Self.screenshotDemoSelection == nil else { return }
                 Task {
                     await checkForUpdates(manual: false)
-                    if updatePresentation == nil {
+                    refreshAccessibilityAndPromptIfNeeded()
+                    if updatePresentation == nil, !showAccessibilityPrompt {
                         await presentWhatsNewIfNeeded()
                     }
                 }
@@ -237,10 +263,6 @@ struct MemoryTrailApp: App {
 
     private static var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
-    }
-
-    private static var buildNumber: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
     }
 
     private static var releaseIdentity: String {
@@ -408,7 +430,6 @@ struct MemoryTrailApp: App {
             .applicationName: "Memory Trail",
             .applicationIcon: Self.brandIcon,
             .applicationVersion: "Version \(Self.appVersion)",
-            .version: "Build \(Self.buildNumber)",
             .credits: credits
         ])
     }
@@ -463,7 +484,12 @@ struct MemoryTrailApp: App {
         // Check for a newer release on every normal app launch.
         await checkForUpdates(manual: false)
 
-        if hasCompletedOnboarding, updatePresentation == nil {
+        // Refresh the current macOS Accessibility trust state every launch.
+        refreshAccessibilityAndPromptIfNeeded()
+
+        if hasCompletedOnboarding,
+           updatePresentation == nil,
+           !showAccessibilityPrompt {
             await presentWhatsNewIfNeeded()
         }
 
@@ -472,6 +498,24 @@ struct MemoryTrailApp: App {
             guard !Task.isCancelled else { return }
             await performAutomaticUpdateCheckIfNeeded()
         }
+    }
+
+    @MainActor
+    private func refreshAccessibilityAndPromptIfNeeded() {
+        let capture = MacCaptureCoordinator.shared
+        capture.refreshAccessibilityStatus()
+
+        guard Self.screenshotDemoSelection == nil,
+              hasCompletedOnboarding,
+              !capture.hasAccessibilityPermission,
+              !didPromptAccessibilityThisLaunch,
+              updatePresentation == nil
+        else {
+            return
+        }
+
+        didPromptAccessibilityThisLaunch = true
+        showAccessibilityPrompt = true
     }
 
     @MainActor
@@ -554,8 +598,7 @@ struct MemoryTrailApp: App {
             let manifest = try await MemoryTrailUpdateService.fetchLatest()
             if MemoryTrailUpdateService.isNewer(
                 manifest,
-                thanVersion: Self.appVersion,
-                build: Int(Self.buildNumber) ?? 0
+                thanVersion: Self.appVersion
             ) {
                 if !manual {
                     if skippedUpdateVersion == manifest.version {
@@ -576,7 +619,7 @@ struct MemoryTrailApp: App {
 
                 updatePresentation = .updateAvailable(manifest)
             } else if manual {
-                updatePresentation = .upToDate(Self.appVersion, Self.buildNumber)
+                updatePresentation = .upToDate(Self.appVersion)
             }
         } catch {
             guard manual else { return }
@@ -887,7 +930,6 @@ private struct MemoryTrailChangelog: Hashable {
 
 private struct MemoryTrailUpdateManifest: Decodable, Hashable {
     let version: String
-    let build: Int
     let publishedAt: String?
     let downloadURL: String
     let releaseURL: String
@@ -898,7 +940,7 @@ private struct MemoryTrailUpdateManifest: Decodable, Hashable {
 private enum MemoryTrailUpdatePresentation: Identifiable {
     case whatsNew(MemoryTrailChangelog)
     case updateAvailable(MemoryTrailUpdateManifest)
-    case upToDate(String, String)
+    case upToDate(String)
     case unavailable(String)
 
     var id: String {
@@ -906,9 +948,9 @@ private enum MemoryTrailUpdatePresentation: Identifiable {
         case .whatsNew(let changelog):
             return "whats-new-\(changelog.version)"
         case .updateAvailable(let manifest):
-            return "update-\(manifest.version)-\(manifest.build)"
-        case .upToDate(let version, let build):
-            return "up-to-date-\(version)-\(build)"
+            return "update-\(manifest.version)"
+        case .upToDate(let version):
+            return "up-to-date-\(version)"
         case .unavailable:
             return "update-unavailable"
         }
@@ -988,7 +1030,6 @@ private enum MemoryTrailUpdateService {
 
         return MemoryTrailUpdateManifest(
             version: version,
-            build: buildNumber(from: release.name) ?? 0,
             publishedAt: release.published_at,
             downloadURL: dmg.browser_download_url,
             releaseURL: release.html_url,
@@ -1038,28 +1079,11 @@ private enum MemoryTrailUpdateService {
         throw lastError
     }
 
-    private static func buildNumber(from name: String?) -> Int? {
-        guard let name,
-              let range = name.range(of: "Build ", options: .caseInsensitive)
-        else {
-            return nil
-        }
-
-        let suffix = name[range.upperBound...]
-        let digits = suffix.prefix { $0.isNumber }
-        return Int(digits)
-    }
-
     static func isNewer(
         _ manifest: MemoryTrailUpdateManifest,
-        thanVersion currentVersion: String,
-        build currentBuild: Int
+        thanVersion currentVersion: String
     ) -> Bool {
-        let result = compare(manifest.version, currentVersion)
-        if result != 0 {
-            return result > 0
-        }
-        return manifest.build > currentBuild
+        compare(manifest.version, currentVersion) > 0
     }
 
     private static func compare(_ lhs: String, _ rhs: String) -> Int {
@@ -1132,8 +1156,7 @@ private enum MemoryTrailBackgroundUpdater {
             try prepareUpdate(
                 temporaryDownload: temporaryDownload,
                 currentAppURL: currentAppURL,
-                expectedVersion: manifest.version,
-                expectedBuild: manifest.build
+                expectedVersion: manifest.version
             )
         }.value
 
@@ -1152,8 +1175,7 @@ private enum MemoryTrailBackgroundUpdater {
     private static func prepareUpdate(
         temporaryDownload: URL,
         currentAppURL: URL,
-        expectedVersion: String,
-        expectedBuild: Int
+        expectedVersion: String
     ) throws -> (stagedAppURL: URL, stagingRootURL: URL) {
         let fileManager = FileManager.default
         let parentDirectory = currentAppURL.deletingLastPathComponent()
@@ -1203,12 +1225,7 @@ private enum MemoryTrailBackgroundUpdater {
 
         let stagedVersion =
             stagedBundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-        let stagedBuild =
-            Int(stagedBundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "") ?? 0
-
-        guard stagedVersion == expectedVersion,
-              stagedBuild == expectedBuild
-        else {
+        guard stagedVersion == expectedVersion else {
             throw UpdateError.versionMismatch
         }
 
@@ -1335,7 +1352,6 @@ private struct MemoryTrailUpdateSheet: View {
     let presentation: MemoryTrailUpdatePresentation
     let icon: NSImage
     let currentVersion: String
-    let currentBuild: String
     let isInstallingUpdate: Bool
     let onUpdate: (MemoryTrailUpdateManifest) -> Void
     let onRemindTomorrow: (MemoryTrailUpdateManifest) -> Void
@@ -1380,8 +1396,8 @@ private struct MemoryTrailUpdateSheet: View {
         case .updateAvailable(let manifest):
             updateAvailableView(manifest)
 
-        case .upToDate(let version, let build):
-            upToDateView(version: version, build: build)
+        case .upToDate(let version):
+            upToDateView(version: version)
 
         case .unavailable(let message):
             statusView(
@@ -1445,11 +1461,11 @@ private struct MemoryTrailUpdateSheet: View {
             )
 
             HStack(spacing: 12) {
-                versionPill("Current", value: "\(currentVersion) (\(currentBuild))", tint: .gray, valueColor: primaryText)
+                versionPill("Current", value: currentVersion, tint: .gray, valueColor: primaryText)
                 Image(systemName: "arrow.right")
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.secondary)
-                versionPill("New", value: "\(manifest.version) (\(manifest.build))", tint: .blue, valueColor: .blue)
+                versionPill("New", value: manifest.version, tint: .blue, valueColor: .blue)
             }
             .padding(.top, 18)
             .padding(.bottom, 18)
@@ -1522,7 +1538,7 @@ private struct MemoryTrailUpdateSheet: View {
         }
     }
 
-    private func upToDateView(version: String, build: String) -> some View {
+    private func upToDateView(version: String) -> some View {
         VStack(spacing: 18) {
             Spacer()
 
@@ -1554,7 +1570,7 @@ private struct MemoryTrailUpdateSheet: View {
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
                     .foregroundStyle(.blue)
-                Text("Version \(version) • Build \(build)")
+                Text("Version \(version)")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(primaryText)
             }
@@ -1740,6 +1756,69 @@ private struct MemoryTrailUpdateSheet: View {
                 .keyboardShortcut(.defaultAction)
         }
         .padding(.top, 18)
+    }
+}
+
+private struct MemoryTrailAccessibilityPrompt: View {
+    let onOpenSettings: () -> Void
+    let onNotNow: () -> Void
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.91, green: 0.97, blue: 1.00),
+                    Color.white,
+                    Color(red: 0.96, green: 0.98, blue: 1.00)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.blue.opacity(0.10))
+                        .frame(width: 96, height: 96)
+
+                    Image(systemName: "accessibility")
+                        .font(.system(size: 42, weight: .semibold))
+                        .foregroundStyle(.blue)
+                }
+
+                Text("Give Memory Trail the full picture")
+                    .font(.system(size: 27, weight: .bold, design: .rounded))
+                    .multilineTextAlignment(.center)
+
+                Text("Accessibility is needed to recognize focused window context such as browser page titles, Outlook subjects, Teams conversations, and supported document names. Without it, your trail will be incomplete.")
+                    .font(.system(size: 14.5, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
+
+                HStack(spacing: 10) {
+                    Button("Not Now", action: onNotNow)
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+
+                    Button(action: onOpenSettings) {
+                        Label("Enable Accessibility", systemImage: "checkmark.shield.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .keyboardShortcut(.defaultAction)
+                }
+
+                Text("Memory Trail only reads supported local app/window context. Your captured history remains on this Mac.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 400)
+            }
+            .padding(30)
+        }
+        .frame(width: 520, height: 410)
     }
 }
 
