@@ -482,14 +482,44 @@ struct InsightsView: View {
                     activeSeconds: activeSeconds
                 )
 
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 410), spacing: 16)],
-                    spacing: 16
-                ) {
-                    activityByAppCard(apps)
-                    timeDistributionCard(slices, activeSeconds: activeSeconds)
-                    topItemsCard(Array(visibleItems.prefix(4)))
-                    activityPatternsCard(visibleItems)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 16) {
+                        activityByAppCard(apps)
+                            .frame(minWidth: 440, maxWidth: .infinity)
+                            .frame(height: 400, alignment: .top)
+
+                        timeDistributionCard(
+                            slices,
+                            activeSeconds: activeSeconds
+                        )
+                        .frame(minWidth: 440, maxWidth: .infinity)
+                        .frame(height: 400, alignment: .top)
+                    }
+
+                    VStack(spacing: 16) {
+                        activityByAppCard(apps)
+                        timeDistributionCard(
+                            slices,
+                            activeSeconds: activeSeconds
+                        )
+                    }
+                }
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 16) {
+                        topItemsCard(Array(visibleItems.prefix(4)))
+                            .frame(minWidth: 440, maxWidth: .infinity)
+                            .frame(height: 300, alignment: .top)
+
+                        activityPatternsCard(visibleItems)
+                            .frame(minWidth: 440, maxWidth: .infinity)
+                            .frame(height: 300, alignment: .top)
+                    }
+
+                    VStack(spacing: 16) {
+                        topItemsCard(Array(visibleItems.prefix(4)))
+                        activityPatternsCard(visibleItems)
+                    }
                 }
             }
             .padding(24)
@@ -553,7 +583,10 @@ struct InsightsView: View {
             }
 
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 180), spacing: 12)],
+                columns: Array(
+                    repeating: GridItem(.flexible(minimum: 150), spacing: 12),
+                    count: 4
+                ),
                 spacing: 12
             ) {
                 InsightMetricCard(
@@ -668,7 +701,9 @@ struct InsightsView: View {
             if slices.isEmpty {
                 InsightsEmptyRow(text: "No category activity in this period.")
             } else {
-                HStack(spacing: 24) {
+                HStack(alignment: .center, spacing: 22) {
+                    Spacer(minLength: 0)
+
                     ZStack {
                         ForEach(slices) { slice in
                             Circle()
@@ -713,7 +748,10 @@ struct InsightsView: View {
                             }
                         }
                     }
+
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity)
             }
         }
     }
@@ -1109,7 +1147,7 @@ private struct InsightsSectionCard<Content: View>: View {
             content
         }
         .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 260, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(
             MemoryTrailPalette.elevatedStrong.opacity(0.94),
             in: RoundedRectangle(cornerRadius: 20, style: .continuous)
