@@ -746,29 +746,61 @@ private struct TimelineSummaryColumn: View {
                     value: "\(dayItems.count)",
                     label: "Total Activities",
                     symbol: "chart.bar.fill",
-                    tint: .cyan
+                    tint: MemoryTrailCategory.allApps.filterTint,
+                    background: MemoryTrailCategory.allApps.filterBackground
                 )
 
                 SummaryMetricTile(
                     value: "\(Set(dayItems.map(\.sourceApp)).count)",
                     label: "Apps Used",
                     symbol: "square.grid.2x2.fill",
-                    tint: .blue
+                    tint: MemoryTrailCategory.chat.filterTint,
+                    background: MemoryTrailCategory.chat.filterBackground
                 )
 
                 SummaryMetricTile(
                     value: activeTimeLabel,
                     label: "Active Time",
                     symbol: "clock.fill",
-                    tint: .teal
+                    tint: MemoryTrailCategory.remoteAccess.filterTint,
+                    background: MemoryTrailCategory.remoteAccess.filterBackground
                 )
 
                 SummaryMetricTile(
                     value: "\(dayItems.filter { $0.sourceKind == .clipboard }.count)",
                     label: "Clipboard Items",
                     symbol: "doc.on.clipboard.fill",
-                    tint: .orange
+                    tint: MemoryTrailCategory.files.filterTint,
+                    background: MemoryTrailCategory.files.filterBackground
                 )
+            }
+
+            if !topSummaryApps.isEmpty {
+                Divider()
+                    .opacity(0.55)
+
+                VStack(alignment: .leading, spacing: 9) {
+                    Text("Top Apps")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 8) {
+                        ForEach(topSummaryApps) { item in
+                            let category = MemoryTrailCategory.category(for: item)
+
+                            VStack(spacing: 5) {
+                                summaryAppIcon(item, category: category)
+
+                                Text(item.sourceApp)
+                                    .font(.system(size: 10.5, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .frame(maxWidth: 66)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
             }
         }
         .padding(16)
@@ -776,6 +808,53 @@ private struct TimelineSummaryColumn: View {
         .overlay {
             RoundedRectangle(cornerRadius: 19, style: .continuous)
                 .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
+        }
+    }
+
+    private var topSummaryApps: [MemoryItem] {
+        let groups = Dictionary(grouping: dayItems) { item in
+            item.sourceBundleID.isEmpty
+                ? item.sourceApp.lowercased()
+                : item.sourceBundleID.lowercased()
+        }
+
+        return groups.values
+            .sorted {
+                if $0.count == $1.count {
+                    return ($0.first?.sourceApp ?? "") < ($1.first?.sourceApp ?? "")
+                }
+                return $0.count > $1.count
+            }
+            .compactMap(\.first)
+            .prefix(4)
+            .map { $0 }
+    }
+
+    @ViewBuilder
+    private func summaryAppIcon(
+        _ item: MemoryItem,
+        category: MemoryTrailCategory
+    ) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(category.filterBackground)
+
+            if let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
+                Image(nsImage: icon)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .padding(4)
+            } else {
+                Image(systemName: category.symbol)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(category.filterTint)
+            }
+        }
+        .frame(width: 38, height: 38)
+        .overlay {
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .stroke(category.filterTint.opacity(0.18), lineWidth: 1)
         }
     }
 
@@ -1035,6 +1114,7 @@ private struct SummaryMetricTile: View {
     let label: String
     let symbol: String
     let tint: Color
+    let background: Color
 
     var body: some View {
         HStack(spacing: 10) {
@@ -1042,7 +1122,11 @@ private struct SummaryMetricTile: View {
                 .font(.system(size: 19, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: 34, height: 34)
-                .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                .background(background, in: RoundedRectangle(cornerRadius: 10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(tint.opacity(0.12), lineWidth: 0.8)
+                }
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
@@ -1060,7 +1144,7 @@ private struct SummaryMetricTile: View {
         }
         .padding(10)
         .frame(minHeight: 66)
-        .background(tint.opacity(0.055), in: RoundedRectangle(cornerRadius: 13))
+        .background(background.opacity(0.58), in: RoundedRectangle(cornerRadius: 13))
         .overlay {
             RoundedRectangle(cornerRadius: 13)
                 .stroke(tint.opacity(0.10), lineWidth: 1)

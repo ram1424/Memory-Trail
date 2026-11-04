@@ -456,80 +456,593 @@ struct ClipboardHistoryView: View {
 
 struct InsightsView: View {
     let memories: [MemoryItem]
+    @State private var range: InsightsRange = .today
 
-    private var todayItems: [MemoryItem] {
-        memories.filter { Calendar.current.isDateInToday($0.createdAt) && !$0.isCaptureNoise }
+    private var items: [MemoryItem] {
+        let interval = range.interval
+        return memories.filter {
+            !$0.isCaptureNoise &&
+            $0.createdAt >= interval.start &&
+            $0.createdAt <= interval.end
+        }
     }
 
     var body: some View {
-        let todayItems = self.todayItems
+        let visibleItems = items
+        let activeSeconds = activeTime(for: visibleItems)
+        let apps = appUsage(for: visibleItems)
+        let slices = categorySlices(for: visibleItems)
 
         return ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                pageHeader(
-                    "Insights",
-                    subtitle: "A quick view of how your day is distributed.",
-                    symbol: "chart.bar.fill",
-                    tint: .cyan
+            VStack(alignment: .leading, spacing: 18) {
+                header
+
+                glanceCard(
+                    items: visibleItems,
+                    activeSeconds: activeSeconds
                 )
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 14)], spacing: 14) {
-                    InsightMetricCard(
-                        title: "Total Activities",
-                        value: "\(todayItems.count)",
-                        symbol: "chart.bar.fill",
-                        tint: .cyan
-                    )
-
-                    InsightMetricCard(
-                        title: "Apps Used",
-                        value: "\(Set(todayItems.map(\.sourceApp)).count)",
-                        symbol: "square.grid.2x2.fill",
-                        tint: .blue
-                    )
-
-                    InsightMetricCard(
-                        title: "Favorites",
-                        value: "\(todayItems.filter { $0.isFavorite }.count)",
-                        symbol: "star.fill",
-                        tint: .yellow
-                    )
-
-                    InsightMetricCard(
-                        title: "Clipboard Items",
-                        value: "\(todayItems.filter { $0.sourceKind == .clipboard }.count)",
-                        symbol: "doc.on.clipboard.fill",
-                        tint: .orange
-                    )
-                }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Activity by Category")
-                        .font(.headline)
-
-                    ForEach(MemoryTrailCategory.allCases.filter { $0 != .allApps }) { option in
-                        let count = todayItems.filter(option.matches).count
-                        HStack {
-                            Label(option.title, systemImage: option.symbol)
-                                .foregroundStyle(option.tint)
-                            Spacer()
-                            Text("\(count)")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 6)
-                    }
-                }
-                .padding(18)
-                .background(MemoryTrailPalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 18))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(Color.secondary.opacity(0.10), lineWidth: 1)
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 410), spacing: 16)],
+                    spacing: 16
+                ) {
+                    activityByAppCard(apps)
+                    timeDistributionCard(slices, activeSeconds: activeSeconds)
+                    topItemsCard(Array(visibleItems.prefix(4)))
+                    activityPatternsCard(visibleItems)
                 }
             }
             .padding(24)
         }
     }
+
+    private var header: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "chart.bar.xaxis")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(MemoryTrailCategory.allApps.filterTint)
+                .frame(width: 48, height: 48)
+                .background(
+                    MemoryTrailCategory.allApps.filterBackground,
+                    in: RoundedRectangle(cornerRadius: 14)
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Insights")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                Text("A visual summary of your activity, time, and focus.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 18)
+
+            Picker("Range", selection: $range) {
+                ForEach(InsightsRange.allCases) { option in
+                    Text(option.title).tag(option)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 340)
+        }
+    }
+
+    private func glanceCard(
+        items: [MemoryItem],
+        activeSeconds: TimeInterval
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 15) {
+            HStack(spacing: 10) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(MemoryTrailCategory.web.filterTint)
+                    .frame(width: 34, height: 34)
+                    .background(
+                        MemoryTrailCategory.web.filterBackground,
+                        in: RoundedRectangle(cornerRadius: 10)
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(range.glanceTitle)
+                        .font(.system(size: 19, weight: .bold, design: .rounded))
+                    Text(range.dateSubtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 180), spacing: 12)],
+                spacing: 12
+            ) {
+                InsightMetricCard(
+                    title: "Activities",
+                    value: "\(items.count)",
+                    symbol: "rectangle.stack.fill",
+                    tint: MemoryTrailCategory.allApps.filterTint,
+                    background: MemoryTrailCategory.allApps.filterBackground
+                )
+
+                InsightMetricCard(
+                    title: "Apps Used",
+                    value: "\(Set(items.map(\.sourceApp)).count)",
+                    symbol: "square.grid.2x2.fill",
+                    tint: MemoryTrailCategory.chat.filterTint,
+                    background: MemoryTrailCategory.chat.filterBackground
+                )
+
+                InsightMetricCard(
+                    title: "Active Time",
+                    value: durationLabel(activeSeconds),
+                    symbol: "clock.fill",
+                    tint: MemoryTrailCategory.remoteAccess.filterTint,
+                    background: MemoryTrailCategory.remoteAccess.filterBackground
+                )
+
+                InsightMetricCard(
+                    title: "Files & Docs",
+                    value: "\(filesAndDocumentsCount(in: items))",
+                    symbol: "doc.fill",
+                    tint: MemoryTrailCategory.files.filterTint,
+                    background: MemoryTrailCategory.files.filterBackground
+                )
+            }
+        }
+        .padding(18)
+        .background(
+            MemoryTrailPalette.elevatedStrong.opacity(0.95),
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(MemoryTrailPalette.border, lineWidth: 1)
+        }
+    }
+
+    private func activityByAppCard(_ apps: [InsightsAppUsage]) -> some View {
+        InsightsSectionCard(
+            title: "Activity by App",
+            symbol: "square.stack.3d.up.fill",
+            tint: MemoryTrailCategory.allApps.filterTint
+        ) {
+            if apps.isEmpty {
+                InsightsEmptyRow(text: "No app activity in this period.")
+            } else {
+                VStack(spacing: 11) {
+                    ForEach(apps.prefix(7)) { app in
+                        HStack(spacing: 11) {
+                            InsightsAppIcon(
+                                bundleID: app.bundleID,
+                                category: app.category,
+                                size: 34
+                            )
+
+                            Text(app.name)
+                                .font(.system(size: 13.5, weight: .semibold))
+                                .lineLimit(1)
+                                .frame(width: 122, alignment: .leading)
+
+                            GeometryReader { geometry in
+                                ZStack(alignment: .leading) {
+                                    Capsule()
+                                        .fill(app.category.filterBackground)
+
+                                    Capsule()
+                                        .fill(app.category.filterTint)
+                                        .frame(
+                                            width: max(
+                                                8,
+                                                geometry.size.width * app.fraction
+                                            )
+                                        )
+                                }
+                            }
+                            .frame(height: 8)
+
+                            Text("\(Int((app.fraction * 100).rounded()))%")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 36, alignment: .trailing)
+
+                            Text(durationLabel(app.seconds))
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 58, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func timeDistributionCard(
+        _ slices: [InsightsCategorySlice],
+        activeSeconds: TimeInterval
+    ) -> some View {
+        InsightsSectionCard(
+            title: "Time Distribution",
+            symbol: "chart.pie.fill",
+            tint: MemoryTrailCategory.web.filterTint
+        ) {
+            if slices.isEmpty {
+                InsightsEmptyRow(text: "No category activity in this period.")
+            } else {
+                HStack(spacing: 24) {
+                    ZStack {
+                        ForEach(slices) { slice in
+                            Circle()
+                                .trim(from: slice.start, to: slice.end)
+                                .stroke(
+                                    slice.tint,
+                                    style: StrokeStyle(
+                                        lineWidth: 27,
+                                        lineCap: .butt
+                                    )
+                                )
+                                .rotationEffect(.degrees(-90))
+                        }
+
+                        VStack(spacing: 2) {
+                            Text(durationLabel(activeSeconds))
+                                .font(.system(size: 21, weight: .bold, design: .rounded))
+                            Text("Active Time")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(width: 170, height: 170)
+                    .padding(.vertical, 4)
+
+                    VStack(alignment: .leading, spacing: 11) {
+                        ForEach(slices.prefix(6)) { slice in
+                            HStack(spacing: 8) {
+                                Circle()
+                                    .fill(slice.tint)
+                                    .frame(width: 9, height: 9)
+
+                                Text(slice.title)
+                                    .font(.system(size: 12.5, weight: .medium))
+                                    .lineLimit(1)
+
+                                Spacer(minLength: 6)
+
+                                Text("\(Int((slice.fraction * 100).rounded()))%")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func topItemsCard(_ topItems: [MemoryItem]) -> some View {
+        InsightsSectionCard(
+            title: "Top Items",
+            symbol: "doc.text.fill",
+            tint: MemoryTrailCategory.files.filterTint
+        ) {
+            if topItems.isEmpty {
+                InsightsEmptyRow(text: "No recent items in this period.")
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(topItems) { item in
+                        HStack(spacing: 11) {
+                            let category = MemoryTrailCategory.category(for: item)
+
+                            InsightsAppIcon(
+                                bundleID: item.sourceBundleID,
+                                category: category,
+                                size: 36
+                            )
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(item.displayTitle)
+                                    .font(.system(size: 13.5, weight: .semibold))
+                                    .lineLimit(1)
+
+                                Text("\(item.sourceApp) • \(item.createdAt.formatted(date: .omitted, time: .shortened))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: category.symbol)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(category.filterTint)
+                                .frame(width: 26, height: 26)
+                                .background(
+                                    category.filterBackground,
+                                    in: RoundedRectangle(cornerRadius: 8)
+                                )
+                        }
+                        .padding(.vertical, 8)
+
+                        if item.id != topItems.last?.id {
+                            Divider()
+                                .opacity(0.55)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func activityPatternsCard(_ items: [MemoryItem]) -> some View {
+        let peak = peakFocus(in: items)
+        let topCategory = topCategory(in: items)
+        let appCount = Set(items.map(\.sourceApp)).count
+
+        return InsightsSectionCard(
+            title: "Activity Patterns",
+            symbol: "chart.bar.fill",
+            tint: MemoryTrailCategory.productivity.filterTint
+        ) {
+            VStack(spacing: 10) {
+                InsightsPatternRow(
+                    symbol: "scope",
+                    title: "Peak Focus",
+                    detail: peak,
+                    category: .remoteAccess
+                )
+
+                InsightsPatternRow(
+                    symbol: topCategory.symbol,
+                    title: "Top Work Type",
+                    detail: topCategory.title,
+                    category: topCategory
+                )
+
+                InsightsPatternRow(
+                    symbol: "bolt.fill",
+                    title: "Quick Insight",
+                    detail: appCount == 1
+                        ? "You worked primarily in one app."
+                        : "You moved across \(appCount) apps in this period.",
+                    category: .files
+                )
+            }
+        }
+    }
+
+    private func filesAndDocumentsCount(in items: [MemoryItem]) -> Int {
+        items.filter {
+            let category = MemoryTrailCategory.category(for: $0)
+            return category == .files ||
+                $0.sourceKind == .file ||
+                category == .productivity
+        }.count
+    }
+
+    private func activeTime(for items: [MemoryItem]) -> TimeInterval {
+        let ascending = items.sorted { $0.createdAt < $1.createdAt }
+        guard ascending.count > 1 else { return 0 }
+
+        let inactivityThreshold: TimeInterval = 5 * 60
+        var seconds: TimeInterval = 0
+
+        for index in 0..<(ascending.count - 1) {
+            let gap = ascending[index + 1].createdAt
+                .timeIntervalSince(ascending[index].createdAt)
+
+            if gap > 0, gap <= inactivityThreshold {
+                seconds += gap
+            }
+        }
+
+        return seconds
+    }
+
+    private func durationLookup(for items: [MemoryItem]) -> [UUID: TimeInterval] {
+        let ascending = items.sorted { $0.createdAt < $1.createdAt }
+        guard ascending.count > 1 else { return [:] }
+
+        let inactivityThreshold: TimeInterval = 5 * 60
+        var result: [UUID: TimeInterval] = [:]
+
+        for index in 0..<(ascending.count - 1) {
+            let item = ascending[index]
+            let gap = ascending[index + 1].createdAt
+                .timeIntervalSince(item.createdAt)
+
+            if gap > 0, gap <= inactivityThreshold {
+                result[item.id, default: 0] += gap
+            }
+        }
+
+        return result
+    }
+
+    private func appUsage(for items: [MemoryItem]) -> [InsightsAppUsage] {
+        let durations = durationLookup(for: items)
+        let groups = Dictionary(grouping: items) {
+            "\($0.sourceApp)|\($0.sourceBundleID)"
+        }
+
+        var apps = groups.values.compactMap { group -> InsightsAppUsage? in
+            guard let first = group.first else { return nil }
+
+            return InsightsAppUsage(
+                name: first.sourceApp.isEmpty ? "Unknown App" : first.sourceApp,
+                bundleID: first.sourceBundleID,
+                category: MemoryTrailCategory.category(for: first),
+                count: group.count,
+                seconds: group.reduce(0) {
+                    $0 + durations[$1.id, default: 0]
+                },
+                fraction: 0
+            )
+        }
+        .sorted {
+            if $0.seconds == $1.seconds {
+                return $0.count > $1.count
+            }
+            return $0.seconds > $1.seconds
+        }
+
+        let totalSeconds = apps.reduce(0) { $0 + $1.seconds }
+        let totalCount = max(1, apps.reduce(0) { $0 + $1.count })
+
+        apps = apps.map { app in
+            var updated = app
+            updated.fraction = totalSeconds > 0
+                ? app.seconds / totalSeconds
+                : Double(app.count) / Double(totalCount)
+            return updated
+        }
+
+        return apps
+    }
+
+    private func categorySlices(
+        for items: [MemoryItem]
+    ) -> [InsightsCategorySlice] {
+        var counts: [MemoryTrailCategory: Int] = [:]
+
+        for item in items {
+            counts[MemoryTrailCategory.category(for: item), default: 0] += 1
+        }
+
+        let total = max(1, counts.values.reduce(0, +))
+        var cursor = 0.0
+
+        return counts
+            .filter { $0.value > 0 }
+            .sorted { $0.value > $1.value }
+            .map { category, count in
+                let fraction = Double(count) / Double(total)
+                let slice = InsightsCategorySlice(
+                    title: category.title,
+                    fraction: fraction,
+                    start: cursor,
+                    end: cursor + fraction,
+                    tint: category.filterTint
+                )
+                cursor += fraction
+                return slice
+            }
+    }
+
+    private func peakFocus(in items: [MemoryItem]) -> String {
+        guard !items.isEmpty else { return "No focus window yet" }
+
+        let calendar = Calendar.current
+        var counts: [Int: Int] = [:]
+
+        for item in items {
+            counts[calendar.component(.hour, from: item.createdAt), default: 0] += 1
+        }
+
+        guard let peakHour = counts.max(by: { $0.value < $1.value })?.key else {
+            return "No focus window yet"
+        }
+
+        let start = calendar.date(
+            bySettingHour: peakHour,
+            minute: 0,
+            second: 0,
+            of: Date()
+        ) ?? Date()
+        let end = calendar.date(byAdding: .hour, value: 1, to: start) ?? start
+
+        return "Most active \(start.formatted(date: .omitted, time: .shortened)) – \(end.formatted(date: .omitted, time: .shortened))"
+    }
+
+    private func topCategory(in items: [MemoryItem]) -> MemoryTrailCategory {
+        var counts: [MemoryTrailCategory: Int] = [:]
+        for item in items {
+            counts[MemoryTrailCategory.category(for: item), default: 0] += 1
+        }
+        return counts.max(by: { $0.value < $1.value })?.key ?? .other
+    }
+
+    private func durationLabel(_ seconds: TimeInterval) -> String {
+        let totalMinutes = max(0, Int(seconds / 60))
+        if totalMinutes == 0 {
+            return seconds > 0 ? "<1m" : "0m"
+        }
+
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        return hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m"
+    }
+}
+
+private enum InsightsRange: String, CaseIterable, Identifiable {
+    case today
+    case week
+    case month
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .today: "Today"
+        case .week: "This Week"
+        case .month: "This Month"
+        }
+    }
+
+    var glanceTitle: String {
+        switch self {
+        case .today: "Today at a Glance"
+        case .week: "This Week at a Glance"
+        case .month: "This Month at a Glance"
+        }
+    }
+
+    var interval: DateInterval {
+        let calendar = Calendar.current
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
+
+        switch self {
+        case .today:
+            return DateInterval(start: today, end: now)
+        case .week:
+            let start = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+            return DateInterval(start: start, end: now)
+        case .month:
+            let start = calendar.date(byAdding: .day, value: -29, to: today) ?? today
+            return DateInterval(start: start, end: now)
+        }
+    }
+
+    var dateSubtitle: String {
+        switch self {
+        case .today:
+            return Date().formatted(.dateTime.weekday(.wide).month(.abbreviated).day().year())
+        case .week:
+            return "Rolling 7-day activity summary"
+        case .month:
+            return "Rolling 30-day activity summary"
+        }
+    }
+}
+
+private struct InsightsAppUsage: Identifiable {
+    let name: String
+    let bundleID: String
+    let category: MemoryTrailCategory
+    let count: Int
+    let seconds: TimeInterval
+    var fraction: Double
+
+    var id: String { "\(name)|\(bundleID)" }
+}
+
+private struct InsightsCategorySlice: Identifiable {
+    let title: String
+    let fraction: Double
+    let start: Double
+    let end: Double
+    let tint: Color
+
+    var id: String { title }
 }
 
 private struct InsightMetricCard: View {
@@ -537,31 +1050,153 @@ private struct InsightMetricCard: View {
     let value: String
     let symbol: String
     let tint: Color
+    let background: Color
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             Image(systemName: symbol)
-                .font(.system(size: 22, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(tint)
-                .frame(width: 46, height: 46)
-                .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 13))
+                .frame(width: 42, height: 42)
+                .background(background, in: RoundedRectangle(cornerRadius: 12))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                 Text(title)
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
+        }
+        .padding(13)
+        .background(
+            background.opacity(0.56),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(tint.opacity(0.12), lineWidth: 1)
+        }
+    }
+}
+
+private struct InsightsSectionCard<Content: View>: View {
+    let title: String
+    let symbol: String
+    let tint: Color
+    let content: Content
+
+    init(
+        title: String,
+        symbol: String,
+        tint: Color,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.symbol = symbol
+        self.tint = tint
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label(title, systemImage: symbol)
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
+
+            content
         }
         .padding(18)
-        .background(MemoryTrailPalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 18))
+        .frame(maxWidth: .infinity, minHeight: 260, alignment: .topLeading)
+        .background(
+            MemoryTrailPalette.elevatedStrong.opacity(0.94),
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
         .overlay {
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(tint.opacity(0.14), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(tint.opacity(0.12), lineWidth: 1)
         }
+    }
+}
+
+private struct InsightsEmptyRow: View {
+    let text: String
+
+    var body: some View {
+        ContentUnavailableView(
+            "Nothing to show yet",
+            systemImage: "chart.bar",
+            description: Text(text)
+        )
+        .frame(maxWidth: .infinity, minHeight: 180)
+    }
+}
+
+private struct InsightsAppIcon: View {
+    let bundleID: String
+    let category: MemoryTrailCategory
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+                .fill(category.filterBackground)
+
+            if let icon = AppIconCache.shared.icon(for: bundleID) {
+                Image(nsImage: icon)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .padding(size * 0.10)
+            } else {
+                Image(systemName: category.symbol)
+                    .font(.system(size: size * 0.44, weight: .semibold))
+                    .foregroundStyle(category.filterTint)
+            }
+        }
+        .frame(width: size, height: size)
+        .overlay {
+            RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+                .stroke(category.filterTint.opacity(0.18), lineWidth: 1)
+        }
+    }
+}
+
+private struct InsightsPatternRow: View {
+    let symbol: String
+    let title: String
+    let detail: String
+    let category: MemoryTrailCategory
+
+    var body: some View {
+        HStack(spacing: 11) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(category.filterTint)
+                .frame(width: 34, height: 34)
+                .background(
+                    category.filterBackground,
+                    in: RoundedRectangle(cornerRadius: 10)
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13.5, weight: .semibold))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(11)
+        .background(
+            category.filterBackground.opacity(0.52),
+            in: RoundedRectangle(cornerRadius: 13)
+        )
     }
 }
 
