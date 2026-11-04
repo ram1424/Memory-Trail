@@ -11,11 +11,13 @@
 
 Memory Trail is a privacy-first macOS activity timeline for retracing what you were doing across browsers, email, chat, files, documents, and the clipboard. It turns useful local app/window context into a searchable chronological history without requiring a cloud account or external data connector.
 
-**Current release: Memory Trail 1.0 (Build 1) — First Official Release**
+[![Latest Release](https://img.shields.io/github/v/release/ram1424/Memory-Trail?display_name=release&label=Latest%20Release)](https://github.com/ram1424/Memory-Trail/releases/latest)
 
 ## Download
 
-[Download Memory Trail 1.0 for macOS](https://github.com/ram1424/Memory-Trail/releases/latest/download/MemoryTrail-1.0.dmg)
+[**Download the latest Memory Trail release for macOS**](https://github.com/ram1424/Memory-Trail/releases/latest)
+
+The link above always opens the newest published Memory Trail release, so the README does not need to be updated for each version.
 
 Requires **macOS 14 or later**. Detailed window and activity capture requires macOS Accessibility permission.
 
@@ -119,12 +121,10 @@ Memory Trail records metadata/context exposed by supported apps; it is not a scr
 4. Build and run the macOS target.
 5. Grant Accessibility permission when prompted.
 
-**Bundle identifier:** `com.ram1424.memorytrail`  
-**Marketing version:** `1.0`  
-**Build:** `1`
+**Bundle identifier:** `com.ram1424.memorytrail`
 
 ## Release
 
 Only the current production release is retained on the GitHub Releases page.
 
-**Memory Trail 1.0 (Build 1) — First Official Release** is the current macOS release.
+[View the latest Memory Trail release](https://github.com/ram1424/Memory-Trail/releases/latest)
