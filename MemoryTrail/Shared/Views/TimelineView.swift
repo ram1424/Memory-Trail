@@ -496,13 +496,17 @@ struct TimelineView: View {
 
                             Text(app.name)
                                 .font(.system(size: 10.5, weight: .semibold))
-                                .lineLimit(1)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.72)
+                                .allowsTightening(true)
+                                .frame(maxWidth: .infinity, minHeight: 28, alignment: .top)
 
                             Text(durationLabel(app.seconds))
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, alignment: .top)
                     }
                 }
             }

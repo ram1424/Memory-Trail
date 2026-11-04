@@ -1,15 +1,39 @@
 {
   "version": "1.2",
-  "build": 1,
+  "build": 2,
   "publishedAt": "2026-11-04",
   "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.2/MemoryTrail-1.2.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "Broad conversation questions now return all matching conversation activity for the requested day instead of stopping at 12 items.",
-    "Supporting Activity now appears directly below the Ask Memory Trail answer at full width.",
-    "Supporting Activity includes a result count for clearer context."
+    "New Outlook no longer mistakes the Focused/Other inbox selector for the selected email subject.",
+    "Top Apps Today now allows app names to wrap to two centered lines and scale slightly when needed.",
+    "About Memory Trail now shows Version 1.2 • Build 2 instead of a bare parenthesized build number."
   ],
   "changelog": [
+    {
+      "title": "New Outlook, Correctly Remembered",
+      "symbol": "envelope.open.fill",
+      "items": [
+        "Rejects Focused/Other inbox accessibility selector text as Outlook navigation chrome.",
+        "Filters selected accessibility controls that are not message rows before subject scoring.",
+        "Classic Outlook and AppleScript fallback behavior remain intact."
+      ]
+    },
+    {
+      "title": "Top Apps, Easier to Read",
+      "symbol": "square.grid.3x2.fill",
+      "items": [
+        "Top Apps Today app names can use two centered lines.",
+        "Longer names use tightening and a small scale-down before truncating."
+      ]
+    },
+    {
+      "title": "About Build Label",
+      "symbol": "info.circle.fill",
+      "items": [
+        "About Memory Trail displays Version 1.2 • Build 2 as one clean line."
+      ]
+    },
     {
       "title": "Ask Memory Trail, Expanded",
       "symbol": "bubble.left.and.bubble.right.fill",

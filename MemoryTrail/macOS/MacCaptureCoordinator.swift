@@ -1011,7 +1011,14 @@ final class MacCaptureCoordinator {
             ) == .success,
             let selectedChildren = selectedChildrenValue as? [AXUIElement] {
                 for selected in selectedChildren.prefix(8) {
-                    if let subject = outlookSubjectFromSelectedElement(selected, requireStrongSignal: false) {
+                    guard isOutlookMessageSelectionCandidate(selected) else {
+                        continue
+                    }
+
+                    if let subject = outlookSubjectFromSelectedElement(
+                        selected,
+                        requireStrongSignal: false
+                    ) {
                         return subject
                     }
                 }
@@ -1053,6 +1060,7 @@ final class MacCaptureCoordinator {
                 (kAXValueAttribute as CFString, 35)
             ] {
                 guard let raw = attributeString(element, attribute) else { continue }
+                guard !isOutlookNavigationChrome(raw) else { continue }
                 guard let subject = sanitizedOutlookSubject(raw) else { continue }
 
                 let lowerRaw = raw.lowercased()
@@ -1099,6 +1107,10 @@ final class MacCaptureCoordinator {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         let initialLower = value.lowercased()
+        if isOutlookNavigationChrome(value) {
+            return nil
+        }
+
         if initialLower.hasPrefix("http://") ||
             initialLower.hasPrefix("https://") ||
             initialLower.hasPrefix("mailto:") ||
@@ -1121,6 +1133,108 @@ final class MacCaptureCoordinator {
 
         guard isLikelyOutlookSubject(value) else { return nil }
         return String(value.prefix(250))
+    }
+
+    private func isOutlookNavigationChrome(_ rawValue: String) -> Bool {
+        let normalized = rawValue
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: ",", with: " ")
+            .replacingOccurrences(of: ";", with: " ")
+            .lowercased()
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
+
+        guard !normalized.isEmpty else { return true }
+
+        let exactChrome = Set([
+            "focused inbox",
+            "other inbox",
+            "focused inbox selected",
+            "focused inbox unselected",
+            "other inbox selected",
+            "other inbox unselected",
+            "focused selected",
+            "focused unselected",
+            "other selected",
+            "other unselected"
+        ])
+
+        if exactChrome.contains(normalized) {
+            return true
+        }
+
+        // New Outlook exposes its Focused/Other inbox segmented control through
+        // Accessibility. Combined labels can look like:
+        // "Focused inbox selected, Other inbox unselected".
+        let mentionsFocusedInbox = normalized.contains("focused inbox")
+        let mentionsOtherInbox = normalized.contains("other inbox")
+        let exposesSelectionState =
+            normalized.contains(" selected") ||
+            normalized.contains(" unselected")
+
+        if exposesSelectionState && (mentionsFocusedInbox || mentionsOtherInbox) {
+            return true
+        }
+
+        let chromePhrases = [
+            "sort messages",
+            "filter messages",
+            "filter by",
+            "arrange by",
+            "message list options",
+            "select all messages",
+            "toggle focused inbox"
+        ]
+
+        return chromePhrases.contains { normalized.contains($0) }
+    }
+
+    private func isOutlookMessageSelectionCandidate(_ element: AXUIElement) -> Bool {
+        let role = attributeString(
+            element,
+            kAXRoleAttribute as CFString
+        )?.lowercased() ?? ""
+
+        // New Outlook marks segmented controls and navigation chrome as
+        // selected children. Never treat those controls as selected email rows.
+        let rejectedRoleFragments = [
+            "button",
+            "radiobutton",
+            "checkbox",
+            "tab",
+            "toolbar",
+            "menu",
+            "popup",
+            "combobox",
+            "slider",
+            "switch"
+        ]
+
+        if rejectedRoleFragments.contains(where: { role.contains($0) }) {
+            return false
+        }
+
+        for attribute in [
+            kAXTitleAttribute as CFString,
+            kAXDescriptionAttribute as CFString,
+            kAXValueAttribute as CFString
+        ] {
+            if let raw = attributeString(element, attribute),
+               isOutlookNavigationChrome(raw) {
+                return false
+            }
+        }
+
+        // Message selections are normally exposed as a row/cell/list item.
+        // Keep groups as a compatibility fallback for Classic Outlook and
+        // New Outlook builds that wrap a message row in AXGroup.
+        return role.isEmpty ||
+            role.contains("row") ||
+            role.contains("cell") ||
+            role.contains("outline") ||
+            role.contains("list") ||
+            role.contains("group") ||
+            role.contains("statictext")
     }
 
     private func isTeamsBundleID(_ lowerBundleID: String) -> Bool {
@@ -2547,6 +2661,7 @@ final class MacCaptureCoordinator {
         ])
 
         if exactGeneric.contains(lower) { return false }
+        if isOutlookNavigationChrome(subject) { return false }
         if lower.contains("unread message") { return false }
         if lower.hasPrefix("from ") && lower.contains(" to ") && lower.contains(" events") { return false }
         if lower.contains("copyright ©") || lower.contains("all rights reserved") { return false }

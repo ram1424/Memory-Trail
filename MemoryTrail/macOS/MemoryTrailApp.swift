@@ -348,6 +348,30 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "New Outlook, Correctly Remembered",
+                    symbol: "envelope.open.fill",
+                    items: [
+                        "New Outlook no longer mistakes the Focused/Other inbox selector for an email subject.",
+                        "Memory Trail now rejects Outlook navigation controls and prioritizes real selected message rows and reading-pane subject candidates.",
+                        "Classic Outlook capture and its existing fallback paths remain intact."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Top Apps, Easier to Read",
+                    symbol: "square.grid.3x2.fill",
+                    items: [
+                        "Top Apps Today now gives app names up to two centered lines instead of truncating them after one line.",
+                        "Longer names can tighten and scale slightly so Microsoft Teams, Microsoft Outlook, Microsoft Excel, and similar names fit cleanly."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "About Build Label",
+                    symbol: "info.circle.fill",
+                    items: [
+                        "About Memory Trail now displays Version 1.2 • Build 2 instead of showing the build as a bare number in parentheses."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "Ask Memory Trail, Expanded",
                     symbol: "bubble.left.and.bubble.right.fill",
                     items: [
@@ -495,7 +519,8 @@ struct MemoryTrailApp: App {
         NSApplication.shared.orderFrontStandardAboutPanel(options: [
             .applicationName: "Memory Trail",
             .applicationIcon: Self.brandIcon,
-            .applicationVersion: "Version \(Self.appVersion)",
+            .applicationVersion: "Version \(Self.appVersion) • Build \(Self.appBuild)",
+            .version: "",
             .credits: credits
         ])
     }
