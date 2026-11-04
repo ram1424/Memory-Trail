@@ -13,6 +13,7 @@ struct TimelineView: View {
     @State private var dayOffset = 0
     @State private var pendingTimelineClear: MemoryTrailHistoryClearRange?
     @State private var now = Date()
+    @AppStorage("today.showPanels") private var showsPanels = true
 
     var body: some View {
         let dayItems = itemsForSelectedDay
@@ -20,8 +21,12 @@ struct TimelineView: View {
         let durations = durationLookup(for: dayItems)
         let latestItemID = dayItems.first?.id
         let topApps = appUsage(for: dayItems)
+        let currentSelectedItem = selectedMemoryID.flatMap { id in
+            dayItems.first { $0.id == id }
+        }
 
-        ScrollView {
+        HStack(spacing: 0) {
+            ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 todayHeader
 
@@ -63,6 +68,25 @@ struct TimelineView: View {
                 }
             }
             .padding(20)
+            }
+
+            if showsPanels {
+                Divider()
+                    .opacity(0.55)
+
+                TimelineSummaryColumn(
+                    dayItems: dayItems,
+                    selectedItem: currentSelectedItem,
+                    selectedDuration: currentSelectedItem.map {
+                        durations[$0.id] ?? 0
+                    } ?? 0,
+                    selectedDay: selectedDay,
+                    preferences: preferences,
+                    onFavorite: toggleFavorite,
+                    onDelete: deleteSelectedItem
+                )
+                .frame(width: 365)
+            }
         }
         .background(
             LinearGradient(
@@ -76,6 +100,21 @@ struct TimelineView: View {
         )
         .navigationTitle("")
         .toolbar {
+            ToolbarItem {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        showsPanels.toggle()
+                    }
+                } label: {
+                    Image(systemName: "sidebar.right")
+                }
+                .help(
+                    showsPanels
+                        ? "Hide Activity Details"
+                        : "Show Activity Details"
+                )
+            }
+
             ToolbarItem {
                 Button(role: .destructive) {
                     pendingTimelineClear = .all
@@ -406,6 +445,14 @@ struct TimelineView: View {
                                 .filterTint,
                             onSelect: {
                                 selectedMemoryID = item.id
+                            },
+                            onOpenDetails: {
+                                selectedMemoryID = item.id
+                                if !showsPanels {
+                                    withAnimation(.easeInOut(duration: 0.18)) {
+                                        showsPanels = true
+                                    }
+                                }
                             },
                             onFavorite: {
                                 item.isFavorite.toggle()
@@ -848,6 +895,24 @@ struct TimelineView: View {
         selectedMemoryID = items.first?.id
     }
 
+    private var selectedItem: MemoryItem? {
+        guard let selectedMemoryID else { return nil }
+        return memories.first { $0.id == selectedMemoryID }
+    }
+
+    private func toggleFavorite() {
+        guard let selectedItem else { return }
+        selectedItem.isFavorite.toggle()
+        try? modelContext.save()
+    }
+
+    private func deleteSelectedItem() {
+        guard let selectedItem else { return }
+        modelContext.delete(selectedItem)
+        try? modelContext.save()
+        selectedMemoryID = nil
+    }
+
     private func open(_ item: MemoryItem) {
         if let sourceURL = item.sourceURL,
            let url = URL(string: sourceURL),
@@ -954,6 +1019,7 @@ private struct BrightTimelineRow: View {
     let latestBadge: LatestActivityBadge?
     let timelineTint: Color
     let onSelect: () -> Void
+    let onOpenDetails: () -> Void
     let onFavorite: () -> Void
     let onDelete: () -> Void
 
@@ -1061,7 +1127,11 @@ private struct BrightTimelineRow: View {
                 )
         }
         .contentShape(RoundedRectangle(cornerRadius: 13))
-        .onTapGesture(perform: onSelect)
+        .onTapGesture(count: 2, perform: onOpenDetails)
+        .simultaneousGesture(
+            TapGesture(count: 1)
+                .onEnded { onSelect() }
+        )
     }
 
     @ViewBuilder

@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.2"
-  RELEASE_BUILD: "3"
+  RELEASE_BUILD: "4"
 
 jobs:
   build-dmg:
@@ -288,9 +288,10 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - New Outlook no longer treats sender-only email addresses as message subjects.
-          - Outlook date-group headers such as Today, Expanded are rejected as UI chrome.
-          - Selected Outlook rows are filtered before subject extraction to avoid non-message controls.
+          - New Outlook now prioritizes the reading-pane subject instead of relying primarily on the selected message-list row.
+          - Memory Trail parses explicit Subject: metadata and semantic subject/header accessibility values in New Outlook.
+          - The Today right-side details panel is restored.
+          - Single-click updates activity details and double-click reopens the details panel when hidden.
 
 
           Privacy:

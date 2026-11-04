@@ -943,6 +943,13 @@ final class MacCaptureCoordinator {
 
         let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
 
+        // New Outlook renders the authoritative message subject in the reading
+        // pane rather than exposing it reliably through the selected list row.
+        // Prefer that reading-pane value before inspecting message-list selection.
+        if let subject = outlookReadingPaneSubject(in: window) {
+            return subject
+        }
+
         if let subject = outlookSelectedMessageSubject(in: window) {
             return subject
         }
@@ -985,6 +992,137 @@ final class MacCaptureCoordinator {
         }
 
         return nil
+    }
+
+    private func outlookReadingPaneSubject(in root: AXUIElement) -> String? {
+        var queue: [(element: AXUIElement, depth: Int)] = [(root, 0)]
+        var index = 0
+        var inspected = 0
+        var candidates: [(subject: String, score: Int)] = []
+
+        while index < queue.count, inspected < 900 {
+            let current = queue[index]
+            index += 1
+            inspected += 1
+
+            let element = current.element
+            let depth = current.depth
+            let role = attributeString(
+                element,
+                kAXRoleAttribute as CFString
+            )?.lowercased() ?? ""
+            let identifier = attributeString(
+                element,
+                kAXIdentifierAttribute as CFString
+            )?.lowercased() ?? ""
+
+            for (attribute, baseScore) in [
+                (kAXValueAttribute as CFString, 120),
+                (kAXTitleAttribute as CFString, 110),
+                (kAXDescriptionAttribute as CFString, 100)
+            ] {
+                guard let raw = attributeString(element, attribute) else {
+                    continue
+                }
+
+                // Strongest signal: New Outlook frequently exposes the current
+                // message metadata as "Subject: <actual subject>" in the
+                // reading pane accessibility tree.
+                if let parsed = outlookSubjectFromMetadataText(raw) {
+                    candidates.append((parsed, 1_000 - depth * 3))
+                    continue
+                }
+
+                let semanticSubject =
+                    identifier.contains("subject") ||
+                    identifier.contains("message-subject") ||
+                    identifier.contains("message_subject") ||
+                    identifier.contains("readingpane-subject") ||
+                    identifier.contains("reading-pane-subject") ||
+                    role.contains("heading")
+
+                if semanticSubject,
+                   !isOutlookNavigationChrome(raw),
+                   !isOutlookSenderOnlyValue(raw),
+                   !isOutlookMessageGroupHeader(raw),
+                   let subject = sanitizedOutlookSubject(raw) {
+                    candidates.append((
+                        subject,
+                        baseScore + 360 - depth * 3
+                    ))
+                }
+            }
+
+            guard depth < 12 else { continue }
+
+            var childrenValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(
+                element,
+                kAXChildrenAttribute as CFString,
+                &childrenValue
+            ) == .success,
+            let children = childrenValue as? [AXUIElement] {
+                for child in children.prefix(100) {
+                    queue.append((child, depth + 1))
+                }
+            }
+        }
+
+        return candidates.max(by: { $0.score < $1.score })?.subject
+    }
+
+    private func outlookSubjectFromMetadataText(_ rawValue: String) -> String? {
+        let normalized = rawValue
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !normalized.isEmpty else { return nil }
+
+        // Preserve line boundaries first; this avoids accidentally swallowing
+        // From/Sent/To metadata that follows the subject.
+        for line in normalized.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            let lower = trimmed.lowercased()
+
+            guard lower.hasPrefix("subject:") else { continue }
+
+            let value = String(trimmed.dropFirst("subject:".count))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if let subject = sanitizedOutlookSubject(value) {
+                return subject
+            }
+        }
+
+        // Some Accessibility values flatten message metadata onto one line.
+        // Capture Subject: text until the next known mail-header marker.
+        let lower = normalized.lowercased()
+        guard let subjectRange = lower.range(of: "subject:") else {
+            return nil
+        }
+
+        var subjectText = String(normalized[subjectRange.upperBound...])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let terminators = [
+            " from:",
+            " sent:",
+            " to:",
+            " cc:",
+            " bcc:",
+            " sensitivity label:"
+        ]
+
+        let lowerSubject = subjectText.lowercased()
+        if let end = terminators
+            .compactMap({ lowerSubject.range(of: $0)?.lowerBound })
+            .min() {
+            subjectText = String(subjectText[..<end])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return sanitizedOutlookSubject(subjectText)
     }
 
     private func outlookSelectedMessageSubject(in root: AXUIElement) -> String? {

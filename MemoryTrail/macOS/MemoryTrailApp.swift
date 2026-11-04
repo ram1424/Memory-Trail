@@ -348,6 +348,24 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "New Outlook Reading Pane Capture",
+                    symbol: "envelope.open.fill",
+                    items: [
+                        "New Outlook now prioritizes the authoritative subject shown in the reading pane before inspecting the selected message-list row.",
+                        "Memory Trail can parse explicit Subject: metadata exposed by New Outlook and semantic subject/header accessibility elements.",
+                        "Selected-row and Classic Outlook fallback paths remain available when the reading pane does not expose a subject."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Timeline Details Restored",
+                    symbol: "sidebar.right",
+                    items: [
+                        "The Today right-side activity details panel is restored without reverting the current Today dashboard.",
+                        "Single-click selection updates the details panel again.",
+                        "Double-clicking a timeline item selects it and reopens the details panel if it was hidden."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "New Outlook, Refined Again",
                     symbol: "envelope.badge.fill",
                     items: [

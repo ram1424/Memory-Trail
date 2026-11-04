@@ -1,15 +1,34 @@
 {
   "version": "1.2",
-  "build": 3,
+  "build": 4,
   "publishedAt": "2026-11-04",
   "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.2/MemoryTrail-1.2.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "New Outlook no longer treats sender-only email addresses as message subjects.",
-    "Outlook date-group headers such as Today, Expanded are rejected as UI chrome.",
-    "Selected Outlook rows are filtered before subject extraction to avoid non-message controls."
+    "New Outlook now prioritizes the reading-pane subject instead of relying primarily on the selected message-list row.",
+    "Memory Trail parses explicit Subject: metadata and semantic subject/header accessibility values in New Outlook.",
+    "The Today right-side details panel is restored.",
+    "Single-click updates activity details and double-click reopens the details panel when hidden."
   ],
   "changelog": [
+    {
+      "title": "New Outlook Reading Pane Capture",
+      "symbol": "envelope.open.fill",
+      "items": [
+        "Prefers reading-pane subject metadata before selected-row fallback.",
+        "Parses Subject: metadata exposed in the New Outlook reading pane.",
+        "Keeps Classic Outlook and AppleScript fallback behavior intact."
+      ]
+    },
+    {
+      "title": "Timeline Details Restored",
+      "symbol": "sidebar.right",
+      "items": [
+        "Restores the existing right-side detail panel to the current Today layout.",
+        "Single-click selection updates details.",
+        "Double-click selects the item and shows the detail panel if hidden."
+      ]
+    },
     {
       "title": "New Outlook, Refined Again",
       "symbol": "envelope.badge.fill",
