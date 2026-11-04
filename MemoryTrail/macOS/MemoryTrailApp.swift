@@ -13,9 +13,12 @@ struct MemoryTrailApp: App {
     @State private var splashProgress = 0.02
     @State private var updatePresentation: MemoryTrailUpdatePresentation?
     @State private var isCheckingForUpdates = false
+    @State private var isInstallingUpdate = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("memoryTrail.lastPresentedWhatsNewRelease") private var lastPresentedWhatsNewRelease = ""
     @AppStorage("memoryTrail.lastUpdateCheckEpoch") private var lastUpdateCheckEpoch = 0.0
+    @AppStorage("memoryTrail.remindUpdateAfterEpoch") private var remindUpdateAfterEpoch = 0.0
+    @AppStorage("memoryTrail.skippedUpdateVersion") private var skippedUpdateVersion = ""
 
     private static let screenshotDemoSelection: SidebarItem? = {
         guard let argument = ProcessInfo.processInfo.arguments.first(where: {
@@ -150,8 +153,22 @@ struct MemoryTrailApp: App {
                     presentation: presentation,
                     icon: Self.brandIcon,
                     currentVersion: Self.appVersion,
-                    onDownload: { url in
-                        NSWorkspace.shared.open(url)
+                    currentBuild: Self.buildNumber,
+                    isInstallingUpdate: isInstallingUpdate,
+                    onUpdate: { manifest in
+                        updatePresentation = nil
+                        beginBackgroundUpdate(manifest)
+                    },
+                    onRemindTomorrow: { manifest in
+                        remindUpdateAfterEpoch = Date().addingTimeInterval(24 * 60 * 60).timeIntervalSince1970
+                        if skippedUpdateVersion == manifest.version {
+                            skippedUpdateVersion = ""
+                        }
+                        updatePresentation = nil
+                    },
+                    onSkipVersion: { manifest in
+                        skippedUpdateVersion = manifest.version
+                        remindUpdateAfterEpoch = 0
                         updatePresentation = nil
                     },
                     onOpenReleases: {
@@ -165,11 +182,18 @@ struct MemoryTrailApp: App {
                     }
                 )
             }
+            .onReceive(NotificationCenter.default.publisher(for: .memoryTrailCheckForUpdates)) { _ in
+                Task {
+                    await checkForUpdates(manual: true)
+                }
+            }
             .onChange(of: hasCompletedOnboarding) { _, completed in
                 guard completed, Self.screenshotDemoSelection == nil else { return }
                 Task {
-                    await presentWhatsNewIfNeeded()
-                    await performAutomaticUpdateCheckIfNeeded()
+                    await checkForUpdates(manual: false)
+                    if updatePresentation == nil {
+                        await presentWhatsNewIfNeeded()
+                    }
                 }
             }
         }
@@ -220,7 +244,7 @@ struct MemoryTrailApp: App {
     }
 
     private static var releaseIdentity: String {
-        "\(appVersion) (\(buildNumber))"
+        appVersion
     }
 
     private static var currentChangelog: MemoryTrailChangelog {
@@ -437,8 +461,10 @@ struct MemoryTrailApp: App {
         await maximizeWindowOnLaunch()
 
         if hasCompletedOnboarding {
-            await presentWhatsNewIfNeeded()
-            await performAutomaticUpdateCheckIfNeeded()
+            await checkForUpdates(manual: false)
+            if updatePresentation == nil {
+                await presentWhatsNewIfNeeded()
+            }
         }
 
         while !Task.isCancelled {
@@ -483,8 +509,12 @@ struct MemoryTrailApp: App {
 
     @MainActor
     private func presentWhatsNewIfNeeded() async {
+        let alreadyPresentedForCurrentVersion =
+            lastPresentedWhatsNewRelease == Self.releaseIdentity ||
+            lastPresentedWhatsNewRelease.hasPrefix("\(Self.appVersion) (")
+
         guard hasCompletedOnboarding,
-              lastPresentedWhatsNewRelease != Self.releaseIdentity,
+              !alreadyPresentedForCurrentVersion,
               updatePresentation == nil
         else {
             return
@@ -513,11 +543,12 @@ struct MemoryTrailApp: App {
 
     @MainActor
     private func checkForUpdates(manual: Bool) async {
-        guard !isCheckingForUpdates else { return }
+        guard !isCheckingForUpdates, !isInstallingUpdate else { return }
         isCheckingForUpdates = true
         defer { isCheckingForUpdates = false }
 
-        lastUpdateCheckEpoch = Date().timeIntervalSince1970
+        let now = Date().timeIntervalSince1970
+        lastUpdateCheckEpoch = now
 
         do {
             let manifest = try await MemoryTrailUpdateService.fetchLatest()
@@ -526,15 +557,49 @@ struct MemoryTrailApp: App {
                 thanVersion: Self.appVersion,
                 build: Int(Self.buildNumber) ?? 0
             ) {
+                if !manual {
+                    if skippedUpdateVersion == manifest.version {
+                        return
+                    }
+
+                    if remindUpdateAfterEpoch > now {
+                        return
+                    }
+                }
+
+                if skippedUpdateVersion != manifest.version {
+                    skippedUpdateVersion = ""
+                }
+                if remindUpdateAfterEpoch <= now {
+                    remindUpdateAfterEpoch = 0
+                }
+
                 updatePresentation = .updateAvailable(manifest)
             } else if manual {
-                updatePresentation = .upToDate(Self.appVersion)
+                updatePresentation = .upToDate(Self.appVersion, Self.buildNumber)
             }
         } catch {
             guard manual else { return }
             updatePresentation = .unavailable(
-                "Memory Trail could not reach the update service. Check your internet connection and try again, or open Releases to download the latest version manually."
+                "Memory Trail couldn’t reach the update service. Check your connection and try again, or open Releases to download the latest version manually."
             )
+        }
+    }
+
+    @MainActor
+    private func beginBackgroundUpdate(_ manifest: MemoryTrailUpdateManifest) {
+        guard !isInstallingUpdate else { return }
+        isInstallingUpdate = true
+
+        Task {
+            do {
+                try await MemoryTrailBackgroundUpdater.downloadInstallAndRelaunch(manifest)
+            } catch {
+                isInstallingUpdate = false
+                updatePresentation = .unavailable(
+                    "The update could not be installed automatically. Your current copy of Memory Trail is unchanged. You can open Releases and install the update manually."
+                )
+            }
         }
     }
 }
@@ -833,7 +898,7 @@ private struct MemoryTrailUpdateManifest: Decodable, Hashable {
 private enum MemoryTrailUpdatePresentation: Identifiable {
     case whatsNew(MemoryTrailChangelog)
     case updateAvailable(MemoryTrailUpdateManifest)
-    case upToDate(String)
+    case upToDate(String, String)
     case unavailable(String)
 
     var id: String {
@@ -842,8 +907,8 @@ private enum MemoryTrailUpdatePresentation: Identifiable {
             return "whats-new-\(changelog.version)"
         case .updateAvailable(let manifest):
             return "update-\(manifest.version)-\(manifest.build)"
-        case .upToDate(let version):
-            return "up-to-date-\(version)"
+        case .upToDate(let version, let build):
+            return "up-to-date-\(version)-\(build)"
         case .unavailable:
             return "update-unavailable"
         }
@@ -851,12 +916,88 @@ private enum MemoryTrailUpdatePresentation: Identifiable {
 }
 
 private enum MemoryTrailUpdateService {
+    private static let githubLatestReleaseURL = URL(
+        string: "https://api.github.com/repos/ram1424/Memory-Trail/releases/latest"
+    )!
+
     private static let manifestURLs = [
         URL(string: "https://raw.githubusercontent.com/ram1424/Memory-Trail/main/docs/update.json")!,
         URL(string: "https://ram1424.github.io/Memory-Trail/update.json")!
     ]
 
+    private struct GitHubRelease: Decodable {
+        let tag_name: String
+        let name: String?
+        let body: String?
+        let html_url: String
+        let published_at: String?
+        let assets: [GitHubReleaseAsset]
+    }
+
+    private struct GitHubReleaseAsset: Decodable {
+        let name: String
+        let browser_download_url: String
+    }
+
     static func fetchLatest() async throws -> MemoryTrailUpdateManifest {
+        do {
+            return try await fetchLatestGitHubRelease()
+        } catch {
+            return try await fetchManifestFallback()
+        }
+    }
+
+    private static func fetchLatestGitHubRelease() async throws -> MemoryTrailUpdateManifest {
+        var request = URLRequest(
+            url: githubLatestReleaseURL,
+            cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
+            timeoutInterval: 8
+        )
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
+        request.setValue(
+            "MemoryTrail/\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200...299).contains(http.statusCode)
+        else {
+            throw URLError(.badServerResponse)
+        }
+
+        let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+        let version = release.tag_name.hasPrefix("v")
+            ? String(release.tag_name.dropFirst())
+            : release.tag_name
+
+        guard let dmg = release.assets.first(where: {
+            $0.name.lowercased().hasSuffix(".dmg")
+        }) else {
+            throw URLError(.fileDoesNotExist)
+        }
+
+        let highlights = release.body?
+            .split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { $0.hasPrefix("- ") }
+            .prefix(8)
+            .map { String($0.dropFirst(2)) }
+            ?? []
+
+        return MemoryTrailUpdateManifest(
+            version: version,
+            build: buildNumber(from: release.name) ?? 0,
+            publishedAt: release.published_at,
+            downloadURL: dmg.browser_download_url,
+            releaseURL: release.html_url,
+            highlights: highlights,
+            changelog: []
+        )
+    }
+
+    private static func fetchManifestFallback() async throws -> MemoryTrailUpdateManifest {
         var lastError: Error = URLError(.badServerResponse)
 
         for manifestURL in manifestURLs {
@@ -897,6 +1038,18 @@ private enum MemoryTrailUpdateService {
         throw lastError
     }
 
+    private static func buildNumber(from name: String?) -> Int? {
+        guard let name,
+              let range = name.range(of: "Build ", options: .caseInsensitive)
+        else {
+            return nil
+        }
+
+        let suffix = name[range.upperBound...]
+        let digits = suffix.prefix { $0.isNumber }
+        return Int(digits)
+    }
+
     static func isNewer(
         _ manifest: MemoryTrailUpdateManifest,
         thanVersion currentVersion: String,
@@ -925,11 +1078,235 @@ private enum MemoryTrailUpdateService {
     }
 }
 
+private enum MemoryTrailBackgroundUpdater {
+    enum UpdateError: LocalizedError {
+        case invalidDownloadURL
+        case badDownloadResponse
+        case mountFailed
+        case appNotFound
+        case installLocationNotWritable
+        case helperLaunchFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidDownloadURL: return "The update download URL is invalid."
+            case .badDownloadResponse: return "The update download failed."
+            case .mountFailed: return "The downloaded update could not be opened."
+            case .appNotFound: return "Memory Trail.app was not found in the downloaded update."
+            case .installLocationNotWritable: return "Memory Trail cannot update itself from its current location."
+            case .helperLaunchFailed: return "The update helper could not be started."
+            }
+        }
+    }
+
+    static func downloadInstallAndRelaunch(_ manifest: MemoryTrailUpdateManifest) async throws {
+        guard let downloadURL = URL(string: manifest.downloadURL) else {
+            throw UpdateError.invalidDownloadURL
+        }
+
+        var request = URLRequest(
+            url: downloadURL,
+            cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
+            timeoutInterval: 60
+        )
+        request.setValue(
+            "MemoryTrail/\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")",
+            forHTTPHeaderField: "User-Agent"
+        )
+
+        let (temporaryDownload, response) = try await URLSession.shared.download(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200...299).contains(http.statusCode)
+        else {
+            throw UpdateError.badDownloadResponse
+        }
+
+        let currentAppURL = Bundle.main.bundleURL
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+
+        let prepared = try await Task.detached(priority: .utility) {
+            try prepareUpdate(
+                temporaryDownload: temporaryDownload,
+                currentAppURL: currentAppURL
+            )
+        }.value
+
+        try launchReplacementHelper(
+            stagedAppURL: prepared.stagedAppURL,
+            stagingRootURL: prepared.stagingRootURL,
+            currentAppURL: currentAppURL,
+            currentPID: currentPID
+        )
+
+        await MainActor.run {
+            NSApplication.shared.terminate(nil)
+        }
+    }
+
+    private static func prepareUpdate(
+        temporaryDownload: URL,
+        currentAppURL: URL
+    ) throws -> (stagedAppURL: URL, stagingRootURL: URL) {
+        let fileManager = FileManager.default
+        let parentDirectory = currentAppURL.deletingLastPathComponent()
+
+        guard fileManager.isWritableFile(atPath: parentDirectory.path) else {
+            throw UpdateError.installLocationNotWritable
+        }
+
+        let stagingRoot = fileManager.temporaryDirectory
+            .appendingPathComponent("MemoryTrailUpdate-\(UUID().uuidString)", isDirectory: true)
+        try fileManager.createDirectory(
+            at: stagingRoot,
+            withIntermediateDirectories: true
+        )
+
+        let dmgURL = stagingRoot.appendingPathComponent("MemoryTrailUpdate.dmg")
+        try fileManager.moveItem(at: temporaryDownload, to: dmgURL)
+
+        let mountPoint = try mountDMG(dmgURL)
+        defer {
+            _ = try? runProcess(
+                executable: "/usr/bin/hdiutil",
+                arguments: ["detach", mountPoint.path]
+            )
+        }
+
+        let mountedItems = try fileManager.contentsOfDirectory(
+            at: mountPoint,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )
+
+        guard let appURL = mountedItems.first(where: {
+            $0.pathExtension.lowercased() == "app"
+        }) else {
+            throw UpdateError.appNotFound
+        }
+
+        let stagedAppURL = stagingRoot.appendingPathComponent("Memory Trail.app")
+        try fileManager.copyItem(at: appURL, to: stagedAppURL)
+
+        return (stagedAppURL, stagingRoot)
+    }
+
+    private static func mountDMG(_ dmgURL: URL) throws -> URL {
+        let data = try runProcess(
+            executable: "/usr/bin/hdiutil",
+            arguments: ["attach", "-nobrowse", "-readonly", "-plist", dmgURL.path]
+        )
+
+        guard let plist = try PropertyListSerialization.propertyList(
+            from: data,
+            options: [],
+            format: nil
+        ) as? [String: Any],
+        let entities = plist["system-entities"] as? [[String: Any]],
+        let mountPath = entities.compactMap({ $0["mount-point"] as? String }).first
+        else {
+            throw UpdateError.mountFailed
+        }
+
+        return URL(fileURLWithPath: mountPath, isDirectory: true)
+    }
+
+    private static func runProcess(
+        executable: String,
+        arguments: [String]
+    ) throws -> Data {
+        let process = Process()
+        let output = Pipe()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+        process.standardOutput = output
+        process.standardError = output
+
+        try process.run()
+        process.waitUntilExit()
+
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        guard process.terminationStatus == 0 else {
+            throw UpdateError.mountFailed
+        }
+
+        return data
+    }
+
+    private static func launchReplacementHelper(
+        stagedAppURL: URL,
+        stagingRootURL: URL,
+        currentAppURL: URL,
+        currentPID: Int32
+    ) throws {
+        let helperURL = stagingRootURL.appendingPathComponent("apply-update.sh")
+        let script = """
+        #!/bin/sh
+        set -eu
+        PID="$1"
+        STAGED="$2"
+        TARGET="$3"
+        ROOT="$4"
+        NEW="$TARGET.update"
+        BACKUP="$TARGET.previous"
+
+        while kill -0 "$PID" 2>/dev/null; do
+          sleep 0.2
+        done
+
+        rm -rf "$NEW" "$BACKUP"
+        /usr/bin/ditto "$STAGED" "$NEW"
+
+        if [ -e "$TARGET" ]; then
+          /bin/mv "$TARGET" "$BACKUP"
+        fi
+
+        if /bin/mv "$NEW" "$TARGET"; then
+          /usr/bin/xattr -dr com.apple.quarantine "$TARGET" 2>/dev/null || true
+          /usr/bin/open "$TARGET"
+          rm -rf "$BACKUP" "$ROOT"
+        else
+          rm -rf "$NEW"
+          if [ -e "$BACKUP" ]; then
+            /bin/mv "$BACKUP" "$TARGET"
+          fi
+          exit 1
+        fi
+        """
+
+        try script.write(to: helperURL, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755],
+            ofItemAtPath: helperURL.path
+        )
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = [
+            helperURL.path,
+            String(currentPID),
+            stagedAppURL.path,
+            currentAppURL.path,
+            stagingRootURL.path
+        ]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+
+        do {
+            try process.run()
+        } catch {
+            throw UpdateError.helperLaunchFailed
+        }
+    }
+}
 private struct MemoryTrailUpdateSheet: View {
     let presentation: MemoryTrailUpdatePresentation
     let icon: NSImage
     let currentVersion: String
-    let onDownload: (URL) -> Void
+    let currentBuild: String
+    let isInstallingUpdate: Bool
+    let onUpdate: (MemoryTrailUpdateManifest) -> Void
+    let onRemindTomorrow: (MemoryTrailUpdateManifest) -> Void
+    let onSkipVersion: (MemoryTrailUpdateManifest) -> Void
     let onOpenReleases: () -> Void
     let onDismiss: () -> Void
 
@@ -970,15 +1347,8 @@ private struct MemoryTrailUpdateSheet: View {
         case .updateAvailable(let manifest):
             updateAvailableView(manifest)
 
-        case .upToDate(let version):
-            statusView(
-                symbol: "checkmark.seal.fill",
-                symbolColor: .green,
-                title: "Memory Trail is up to date",
-                message: "You’re running version \(version). No newer release is available.",
-                primaryButton: "Done",
-                primaryAction: onDismiss
-            )
+        case .upToDate(let version, let build):
+            upToDateView(version: version, build: build)
 
         case .unavailable(let message):
             statusView(
@@ -1036,17 +1406,17 @@ private struct MemoryTrailUpdateSheet: View {
     private func updateAvailableView(_ manifest: MemoryTrailUpdateManifest) -> some View {
         VStack(spacing: 0) {
             sheetHeader(
-                eyebrow: "UPDATE AVAILABLE",
+                eyebrow: "A FRESHER TRAIL IS READY",
                 title: "Memory Trail \(manifest.version)",
-                subtitle: "A newer version is ready to download."
+                subtitle: "A new version is ready. Update now, take a day, or skip this release."
             )
 
             HStack(spacing: 12) {
-                versionPill("Current", value: currentVersion, tint: .gray, valueColor: primaryText)
+                versionPill("Current", value: "\(currentVersion) (\(currentBuild))", tint: .gray, valueColor: primaryText)
                 Image(systemName: "arrow.right")
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.secondary)
-                versionPill("New", value: manifest.version, tint: .blue, valueColor: .blue)
+                versionPill("New", value: "\(manifest.version) (\(manifest.build))", tint: .blue, valueColor: .blue)
             }
             .padding(.top, 18)
             .padding(.bottom, 18)
@@ -1055,7 +1425,7 @@ private struct MemoryTrailUpdateSheet: View {
                 VStack(spacing: 14) {
                     if !manifest.highlights.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Highlights")
+                            Text("What’s waiting on the next trail")
                                 .font(.headline)
                                 .foregroundStyle(primaryText)
 
@@ -1080,22 +1450,103 @@ private struct MemoryTrailUpdateSheet: View {
                 .padding(.bottom, 8)
             }
 
-            Text("Only update metadata is checked. Your Memory Trail activity remains local to this Mac.")
+            Text("Update checks use version metadata only. Your captured activity never leaves this Mac.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.top, 14)
 
-            footer(
-                primaryTitle: "Download Update",
-                primaryAction: {
-                    if let url = URL(string: manifest.downloadURL) {
-                        onDownload(url)
-                    }
-                },
-                secondaryTitle: "Later",
-                secondaryAction: onDismiss
-            )
+            HStack(spacing: 10) {
+                Button {
+                    onUpdate(manifest)
+                } label: {
+                    Label(
+                        isInstallingUpdate ? "Preparing Update…" : "Update Now",
+                        systemImage: isInstallingUpdate ? "arrow.triangle.2.circlepath" : "arrow.down.circle.fill"
+                    )
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(isInstallingUpdate)
+                .keyboardShortcut(.defaultAction)
+
+                Button {
+                    onRemindTomorrow(manifest)
+                } label: {
+                    Label("Remind Me Tomorrow", systemImage: "clock")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(isInstallingUpdate)
+
+                Button("Skip This Version") {
+                    onSkipVersion(manifest)
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .disabled(isInstallingUpdate)
+            }
+            .padding(.top, 18)
         }
+    }
+
+    private func upToDateView(version: String, build: String) -> some View {
+        VStack(spacing: 18) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .fill(Color.green.opacity(0.10))
+                    .frame(width: 142, height: 142)
+
+                Circle()
+                    .stroke(Color.green.opacity(0.18), lineWidth: 12)
+                    .frame(width: 118, height: 118)
+
+                Image(systemName: "checkmark")
+                    .font(.system(size: 48, weight: .bold))
+                    .foregroundStyle(.green)
+            }
+            .shadow(color: Color.green.opacity(0.16), radius: 24, y: 8)
+
+            Text("You’re on the freshest trail.")
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .foregroundStyle(primaryText)
+
+            Text("No detours. No downloads. Memory Trail is already running the latest release.")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(secondaryText)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 500)
+
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(.blue)
+                Text("Version \(version) • Build \(build)")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(primaryText)
+            }
+            .padding(.horizontal, 18)
+            .frame(height: 40)
+            .background(Color.white.opacity(0.80), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(MemoryTrailPalette.border, lineWidth: 1)
+            }
+
+            Spacer()
+
+            Button("Keep Exploring") {
+                onDismiss()
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .keyboardShortcut(.defaultAction)
+
+            Text("We’ll keep an eye on the trail and let you know when something new arrives.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(20)
     }
 
     private func statusView(

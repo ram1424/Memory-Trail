@@ -109,7 +109,7 @@ jobs:
             -configuration Release \
             -derivedDataPath "$PWD/build" \
             MARKETING_VERSION=1.0 \
-            CURRENT_PROJECT_VERSION=1 \
+            CURRENT_PROJECT_VERSION=2 \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             clean build 2>&1 | tee "$PWD/xcodebuild.log"
@@ -141,7 +141,7 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -f state=success \
             -f context=memory-trail-build-diagnostics \
-            -f description="Memory Trail 1.0 (Build 1) macOS build passed." >/dev/null
+            -f description="Memory Trail 1.0 (Build 2) macOS build passed." >/dev/null
 
       - name: Capture screenshots from real Memory Trail windows
         id: screenshots
@@ -290,14 +290,14 @@ jobs:
           set -euo pipefail
           TAG="v1.0"
           DMG="MemoryTrail-1.0.dmg"
-          TITLE="Memory Trail 1.0 (Build 1) — First Official Release"
+          TITLE="Memory Trail 1.0 (Build 2) — First Official Release"
           API="https://api.github.com/repos/$GITHUB_REPOSITORY"
           AUTH_HEADER="Authorization: Bearer $GH_TOKEN"
           ACCEPT_HEADER="Accept: application/vnd.github+json"
           VERSION_HEADER="X-GitHub-Api-Version: 2022-11-28"
 
           cat > release-notes.md <<'EOF'
-          Memory Trail 1.0 (Build 1) — First Official Release for macOS.
+          Memory Trail 1.0 (Build 2) — First Official Release for macOS.
 
           First Official Release
 

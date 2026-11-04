@@ -3,14 +3,17 @@ import SwiftUI
 import AppKit
 #endif
 
+extension Notification.Name {
+    static let memoryTrailCheckForUpdates = Notification.Name("MemoryTrailCheckForUpdates")
+}
+
 struct SettingsView: View {
     @Environment(RecallPreferences.self) private var preferences
     @State private var captureCoordinator = MacCaptureCoordinator.shared
     @State private var customExclusions = ""
     @State private var showingInstalledAppPicker = false
     @State private var installedApps: [InstalledApplication] = []
-    @State private var showingClearCacheConfirmation = false
-    @State private var cacheClearedMessage = false
+    @State private var showingClearCacheSheet = false
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some View {
@@ -166,6 +169,48 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                settingsCard("Updates", systemImage: "arrow.triangle.2.circlepath") {
+                    HStack(alignment: .center, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Stay on the freshest trail")
+                                .font(.subheadline.weight(.semibold))
+
+                            Text("Memory Trail checks for new releases when it launches and periodically while it’s running.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Button {
+                            NotificationCenter.default.post(
+                                name: .memoryTrailCheckForUpdates,
+                                object: nil
+                            )
+                        } label: {
+                            Label("Check for Updates", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+
+                    Divider()
+
+                    HStack {
+                        Label(
+                            "Version \(appVersion) • Build \(buildNumber)",
+                            systemImage: "shippingbox.fill"
+                        )
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Text("Automatic checks enabled")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 settingsCard("Help", systemImage: "questionmark.circle") {
                     Button {
                         hasCompletedOnboarding = false
@@ -220,21 +265,16 @@ struct SettingsView: View {
 
                     Divider()
 
-                    Button(role: .destructive) {
-                        showingClearCacheConfirmation = true
+                    Button {
+                        showingClearCacheSheet = true
                     } label: {
-                        Label("Clear App Cache", systemImage: "trash.slash")
+                        Label("Clear App Cache", systemImage: "sparkles.rectangle.stack")
                     }
+                    .buttonStyle(.bordered)
 
                     Text("Resets cached capture state and Memory Trail preferences without deleting your activity history.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-
-                    if cacheClearedMessage {
-                        Label("App cache cleared.", systemImage: "checkmark.circle.fill")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -287,20 +327,12 @@ struct SettingsView: View {
         .onReceive(Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()) { _ in
             captureCoordinator.refreshAccessibilityStatus()
         }
-        .confirmationDialog(
-            "Clear App Cache?",
-            isPresented: $showingClearCacheConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Clear App Cache", role: .destructive) {
+        .sheet(isPresented: $showingClearCacheSheet) {
+            MemoryTrailClearCacheSheet {
                 preferences.resetToDefaults()
                 MacCaptureCoordinator.shared.clearRuntimeCache()
                 customExclusions = preferences.customExcludedBundleIDs
-                cacheClearedMessage = true
             }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("This resets capture state and preferences to defaults. Your Timeline entries will not be deleted.")
         }
     }
 
@@ -375,6 +407,103 @@ struct SettingsView: View {
 #endif
     }
 
+}
+
+
+private struct MemoryTrailClearCacheSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let onClear: () -> Void
+    @State private var didClear = false
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.92, green: 0.97, blue: 1.00),
+                    Color.white,
+                    Color(red: 0.96, green: 0.98, blue: 1.00)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            Circle()
+                .fill((didClear ? Color.green : Color.blue).opacity(0.10))
+                .frame(width: 260, height: 260)
+                .blur(radius: 48)
+                .offset(x: 150, y: -150)
+
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill((didClear ? Color.green : Color.blue).opacity(0.11))
+                        .frame(width: 94, height: 94)
+
+                    Image(systemName: didClear ? "sparkles" : "externaldrive.badge.xmark")
+                        .font(.system(size: 38, weight: .semibold))
+                        .foregroundStyle(didClear ? .green : .blue)
+                }
+                .shadow(
+                    color: (didClear ? Color.green : Color.blue).opacity(0.14),
+                    radius: 18,
+                    y: 7
+                )
+
+                Text(didClear ? "Fresh trail. Same memories." : "Clear the clutter?")
+                    .font(.system(size: 27, weight: .bold, design: .rounded))
+                    .multilineTextAlignment(.center)
+
+                Text(
+                    didClear
+                        ? "Memory Trail’s temporary capture state and preferences are refreshed. Your Timeline entries stayed exactly where they belong."
+                        : "This refreshes cached capture state and restores preferences to their defaults. Your Timeline history will not be deleted."
+                )
+                .font(.system(size: 14.5, weight: .medium))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 390)
+
+                if didClear {
+                    Label("Cache cleared successfully", systemImage: "checkmark.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.green)
+                        .padding(.horizontal, 14)
+                        .frame(height: 36)
+                        .background(Color.green.opacity(0.08), in: Capsule())
+
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .keyboardShortcut(.defaultAction)
+                } else {
+                    HStack(spacing: 10) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+
+                        Button {
+                            onClear()
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                didClear = true
+                            }
+                        } label: {
+                            Label("Clear Cache", systemImage: "sparkles")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .keyboardShortcut(.defaultAction)
+                    }
+                }
+            }
+            .padding(30)
+        }
+        .frame(width: 500, height: 390)
+    }
 }
 
 
