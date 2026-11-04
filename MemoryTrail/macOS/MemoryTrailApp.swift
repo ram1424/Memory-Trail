@@ -16,7 +16,6 @@ struct MemoryTrailApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("memoryTrail.lastPresentedWhatsNewRelease") private var lastPresentedWhatsNewRelease = ""
     @AppStorage("memoryTrail.lastUpdateCheckEpoch") private var lastUpdateCheckEpoch = 0.0
-    @AppStorage("memoryTrail.didRequestInitialMaximizedWindow") private var didRequestInitialMaximizedWindow = false
 
     private static let screenshotDemoSelection: SidebarItem? = {
         guard let argument = ProcessInfo.processInfo.arguments.first(where: {
@@ -400,10 +399,10 @@ struct MemoryTrailApp: App {
     @MainActor
     private func runStartupSequence() async {
         let startupBeganAt = Date()
-        let minimumSplashDuration: TimeInterval = 2.0
+        let minimumSplashDuration: TimeInterval = 1.5
 
         splashProgress = 0.02
-        withAnimation(.linear(duration: 1.85)) {
+        withAnimation(.linear(duration: 1.35)) {
             splashProgress = 1.0
         }
 
@@ -419,7 +418,7 @@ struct MemoryTrailApp: App {
 
         await Task.yield()
 
-        // Keep the simple animated splash visible for its full 2-second run.
+        // Keep the simple animated splash visible for its full 1.5-second run.
         let elapsed = Date().timeIntervalSince(startupBeganAt)
         let remaining = max(0, minimumSplashDuration - elapsed)
         if remaining > 0 {
@@ -435,7 +434,7 @@ struct MemoryTrailApp: App {
     @MainActor
     private func launchAndMonitorUpdates() async {
         await runStartupSequence()
-        await maximizeWindowOnFirstLaunchIfNeeded()
+        await maximizeWindowOnLaunch()
 
         if hasCompletedOnboarding {
             await presentWhatsNewIfNeeded()
@@ -450,18 +449,14 @@ struct MemoryTrailApp: App {
     }
 
     @MainActor
-    private func maximizeWindowOnFirstLaunchIfNeeded() async {
-        guard Self.screenshotDemoSelection == nil,
-              !didRequestInitialMaximizedWindow
-        else {
-            return
-        }
+    private func maximizeWindowOnLaunch() async {
+        guard Self.screenshotDemoSelection == nil else { return }
 
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
 
-        // Wait until SwiftUI/AppKit has presented the first real app window,
-        // then expand it to the screen's visible work area exactly once.
+        // Wait until SwiftUI/AppKit has presented the main app window, then
+        // expand it to the screen's visible work area every time the app launches.
         // This keeps Memory Trail as a normal macOS window and does not enter
         // native full-screen mode or create a separate full-screen Space.
         for _ in 0..<20 {
@@ -479,7 +474,6 @@ struct MemoryTrailApp: App {
                     window.setFrame(screen.visibleFrame, display: true, animate: true)
                 }
 
-                didRequestInitialMaximizedWindow = true
                 return
             }
 
