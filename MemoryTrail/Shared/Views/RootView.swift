@@ -399,6 +399,7 @@ struct MemoryTrailScreenshotShell: View {
 struct ClipboardHistoryView: View {
     let memories: [MemoryItem]
     @State private var searchText = ""
+    @State private var selectedClipboardItem: MemoryItem?
 
     private var allClipboardItems: [MemoryItem] {
         memories.filter { $0.sourceKind == .clipboard }
@@ -510,7 +511,13 @@ struct ClipboardHistoryView: View {
 
                         LazyVStack(spacing: 9) {
                             ForEach(visibleItems) { item in
-                                clipboardRow(item)
+                                Button {
+                                    selectedClipboardItem = item
+                                } label: {
+                                    clipboardRow(item)
+                                }
+                                .buttonStyle(.plain)
+                                .help("View clipboard item details")
                             }
                         }
                     }
@@ -537,6 +544,10 @@ struct ClipboardHistoryView: View {
                 endPoint: .bottomTrailing
             )
         )
+        .sheet(item: $selectedClipboardItem) { item in
+            ClipboardItemDetailView(item: item)
+                .frame(minWidth: 620, minHeight: 520)
+        }
     }
 
     private var clipboardHeader: some View {
@@ -662,12 +673,21 @@ struct ClipboardHistoryView: View {
 
             Spacer(minLength: 8)
 
-            Text("Clipboard")
+            VStack(alignment: .trailing, spacing: 7) {
+                Text("Clipboard")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(category.filterTint)
+                    .padding(.horizontal, 8)
+                    .frame(height: 24)
+                    .background(category.filterBackground, in: Capsule())
+
+                HStack(spacing: 4) {
+                    Text("View")
+                    Image(systemName: "chevron.right")
+                }
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(category.filterTint)
-                .padding(.horizontal, 8)
-                .frame(height: 24)
-                .background(category.filterBackground, in: Capsule())
+                .foregroundStyle(.secondary)
+            }
         }
         .padding(12)
         .background(
@@ -678,6 +698,205 @@ struct ClipboardHistoryView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(category.filterTint.opacity(0.08), lineWidth: 1)
         }
+    }
+}
+
+private struct ClipboardItemDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    let item: MemoryItem
+
+    @State private var copied = false
+
+    private var copiedContent: String {
+        let body = item.body.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !body.isEmpty {
+            return body
+        }
+
+        return item.displayTitle
+    }
+
+    private var category: MemoryTrailCategory {
+        MemoryTrailCategory.category(for: item)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 13) {
+                Image(systemName: "doc.on.clipboard.fill")
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(category.filterTint)
+                    .frame(width: 46, height: 46)
+                    .background(
+                        category.filterBackground,
+                        in: RoundedRectangle(cornerRadius: 13)
+                    )
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Clipboard Item")
+                        .font(.system(size: 23, weight: .bold, design: .rounded))
+
+                    Text("Review exactly what was captured, then copy it back when you need it.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .frame(width: 30, height: 30)
+                        .background(
+                            MemoryTrailPalette.surface,
+                            in: Circle()
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("Close")
+            }
+
+            HStack(spacing: 10) {
+                clipboardDetailBadge(
+                    title: item.sourceApp.isEmpty ? "Clipboard" : item.sourceApp,
+                    symbol: "app.fill",
+                    category: .chat
+                )
+
+                clipboardDetailBadge(
+                    title: item.createdAt.formatted(
+                        date: .abbreviated,
+                        time: .shortened
+                    ),
+                    symbol: "clock.fill",
+                    category: .remoteAccess
+                )
+
+                clipboardDetailBadge(
+                    title: "Stored locally",
+                    symbol: "lock.shield.fill",
+                    category: .files
+                )
+
+                Spacer(minLength: 0)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Copied Content")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+
+                    Spacer()
+
+                    Text("\(copiedContent.count) characters")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                ScrollView {
+                    Text(copiedContent)
+                        .font(.system(size: 14, weight: .regular, design: .monospaced))
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(14)
+                }
+                .frame(minHeight: 220)
+                .background(
+                    MemoryTrailPalette.surface.opacity(0.96),
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(category.filterTint.opacity(0.12), lineWidth: 1)
+                }
+            }
+
+            if let sourceURL = item.sourceURL,
+               !sourceURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Source")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    Text(sourceURL)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .lineLimit(2)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Label(
+                    "Clipboard history stays on this Mac.",
+                    systemImage: "lock.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(
+                        copiedContent,
+                        forType: .string
+                    )
+
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        copied = true
+                    }
+
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 1_500_000_000)
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            copied = false
+                        }
+                    }
+                } label: {
+                    Label(
+                        copied ? "Copied" : "Copy to Clipboard",
+                        systemImage: copied
+                            ? "checkmark.circle.fill"
+                            : "doc.on.doc.fill"
+                    )
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            }
+        }
+        .padding(24)
+        .background(
+            LinearGradient(
+                colors: [
+                    MemoryTrailPalette.canvasTop,
+                    MemoryTrailPalette.canvasBottom
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+    }
+
+    private func clipboardDetailBadge(
+        title: String,
+        symbol: String,
+        category: MemoryTrailCategory
+    ) -> some View {
+        Label(title, systemImage: symbol)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 10)
+            .frame(height: 32)
+            .background(
+                category.filterBackground,
+                in: Capsule()
+            )
     }
 }
 
