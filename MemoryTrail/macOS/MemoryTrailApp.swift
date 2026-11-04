@@ -294,12 +294,12 @@ struct MemoryTrailApp: App {
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "Insights, Aligned",
-                    symbol: "chart.bar.fill",
+                    title: "A Consistent Experience",
+                    symbol: "rectangle.3.group.fill",
                     items: [
                         "Insights now uses a balanced dashboard grid with consistent card sizes and spacing.",
-                        "Today, This Week, and This Month summaries keep activity-by-app, time distribution, top items, and patterns aligned.",
-                        "Today and Insights now share the same filter-inspired color system for a more consistent visual language."
+                        "Ask Memory Trail, Clipboard History, Settings, and Favorites now share the same structured headers, cards, spacing, and filter-inspired color system.",
+                        "Favorites now makes starring activity feel intentional, with clearer saved-item context and a more welcoming empty state."
                     ]
                 ),
                 MemoryTrailChangeSection(

@@ -23,25 +23,41 @@ struct SearchView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 18) {
                 header
                 askBox
 
                 if let answer {
-                    answerCard(answer)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: 16) {
+                            answerCard(answer)
+                                .frame(minWidth: 360, maxWidth: .infinity)
 
-                    if !answer.items.isEmpty {
-                        activityResults(answer.items)
+                            if !answer.items.isEmpty {
+                                activityResults(answer.items)
+                                    .frame(minWidth: 420, maxWidth: .infinity)
+                            }
+                        }
+
+                        VStack(spacing: 16) {
+                            answerCard(answer)
+                            if !answer.items.isEmpty {
+                                activityResults(answer.items)
+                            }
+                        }
                     }
                 } else {
-                    emptyState
+                    quickStartDashboard
                 }
             }
             .padding(24)
         }
         .background(
             LinearGradient(
-                colors: [MemoryTrailPalette.canvasTop, MemoryTrailPalette.canvasBottom],
+                colors: [
+                    MemoryTrailPalette.canvasTop,
+                    MemoryTrailPalette.canvasBottom
+                ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -59,31 +75,49 @@ struct SearchView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
-                Image(systemName: "sparkles")
-                    .font(.title2)
-                    .foregroundStyle(.tint)
+        HStack(spacing: 14) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(MemoryTrailCategory.chat.filterTint)
+                .frame(width: 48, height: 48)
+                .background(
+                    MemoryTrailCategory.chat.filterBackground,
+                    in: RoundedRectangle(cornerRadius: 14)
+                )
 
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Ask Memory Trail")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                Text("Find the moments you remember — by time, app, page, email, chat, file, or project.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
 
-            Text("Ask about a time, app, page, email, chat, file, or project. Answers are generated locally from your captured timeline.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            Spacer(minLength: 16)
+
+            Label("Local Search", systemImage: "lock.shield.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(MemoryTrailCategory.remoteAccess.filterTint)
+                .padding(.horizontal, 12)
+                .frame(height: 34)
+                .background(
+                    MemoryTrailCategory.remoteAccess.filterBackground,
+                    in: Capsule()
+                )
         }
     }
 
     private var askBox: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(MemoryTrailCategory.allApps.filterTint)
 
                 TextField("What do you want to remember?", text: $query)
                     .textFieldStyle(.plain)
-                    .font(.body)
+                    .font(.system(size: 15, weight: .medium))
                     .focused($searchFocused)
                     .onSubmit(runQuery)
 
@@ -100,68 +134,167 @@ struct SearchView: View {
                 }
 
                 Button(action: runQuery) {
-                    Label("Ask", systemImage: "arrow.up.circle.fill")
-                        .labelStyle(.titleAndIcon)
+                    Label("Search", systemImage: "arrow.right.circle.fill")
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(
+                    query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                )
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(MemoryTrailPalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.horizontal, 15)
+            .frame(height: 52)
+            .background(
+                MemoryTrailPalette.elevatedStrong.opacity(0.97),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
             .overlay {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(.quaternary, lineWidth: 1)
+                    .stroke(
+                        MemoryTrailCategory.allApps.filterTint.opacity(0.14),
+                        lineWidth: 1
+                    )
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(examples, id: \.self) { example in
-                        Button {
-                            runQuery(example)
-                        } label: {
+            Text("Try asking")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 235), spacing: 9)],
+                spacing: 9
+            ) {
+                ForEach(Array(examples.prefix(6)), id: \.self) { example in
+                    Button {
+                        runQuery(example)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: promptSymbol(for: example))
+                                .foregroundStyle(promptCategory(for: example).filterTint)
+
                             Text(example)
-                                .font(.caption)
-                                .padding(.horizontal, 11)
-                                .frame(height: 28)
-                                .background(MemoryTrailPalette.surface, in: Capsule())
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+
+                            Spacer(minLength: 0)
                         }
-                        .buttonStyle(.plain)
+                        .padding(.horizontal, 11)
+                        .frame(height: 36)
+                        .background(
+                            promptCategory(for: example).filterBackground.opacity(0.58),
+                            in: RoundedRectangle(cornerRadius: 11)
+                        )
                     }
+                    .buttonStyle(.plain)
                 }
+            }
+        }
+        .padding(16)
+        .background(
+            MemoryTrailPalette.elevatedStrong.opacity(0.94),
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(MemoryTrailPalette.border, lineWidth: 1)
+        }
+    }
+
+    private var quickStartDashboard: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 16) {
+                searchCapabilityCard(
+                    title: "Search your day",
+                    detail: "Use natural phrases to find activity by time, app, page, file, email, or conversation.",
+                    symbol: "clock.badge.questionmark",
+                    category: .allApps
+                )
+
+                searchCapabilityCard(
+                    title: "Local by design",
+                    detail: "Queries run against your locally stored Memory Trail history. Your timeline is not sent to a cloud search service.",
+                    symbol: "lock.shield.fill",
+                    category: .remoteAccess
+                )
+
+                searchCapabilityCard(
+                    title: "Open the trail",
+                    detail: "Search results link back to captured activity so you can inspect the exact item and its context.",
+                    symbol: "arrow.up.forward.app.fill",
+                    category: .files
+                )
+            }
+
+            VStack(spacing: 12) {
+                searchCapabilityCard(
+                    title: "Search your day",
+                    detail: "Use natural phrases to find activity by time, app, page, file, email, or conversation.",
+                    symbol: "clock.badge.questionmark",
+                    category: .allApps
+                )
+                searchCapabilityCard(
+                    title: "Local by design",
+                    detail: "Queries run against your locally stored Memory Trail history. Your timeline is not sent to a cloud search service.",
+                    symbol: "lock.shield.fill",
+                    category: .remoteAccess
+                )
+                searchCapabilityCard(
+                    title: "Open the trail",
+                    detail: "Search results link back to captured activity so you can inspect the exact item and its context.",
+                    symbol: "arrow.up.forward.app.fill",
+                    category: .files
+                )
             }
         }
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 18) {
-            Image(nsImage: NSApplication.shared.applicationIconImage)
-                .resizable()
-                .interpolation(.high)
-                .frame(width: 78, height: 78)
-                .shadow(radius: 10, y: 5)
+    private func searchCapabilityCard(
+        title: String,
+        detail: String,
+        symbol: String,
+        category: MemoryTrailCategory
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Image(systemName: symbol)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(category.filterTint)
+                .frame(width: 42, height: 42)
+                .background(
+                    category.filterBackground,
+                    in: RoundedRectangle(cornerRadius: 12)
+                )
 
-            VStack(spacing: 8) {
-                Text("Your workday is searchable")
-                    .font(.system(size: 27, weight: .semibold, design: .rounded))
+            Text(title)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
 
-                Text("Memory Trail can reason over captured timestamps, application names, window titles, URLs, filenames, and local file paths without sending your history to a cloud service.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 560)
-            }
-
-            HStack(spacing: 14) {
-                feature("clock", "Time-aware")
-                feature("app.badge", "App-aware")
-                feature("doc.text.magnifyingglass", "File-aware")
-                feature("lock.shield", "Local")
-            }
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, minHeight: 360)
-        .padding(30)
-        .background(MemoryTrailPalette.surface.opacity(0.95), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+        .background(
+            category.filterBackground.opacity(0.38),
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(category.filterTint.opacity(0.10), lineWidth: 1)
+        }
+    }
+
+    private func promptCategory(for example: String) -> MemoryTrailCategory {
+        let text = example.lowercased()
+        if text.contains("email") || text.contains("conversation") { return .chat }
+        if text.contains("file") || text.contains("project") { return .files }
+        if text.contains("website") { return .web }
+        return .allApps
+    }
+
+    private func promptSymbol(for example: String) -> String {
+        let category = promptCategory(for: example)
+        return category.symbol
     }
 
     private func answerCard(_ answer: MemoryTrailAnswer) -> some View {
@@ -193,10 +326,10 @@ struct SearchView: View {
             }
         }
         .padding(16)
-        .background(Color.accentColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(MemoryTrailCategory.chat.filterBackground.opacity(0.46), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
+                .stroke(MemoryTrailCategory.chat.filterTint.opacity(0.14), lineWidth: 1)
         }
     }
 

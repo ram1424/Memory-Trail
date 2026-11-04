@@ -21,15 +21,13 @@ struct SettingsView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Settings")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                    Text("Control what Memory Trail remembers and how it behaves.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                settingsHeader
+                settingsStatusStrip
 
-                settingsCard("Capture", systemImage: "record.circle") {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 16) {
+                        VStack(spacing: 16) {
+                            settingsCard("Capture", systemImage: "record.circle") {
                     Toggle("Pause all capture", isOn: $preferences.capturePaused)
                     Toggle("Remember app switches and focused windows", isOn: $preferences.captureAppActivity)
                     Toggle("Remember copied text", isOn: $preferences.captureClipboard)
@@ -65,8 +63,7 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-
-                settingsCard("Excluded Apps & Services", systemImage: "hand.raised.slash") {
+                            settingsCard("Excluded Apps & Services", systemImage: "hand.raised.slash") {
                     HStack(alignment: .center, spacing: 14) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Choose installed apps Memory Trail should ignore.")
@@ -168,8 +165,11 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+                        }
+                        .frame(minWidth: 460, maxWidth: .infinity, alignment: .top)
 
-                settingsCard("Updates", systemImage: "arrow.triangle.2.circlepath") {
+                        VStack(spacing: 16) {
+                            settingsCard("Updates", systemImage: "arrow.triangle.2.circlepath") {
                     HStack(alignment: .center, spacing: 14) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Stay on the freshest trail")
@@ -210,8 +210,7 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-
-                settingsCard("Help", systemImage: "questionmark.circle") {
+                            settingsCard("Help", systemImage: "questionmark.circle") {
                     Button {
                         hasCompletedOnboarding = false
                     } label: {
@@ -221,6 +220,203 @@ struct SettingsView: View {
                     Text("Replay the first-launch walkthrough for Memory Trail.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                }
+                        }
+                        .frame(minWidth: 340, maxWidth: .infinity, alignment: .top)
+                    }
+
+                    VStack(spacing: 16) {
+                        settingsCard("Capture", systemImage: "record.circle") {
+                    Toggle("Pause all capture", isOn: $preferences.capturePaused)
+                    Toggle("Remember app switches and focused windows", isOn: $preferences.captureAppActivity)
+                    Toggle("Remember copied text", isOn: $preferences.captureClipboard)
+
+                    Divider()
+
+                    if captureCoordinator.hasAccessibilityPermission {
+                        Label("Accessibility access enabled. Focused-window title capture is active.", systemImage: "checkmark.shield.fill")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Label("Accessibility access is not active. App switches can still be logged, but Safari/Outlook/Mail/Teams window titles cannot be captured.", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+
+                        HStack {
+                            Button {
+                                captureCoordinator.requestAccessibilityPermission()
+                            } label: {
+                                Label("Request Access", systemImage: "hand.raised.fill")
+                            }
+                            .buttonStyle(.borderedProminent)
+
+                            Button("Open Accessibility Settings") {
+                                captureCoordinator.openAccessibilitySettings()
+                            }
+
+                            Button("Recheck") {
+                                captureCoordinator.refreshAccessibilityStatus()
+                            }
+                        }
+
+                        Text("Memory Trail requests Accessibility access automatically on launch. If macOS does not show the prompt, use Request Access or open Accessibility Settings, then enable Memory Trail.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                        settingsCard("Excluded Apps & Services", systemImage: "hand.raised.slash") {
+                    HStack(alignment: .center, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Choose installed apps Memory Trail should ignore.")
+                                .font(.subheadline)
+
+                            Text("\(excludedInstalledAppCount) installed app\(excludedInstalledAppCount == 1 ? "" : "s") currently excluded.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Button {
+                            refreshInstalledApps()
+                            showingInstalledAppPicker = true
+                        } label: {
+                            Label("Select Installed Apps", systemImage: "plus.app.fill")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+
+                    Divider()
+
+                    ForEach(alwaysExcludedOptions) { option in
+                        HStack(spacing: 10) {
+                            Image(systemName: option.systemImage)
+                                .frame(width: 24)
+                                .foregroundStyle(.blue)
+
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(option.name)
+                                    .font(.subheadline.weight(.medium))
+                                Text("Always excluded")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "lock.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if !otherExcludedInstalledApps.isEmpty {
+                        Divider()
+
+                        Text("Selected installed apps")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+
+                        ForEach(otherExcludedInstalledApps.prefix(8)) { app in
+                            HStack(spacing: 10) {
+                                Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path))
+                                    .resizable()
+                                    .interpolation(.high)
+                                    .scaledToFit()
+                                    .frame(width: 28, height: 28)
+
+                                Text(app.name)
+                                    .font(.subheadline)
+
+                                Spacer()
+
+                                Button {
+                                    preferences.setExcluded(false, bundleID: app.bundleID)
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Remove exclusion")
+                            }
+                        }
+
+                        if otherExcludedInstalledApps.count > 8 {
+                            Text("+ \(otherExcludedInstalledApps.count - 8) more")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    DisclosureGroup("Advanced: Custom bundle IDs") {
+                        TextField("com.example.app,com.example.other", text: $customExclusions, axis: .vertical)
+                            .lineLimit(2...5)
+                            .onSubmit {
+                                preferences.updateCustomExclusions(from: customExclusions)
+                                customExclusions = preferences.customExcludedBundleIDs
+                            }
+
+                        Button("Apply Custom Exclusions") {
+                            preferences.updateCustomExclusions(from: customExclusions)
+                            customExclusions = preferences.customExcludedBundleIDs
+                        }
+                        .buttonStyle(.borderless)
+                    }
+
+                    Label("Passwords and Wallet are always excluded. Additional apps you select are ignored for both activity and clipboard capture.", systemImage: "lock.shield.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                        settingsCard("Updates", systemImage: "arrow.triangle.2.circlepath") {
+                    HStack(alignment: .center, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Stay on the freshest trail")
+                                .font(.subheadline.weight(.semibold))
+
+                            Text("Memory Trail checks for new releases when it launches and periodically while it’s running.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Button {
+                            NotificationCenter.default.post(
+                                name: .memoryTrailCheckForUpdates,
+                                object: nil
+                            )
+                        } label: {
+                            Label("Check for Updates", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+
+                    Divider()
+
+                    HStack {
+                        Label(
+                            "Version \(appVersion)",
+                            systemImage: "shippingbox.fill"
+                        )
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Text("Automatic checks enabled")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                        settingsCard("Help", systemImage: "questionmark.circle") {
+                    Button {
+                        hasCompletedOnboarding = false
+                    } label: {
+                        Label("Show Welcome Tutorial", systemImage: "sparkles")
+                    }
+
+                    Text("Replay the first-launch walkthrough for Memory Trail.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                    }
                 }
 
                 settingsCard("Privacy", systemImage: "lock.shield.fill") {
@@ -314,36 +510,16 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Link(destination: URL(string: "https://github.com/ram1424/Memory-Trail")!) {
-                        HStack(spacing: 5) {
-                            Label("About Memory Trail", systemImage: "info.circle")
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.caption2)
-                        }
-                    }
-                    .font(.caption.weight(.semibold))
-                    .buttonStyle(.plain)
-                    .help("Open the Memory Trail GitHub page")
-
-                    Text("Version \(appVersion)")
-                        .font(.caption2)
-
-                    Text("Created By: Roman Zakharov")
-                        .font(.caption2)
-
-                    Text("Source code, privacy details, documentation, and the latest release are available on GitHub.")
-                        .font(.caption2)
-                }
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 4)
-                .padding(.top, 2)
+                settingsFooter
             }
             .padding(24)
         }
         .background(
             LinearGradient(
-                colors: [MemoryTrailPalette.canvasTop, MemoryTrailPalette.canvasBottom],
+                colors: [
+                    MemoryTrailPalette.canvasTop,
+                    MemoryTrailPalette.canvasBottom
+                ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -361,7 +537,13 @@ struct SettingsView: View {
             refreshInstalledApps()
             captureCoordinator.refreshAccessibilityStatus()
         }
-        .onReceive(Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()) { _ in
+        .onReceive(
+            Timer.publish(
+                every: 2.0,
+                on: .main,
+                in: .common
+            ).autoconnect()
+        ) { _ in
             captureCoordinator.refreshAccessibilityStatus()
         }
         .sheet(isPresented: $showingClearCacheSheet) {
@@ -373,23 +555,169 @@ struct SettingsView: View {
         }
     }
 
+    private var settingsHeader: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "gearshape.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(MemoryTrailCategory.allApps.filterTint)
+                .frame(width: 48, height: 48)
+                .background(
+                    MemoryTrailCategory.allApps.filterBackground,
+                    in: RoundedRectangle(cornerRadius: 14)
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Settings")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                Text("Tune what Memory Trail remembers, protects, and keeps close.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 12)
+        }
+    }
+
+    private var settingsStatusStrip: some View {
+        HStack(spacing: 12) {
+            settingsMetric(
+                value: preferences.capturePaused ? "Paused" : "On",
+                label: "Activity Capture",
+                symbol: preferences.capturePaused ? "pause.circle.fill" : "record.circle.fill",
+                category: .allApps
+            )
+
+            settingsMetric(
+                value: captureCoordinator.hasAccessibilityPermission ? "Enabled" : "Needs Access",
+                label: "Accessibility",
+                symbol: captureCoordinator.hasAccessibilityPermission
+                    ? "checkmark.shield.fill"
+                    : "exclamationmark.shield.fill",
+                category: .remoteAccess
+            )
+
+            settingsMetric(
+                value: "\(excludedInstalledAppCount)",
+                label: "Excluded Apps",
+                symbol: "hand.raised.slash.fill",
+                category: .files
+            )
+
+            settingsMetric(
+                value: appVersion,
+                label: "Version",
+                symbol: "shippingbox.fill",
+                category: .chat
+            )
+        }
+    }
+
+    private func settingsMetric(
+        value: String,
+        label: String,
+        symbol: String,
+        category: MemoryTrailCategory
+    ) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(category.filterTint)
+                .frame(width: 36, height: 36)
+                .background(
+                    category.filterBackground,
+                    in: RoundedRectangle(cornerRadius: 10)
+                )
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                Text(label)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(11)
+        .frame(maxWidth: .infinity, minHeight: 62)
+        .background(
+            category.filterBackground.opacity(0.44),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(category.filterTint.opacity(0.10), lineWidth: 1)
+        }
+    }
+
+    private var settingsFooter: some View {
+        HStack {
+            Link(destination: URL(string: "https://github.com/ram1424/Memory-Trail")!) {
+                Label("Memory Trail on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+            }
+            .font(.caption.weight(.semibold))
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Text("Version \(appVersion) • Created By: Roman Zakharov")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 4)
+        .padding(.top, 2)
+    }
+
     @ViewBuilder
     private func settingsCard<Content: View>(
         _ title: String,
         systemImage: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
+        let category = settingsCategory(for: title)
+
         VStack(alignment: .leading, spacing: 14) {
-            Label(title, systemImage: systemImage)
-                .font(.headline)
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(category.filterTint)
+                    .frame(width: 34, height: 34)
+                    .background(
+                        category.filterBackground,
+                        in: RoundedRectangle(cornerRadius: 10)
+                    )
+
+                Text(title)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+            }
 
             content()
         }
         .padding(18)
-        .background(MemoryTrailPalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(
+            MemoryTrailPalette.elevatedStrong.opacity(0.96),
+            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+        )
         .overlay {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(.quaternary, lineWidth: 1)
+                .stroke(category.filterTint.opacity(0.10), lineWidth: 1)
+        }
+    }
+
+    private func settingsCategory(for title: String) -> MemoryTrailCategory {
+        switch title {
+        case "Capture": .allApps
+        case "Excluded Apps & Services": .files
+        case "Updates": .web
+        case "Help": .chat
+        case "Privacy": .remoteAccess
+        default: .other
         }
     }
 
@@ -397,9 +725,12 @@ struct SettingsView: View {
         HStack(alignment: .top, spacing: 11) {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.blue)
+                .foregroundStyle(MemoryTrailCategory.remoteAccess.filterTint)
                 .frame(width: 30, height: 30)
-                .background(Color.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+                .background(
+                    MemoryTrailCategory.remoteAccess.filterBackground,
+                    in: RoundedRectangle(cornerRadius: 8)
+                )
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)

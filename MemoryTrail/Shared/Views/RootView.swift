@@ -400,56 +400,283 @@ struct ClipboardHistoryView: View {
     let memories: [MemoryItem]
     @State private var searchText = ""
 
+    private var allClipboardItems: [MemoryItem] {
+        memories.filter { $0.sourceKind == .clipboard }
+    }
+
     private var items: [MemoryItem] {
-        memories.filter {
-            $0.sourceKind == .clipboard &&
-            (searchText.isEmpty || $0.searchableText.localizedCaseInsensitiveContains(searchText))
+        allClipboardItems.filter {
+            searchText.isEmpty ||
+            $0.searchableText.localizedCaseInsensitiveContains(searchText)
         }
     }
 
     var body: some View {
         let visibleItems = items
+        let todayCount = allClipboardItems.filter {
+            Calendar.current.isDateInToday($0.createdAt)
+        }.count
+        let apps = Set(allClipboardItems.map(\.sourceApp)).count
 
-        return ScrollView {
+        ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                pageHeader(
-                    "Clipboard History",
-                    subtitle: "Quickly find text and links you copied.",
-                    symbol: "doc.on.clipboard.fill",
-                    tint: .orange
-                )
+                clipboardHeader
 
-                HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(.secondary)
-
-                    TextField("Search clipboard…", text: $searchText)
-                        .textFieldStyle(.plain)
+                HStack(spacing: 12) {
+                    clipboardMetric(
+                        value: "\(allClipboardItems.count)",
+                        label: "Saved Clipboard Items",
+                        symbol: "doc.on.clipboard.fill",
+                        category: .files
+                    )
+                    clipboardMetric(
+                        value: "\(todayCount)",
+                        label: "Captured Today",
+                        symbol: "calendar",
+                        category: .remoteAccess
+                    )
+                    clipboardMetric(
+                        value: "\(apps)",
+                        label: "Source Apps",
+                        symbol: "square.grid.2x2.fill",
+                        category: .chat
+                    )
                 }
-                .padding(.horizontal, 14)
-                .frame(height: 44)
-                .background(MemoryTrailPalette.elevated.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(MemoryTrailCategory.allApps.filterTint)
+
+                        TextField("Search clipboard history…", text: $searchText)
+                            .textFieldStyle(.plain)
+
+                        if !searchText.isEmpty {
+                            Button {
+                                searchText = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(height: 46)
+                    .background(
+                        MemoryTrailPalette.surface.opacity(0.96),
+                        in: RoundedRectangle(cornerRadius: 13)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 13)
+                            .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
+                    }
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "lock.shield.fill")
+                            .foregroundStyle(MemoryTrailCategory.remoteAccess.filterTint)
+
+                        Text("Clipboard history stays local to this Mac and can be disabled anytime in Settings.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+                    }
+                }
+                .padding(15)
+                .background(
+                    MemoryTrailPalette.elevatedStrong.opacity(0.95),
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                )
                 .overlay {
-                    RoundedRectangle(cornerRadius: 13)
-                        .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(MemoryTrailPalette.border, lineWidth: 1)
                 }
 
                 if visibleItems.isEmpty {
-                    ContentUnavailableView(
-                        "No Clipboard Items",
-                        systemImage: "doc.on.clipboard",
-                        description: Text("Copied text will appear here when clipboard capture is enabled.")
-                    )
-                    .frame(maxWidth: .infinity, minHeight: 420)
+                    clipboardEmptyState
                 } else {
-                    LazyVStack(spacing: 9) {
-                        ForEach(visibleItems) { item in
-                            MemoryRow(item: item)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Label("Clipboard Trail", systemImage: "list.bullet.rectangle.fill")
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+
+                            Spacer()
+
+                            Text("\(visibleItems.count) item\(visibleItems.count == 1 ? "" : "s")")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
                         }
+
+                        LazyVStack(spacing: 9) {
+                            ForEach(visibleItems) { item in
+                                clipboardRow(item)
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        MemoryTrailPalette.elevatedStrong.opacity(0.95),
+                        in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(MemoryTrailPalette.border, lineWidth: 1)
                     }
                 }
             }
             .padding(24)
+        }
+        .background(
+            LinearGradient(
+                colors: [
+                    MemoryTrailPalette.canvasTop,
+                    MemoryTrailPalette.canvasBottom
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+    }
+
+    private var clipboardHeader: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "doc.on.clipboard.fill")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(MemoryTrailCategory.files.filterTint)
+                .frame(width: 48, height: 48)
+                .background(
+                    MemoryTrailCategory.files.filterBackground,
+                    in: RoundedRectangle(cornerRadius: 14)
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Clipboard History")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                Text("Find the text and links you copied, without losing the context of your day.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 12)
+        }
+    }
+
+    private func clipboardMetric(
+        value: String,
+        label: String,
+        symbol: String,
+        category: MemoryTrailCategory
+    ) -> some View {
+        HStack(spacing: 11) {
+            Image(systemName: symbol)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(category.filterTint)
+                .frame(width: 38, height: 38)
+                .background(
+                    category.filterBackground,
+                    in: RoundedRectangle(cornerRadius: 11)
+                )
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.system(size: 21, weight: .bold, design: .rounded))
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 66)
+        .background(
+            category.filterBackground.opacity(0.46),
+            in: RoundedRectangle(cornerRadius: 15, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .stroke(category.filterTint.opacity(0.10), lineWidth: 1)
+        }
+    }
+
+    private var clipboardEmptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "doc.on.clipboard")
+                .font(.system(size: 36, weight: .semibold))
+                .foregroundStyle(MemoryTrailCategory.files.filterTint)
+                .frame(width: 84, height: 84)
+                .background(
+                    MemoryTrailCategory.files.filterBackground,
+                    in: Circle()
+                )
+
+            Text(searchText.isEmpty ? "Nothing copied yet" : "No matching clipboard items")
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+
+            Text(
+                searchText.isEmpty
+                    ? "Copied text and links will appear here when clipboard capture is enabled."
+                    : "Try a different search to retrace something you copied."
+            )
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, minHeight: 340)
+        .padding(28)
+        .background(
+            MemoryTrailPalette.elevatedStrong.opacity(0.95),
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+        )
+    }
+
+    private func clipboardRow(_ item: MemoryItem) -> some View {
+        let category = MemoryTrailCategory.category(for: item)
+
+        return HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "doc.on.clipboard.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(category.filterTint)
+                .frame(width: 36, height: 36)
+                .background(
+                    category.filterBackground,
+                    in: RoundedRectangle(cornerRadius: 10)
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.displayTitle)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+
+                HStack(spacing: 6) {
+                    Text(item.sourceApp)
+                    Text("•")
+                    Text(item.createdAt.formatted(date: .abbreviated, time: .shortened))
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+
+            Text("Clipboard")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(category.filterTint)
+                .padding(.horizontal, 8)
+                .frame(height: 24)
+                .background(category.filterBackground, in: Capsule())
+        }
+        .padding(12)
+        .background(
+            category.filterBackground.opacity(0.30),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(category.filterTint.opacity(0.08), lineWidth: 1)
         }
     }
 }
