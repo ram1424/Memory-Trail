@@ -325,7 +325,7 @@ struct MemoryTrailApp: App {
     }
 
     private static var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.2"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.3"
     }
 
     private static var appBuild: Int {
@@ -347,6 +347,15 @@ struct MemoryTrailApp: App {
             headline: "More Control Over Your Trail",
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
+                MemoryTrailChangeSection(
+                    title: "Settings, Repacked",
+                    symbol: "rectangle.grid.1x2.fill",
+                    items: [
+                        "Settings now flows in a continuous card stack with no dead column space.",
+                        "Excluded Apps, Storage & History, and Privacy are positioned higher for quicker access.",
+                        "Updates and Help now live at the bottom of the page."
+                    ]
+                ),
                 MemoryTrailChangeSection(
                     title: "Exported with Style",
                     symbol: "square.and.arrow.up.fill",

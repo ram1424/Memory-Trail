@@ -24,8 +24,8 @@ concurrency:
 
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
-  RELEASE_VERSION: "1.1.2"
-  RELEASE_BUILD: "3"
+  RELEASE_VERSION: "1.1.3"
+  RELEASE_BUILD: "4"
 
 jobs:
   build-dmg:
@@ -288,11 +288,10 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - JSON exports now finish with a polished Activity Exported success screen.
-          - Export receipts show the real filename, item count, file size, Show in Finder, and Done.
-          - History cleanup now uses playful confirmation graphics for the last week, last month, and all history.
-          - The Today activity-feed trash action uses the same friendly full-reset confirmation.
-          - Your trail. Your data. Your file.
+          - Settings now uses a continuous, gap-free card layout.
+          - Excluded Apps, Storage & History, and Privacy have moved higher on the page.
+          - Updates and Help now sit at the bottom of Settings.
+          - Existing Settings controls and styling remain intact.
 
 
           Privacy:

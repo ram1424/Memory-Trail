@@ -1,17 +1,25 @@
 {
-  "version": "1.1.2",
-  "build": 3,
+  "version": "1.1.3",
+  "build": 4,
   "publishedAt": "2026-11-04",
-  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.2/MemoryTrail-1.1.2.dmg",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.3/MemoryTrail-1.1.3.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "JSON exports now finish with a polished Activity Exported confirmation screen.",
-    "Export receipts show the actual filename, item count, file size, and a Show in Finder shortcut.",
-    "History cleanup now uses playful confirmation graphics for last week, last month, and all history.",
-    "The Today activity-feed clear action uses the same friendly full-reset design.",
-    "Your trail. Your data. Your file."
+    "Settings now uses a continuous, gap-free card layout.",
+    "Excluded Apps, Storage & History, and Privacy have moved higher on the page.",
+    "Updates and Help now sit at the bottom of Settings.",
+    "Existing Settings controls and styling remain intact."
   ],
   "changelog": [
+    {
+      "title": "Settings, Repacked",
+      "symbol": "rectangle.grid.1x2.fill",
+      "items": [
+        "Removed the uneven two-column Settings layout that created dead space.",
+        "Moved Excluded Apps, Storage & History, and Privacy higher for faster access.",
+        "Moved Updates and Help to the bottom of the Settings page."
+      ]
+    },
     {
       "title": "Exported with Style",
       "symbol": "square.and.arrow.up.fill",

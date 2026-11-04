@@ -31,10 +31,7 @@ struct SettingsView: View {
                 settingsHeader
                 settingsStatusStrip
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 16) {
-                        VStack(spacing: 16) {
-                            settingsCard("Capture", systemImage: "record.circle") {
+                settingsCard("Capture", systemImage: "record.circle") {
                     Toggle("Pause all capture", isOn: $preferences.capturePaused)
                     Toggle("Remember app switches and focused windows", isOn: $preferences.captureAppActivity)
                     Toggle("Remember copied text", isOn: $preferences.captureClipboard)
@@ -70,7 +67,8 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                            settingsCard("Excluded Apps & Services", systemImage: "hand.raised.slash") {
+
+                settingsCard("Excluded Apps & Services", systemImage: "hand.raised.slash") {
                     HStack(alignment: .center, spacing: 14) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Choose installed apps Memory Trail should ignore.")
@@ -171,259 +169,6 @@ struct SettingsView: View {
                     Label("Passwords and Wallet are always excluded. Additional apps you select are ignored for both activity and clipboard capture.", systemImage: "lock.shield.fill")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                }
-                        }
-                        .frame(minWidth: 460, maxWidth: .infinity, alignment: .top)
-
-                        VStack(spacing: 16) {
-                            settingsCard("Updates", systemImage: "arrow.triangle.2.circlepath") {
-                    HStack(alignment: .center, spacing: 14) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Stay on the freshest trail")
-                                .font(.subheadline.weight(.semibold))
-
-                            Text("Memory Trail checks for new releases when it launches and periodically while it’s running.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
-                        Button {
-                            NotificationCenter.default.post(
-                                name: .memoryTrailCheckForUpdates,
-                                object: nil
-                            )
-                        } label: {
-                            Label("Check for Updates", systemImage: "arrow.clockwise")
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-
-                    Divider()
-
-                    HStack {
-                        Label(
-                            "Version \(appVersion) • Build \(appBuild)",
-                            systemImage: "shippingbox.fill"
-                        )
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        Text("Automatic checks enabled")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                            settingsCard("Help", systemImage: "questionmark.circle") {
-                    Button {
-                        hasCompletedOnboarding = false
-                    } label: {
-                        Label("Show Welcome Tutorial", systemImage: "sparkles")
-                    }
-
-                    Text("Replay the first-launch walkthrough for Memory Trail.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                        }
-                        .frame(minWidth: 340, maxWidth: .infinity, alignment: .top)
-                    }
-
-                    VStack(spacing: 16) {
-                        settingsCard("Capture", systemImage: "record.circle") {
-                    Toggle("Pause all capture", isOn: $preferences.capturePaused)
-                    Toggle("Remember app switches and focused windows", isOn: $preferences.captureAppActivity)
-                    Toggle("Remember copied text", isOn: $preferences.captureClipboard)
-
-                    Divider()
-
-                    if captureCoordinator.hasAccessibilityPermission {
-                        Label("Accessibility access enabled. Focused-window title capture is active.", systemImage: "checkmark.shield.fill")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Label("Accessibility access is not active. App switches can still be logged, but Safari/Outlook/Mail/Teams window titles cannot be captured.", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-
-                        HStack {
-                            Button {
-                                captureCoordinator.requestAccessibilityPermission()
-                            } label: {
-                                Label("Request Access", systemImage: "hand.raised.fill")
-                            }
-                            .buttonStyle(.borderedProminent)
-
-                            Button("Open Accessibility Settings") {
-                                captureCoordinator.openAccessibilitySettings()
-                            }
-
-                            Button("Recheck") {
-                                captureCoordinator.refreshAccessibilityStatus()
-                            }
-                        }
-
-                        Text("Memory Trail requests Accessibility access automatically on launch. If macOS does not show the prompt, use Request Access or open Accessibility Settings, then enable Memory Trail.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                        settingsCard("Excluded Apps & Services", systemImage: "hand.raised.slash") {
-                    HStack(alignment: .center, spacing: 14) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Choose installed apps Memory Trail should ignore.")
-                                .font(.subheadline)
-
-                            Text("\(excludedInstalledAppCount) installed app\(excludedInstalledAppCount == 1 ? "" : "s") currently excluded.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
-                        Button {
-                            refreshInstalledApps()
-                            showingInstalledAppPicker = true
-                        } label: {
-                            Label("Select Installed Apps", systemImage: "plus.app.fill")
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-
-                    Divider()
-
-                    ForEach(alwaysExcludedOptions) { option in
-                        HStack(spacing: 10) {
-                            Image(systemName: option.systemImage)
-                                .frame(width: 24)
-                                .foregroundStyle(.blue)
-
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(option.name)
-                                    .font(.subheadline.weight(.medium))
-                                Text("Always excluded")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "lock.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    if !otherExcludedInstalledApps.isEmpty {
-                        Divider()
-
-                        Text("Selected installed apps")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
-                        ForEach(otherExcludedInstalledApps.prefix(8)) { app in
-                            HStack(spacing: 10) {
-                                Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path))
-                                    .resizable()
-                                    .interpolation(.high)
-                                    .scaledToFit()
-                                    .frame(width: 28, height: 28)
-
-                                Text(app.name)
-                                    .font(.subheadline)
-
-                                Spacer()
-
-                                Button {
-                                    preferences.setExcluded(false, bundleID: app.bundleID)
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundStyle(.secondary)
-                                }
-                                .buttonStyle(.plain)
-                                .help("Remove exclusion")
-                            }
-                        }
-
-                        if otherExcludedInstalledApps.count > 8 {
-                            Text("+ \(otherExcludedInstalledApps.count - 8) more")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    DisclosureGroup("Advanced: Custom bundle IDs") {
-                        TextField("com.example.app,com.example.other", text: $customExclusions, axis: .vertical)
-                            .lineLimit(2...5)
-                            .onSubmit {
-                                preferences.updateCustomExclusions(from: customExclusions)
-                                customExclusions = preferences.customExcludedBundleIDs
-                            }
-
-                        Button("Apply Custom Exclusions") {
-                            preferences.updateCustomExclusions(from: customExclusions)
-                            customExclusions = preferences.customExcludedBundleIDs
-                        }
-                        .buttonStyle(.borderless)
-                    }
-
-                    Label("Passwords and Wallet are always excluded. Additional apps you select are ignored for both activity and clipboard capture.", systemImage: "lock.shield.fill")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                        settingsCard("Updates", systemImage: "arrow.triangle.2.circlepath") {
-                    HStack(alignment: .center, spacing: 14) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Stay on the freshest trail")
-                                .font(.subheadline.weight(.semibold))
-
-                            Text("Memory Trail checks for new releases when it launches and periodically while it’s running.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
-                        Button {
-                            NotificationCenter.default.post(
-                                name: .memoryTrailCheckForUpdates,
-                                object: nil
-                            )
-                        } label: {
-                            Label("Check for Updates", systemImage: "arrow.clockwise")
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-
-                    Divider()
-
-                    HStack {
-                        Label(
-                            "Version \(appVersion) • Build \(appBuild)",
-                            systemImage: "shippingbox.fill"
-                        )
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        Text("Automatic checks enabled")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                        settingsCard("Help", systemImage: "questionmark.circle") {
-                    Button {
-                        hasCompletedOnboarding = false
-                    } label: {
-                        Label("Show Welcome Tutorial", systemImage: "sparkles")
-                    }
-
-                    Text("Replay the first-launch walkthrough for Memory Trail.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                    }
                 }
 
                 settingsCard("Storage & History", systemImage: "internaldrive.fill") {
@@ -517,6 +262,60 @@ struct SettingsView: View {
                     .buttonStyle(.bordered)
 
                     Text("Resets cached capture state and Memory Trail preferences without deleting your activity history.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                settingsCard("Updates", systemImage: "arrow.triangle.2.circlepath") {
+                    HStack(alignment: .center, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Stay on the freshest trail")
+                                .font(.subheadline.weight(.semibold))
+
+                            Text("Memory Trail checks for new releases when it launches and periodically while it’s running.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Button {
+                            NotificationCenter.default.post(
+                                name: .memoryTrailCheckForUpdates,
+                                object: nil
+                            )
+                        } label: {
+                            Label("Check for Updates", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+
+                    Divider()
+
+                    HStack {
+                        Label(
+                            "Version \(appVersion) • Build \(appBuild)",
+                            systemImage: "shippingbox.fill"
+                        )
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Text("Automatic checks enabled")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                settingsCard("Help", systemImage: "questionmark.circle") {
+                    Button {
+                        hasCompletedOnboarding = false
+                    } label: {
+                        Label("Show Welcome Tutorial", systemImage: "sparkles")
+                    }
+
+                    Text("Replay the first-launch walkthrough for Memory Trail.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -944,7 +743,7 @@ struct SettingsView: View {
     }
 
     private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.2"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.3"
     }
 
     private var appBuild: Int {
