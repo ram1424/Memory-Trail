@@ -348,6 +348,15 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "New Outlook Right-Pane Matching",
+                    symbol: "rectangle.rightthird.inset.filled",
+                    items: [
+                        "New Outlook now pairs subject and sender from the same right-side reading pane instead of resolving them independently.",
+                        "Reading-pane candidates are prioritized by their actual screen position in the right half of the Outlook window.",
+                        "Message-list composite strings containing timestamps or “Message preview:” are permanently rejected as subjects."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "New Outlook Reading Pane Capture",
                     symbol: "envelope.open.fill",
                     items: [
