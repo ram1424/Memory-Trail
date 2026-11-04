@@ -272,43 +272,43 @@ struct MemoryTrailApp: App {
     private static var currentChangelog: MemoryTrailChangelog {
         MemoryTrailChangelog(
             version: appVersion,
-            headline: "Latest Release",
-            summary: "Memory Trail \(appVersion) strengthens privacy transparency, update reliability, and Accessibility guidance while keeping your activity history local to your Mac.",
+            headline: "A Sharper Daily View",
+            summary: "Memory Trail \(appVersion) redesigns Today and Insights so your timeline stays front and center while the most useful context is easier to scan at a glance.",
             sections: [
                 MemoryTrailChangeSection(
-                    title: "Privacy, Clearly Stated",
+                    title: "Today, Reorganized",
+                    symbol: "calendar",
+                    items: [
+                        "Today now opens with a full-width at-a-glance summary for activities, apps used, active time, files and documents, and clipboard items.",
+                        "The timeline is now the most prominent part of the page, with clearer hierarchy and category-colored activity markers.",
+                        "Date navigation and activity filtering are consolidated into the redesigned Today experience."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Useful Context Beside the Timeline",
+                    symbol: "rectangle.split.2x1.fill",
+                    items: [
+                        "Top Apps Today highlights the apps that received the most observed activity.",
+                        "Key Takeaways surfaces peak focus, top work type, and app-switching context.",
+                        "Recent Files & Documents keeps recently observed work easy to reopen."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Insights, Aligned",
+                    symbol: "chart.bar.fill",
+                    items: [
+                        "Insights now uses a balanced dashboard grid with consistent card sizes and spacing.",
+                        "Today, This Week, and This Month summaries keep activity-by-app, time distribution, top items, and patterns aligned.",
+                        "Today and Insights now share the same filter-inspired color system for a more consistent visual language."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Privacy Remains Local",
                     symbol: "lock.shield.fill",
                     items: [
-                        "Added a complete Privacy Policy in Settings and on GitHub.",
-                        "Clarifies that Memory Trail has no external data connectors, no account to create, and no cloud processing or storage of captured activity.",
-                        "Explicitly states that captured activity is not scraped for AI, sent to AI providers, used for AI training, or remotely summarized or analyzed."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "More Reliable Updates",
-                    symbol: "arrow.triangle.2.circlepath",
-                    items: [
-                        "Memory Trail checks for available updates when the app launches.",
-                        "Update downloads now use the exact published GitHub release asset instead of relying on a generic latest-download redirect.",
-                        "Settings includes a dedicated Check for Updates control, along with polished up-to-date and update-available experiences."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Accessibility Guidance",
-                    symbol: "accessibility",
-                    items: [
-                        "Accessibility permission status is refreshed when Memory Trail launches and whenever the app becomes active again.",
-                        "If detailed capture is unavailable because Accessibility is disabled, Memory Trail now clearly prompts you to enable it.",
-                        "Returning from System Settings refreshes the permission state so capture can resume with full window context."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Privacy-First Controls",
-                    symbol: "slider.horizontal.3",
-                    items: [
-                        "The Privacy section now links directly to the full policy and public source code.",
-                        "Clear Cache uses a dedicated confirmation experience while preserving saved Timeline history.",
-                        "Passwords and Wallet remain excluded by default, and additional apps can be excluded from capture."
+                        "The redesigned views continue to use only locally captured Memory Trail history.",
+                        "No external data connectors, cloud timeline processing, or AI scraping were added.",
+                        "Passwords and Wallet remain excluded by default, with existing capture and exclusion controls preserved."
                     ]
                 )
             ]
