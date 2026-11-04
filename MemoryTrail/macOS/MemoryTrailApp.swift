@@ -1085,6 +1085,8 @@ private enum MemoryTrailBackgroundUpdater {
         case mountFailed
         case appNotFound
         case installLocationNotWritable
+        case signatureVerificationFailed
+        case versionMismatch
         case helperLaunchFailed
 
         var errorDescription: String? {
@@ -1094,6 +1096,8 @@ private enum MemoryTrailBackgroundUpdater {
             case .mountFailed: return "The downloaded update could not be opened."
             case .appNotFound: return "Memory Trail.app was not found in the downloaded update."
             case .installLocationNotWritable: return "Memory Trail cannot update itself from its current location."
+            case .signatureVerificationFailed: return "The downloaded app failed code-signature verification."
+            case .versionMismatch: return "The downloaded app does not match the expected Memory Trail release."
             case .helperLaunchFailed: return "The update helper could not be started."
             }
         }
@@ -1127,7 +1131,9 @@ private enum MemoryTrailBackgroundUpdater {
         let prepared = try await Task.detached(priority: .utility) {
             try prepareUpdate(
                 temporaryDownload: temporaryDownload,
-                currentAppURL: currentAppURL
+                currentAppURL: currentAppURL,
+                expectedVersion: manifest.version,
+                expectedBuild: manifest.build
             )
         }.value
 
@@ -1145,7 +1151,9 @@ private enum MemoryTrailBackgroundUpdater {
 
     private static func prepareUpdate(
         temporaryDownload: URL,
-        currentAppURL: URL
+        currentAppURL: URL,
+        expectedVersion: String,
+        expectedBuild: Int
     ) throws -> (stagedAppURL: URL, stagingRootURL: URL) {
         let fileManager = FileManager.default
         let parentDirectory = currentAppURL.deletingLastPathComponent()
@@ -1186,6 +1194,32 @@ private enum MemoryTrailBackgroundUpdater {
 
         let stagedAppURL = stagingRoot.appendingPathComponent("Memory Trail.app")
         try fileManager.copyItem(at: appURL, to: stagedAppURL)
+
+        guard let stagedBundle = Bundle(url: stagedAppURL),
+              stagedBundle.bundleIdentifier == Bundle.main.bundleIdentifier
+        else {
+            throw UpdateError.appNotFound
+        }
+
+        let stagedVersion =
+            stagedBundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let stagedBuild =
+            Int(stagedBundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "") ?? 0
+
+        guard stagedVersion == expectedVersion,
+              stagedBuild == expectedBuild
+        else {
+            throw UpdateError.versionMismatch
+        }
+
+        do {
+            _ = try runProcess(
+                executable: "/usr/bin/codesign",
+                arguments: ["--verify", "--deep", "--strict", stagedAppURL.path]
+            )
+        } catch {
+            throw UpdateError.signatureVerificationFailed
+        }
 
         return (stagedAppURL, stagingRoot)
     }
@@ -1261,7 +1295,6 @@ private enum MemoryTrailBackgroundUpdater {
         fi
 
         if /bin/mv "$NEW" "$TARGET"; then
-          /usr/bin/xattr -dr com.apple.quarantine "$TARGET" 2>/dev/null || true
           /usr/bin/open "$TARGET"
           rm -rf "$BACKUP" "$ROOT"
         else
