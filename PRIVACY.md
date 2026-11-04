@@ -38,14 +38,6 @@ Memory Trail may use standard Windows desktop APIs and Windows UI Automation to 
 
 The Microsoft Store build is a packaged classic desktop application and may use the `runFullTrust` capability so it can operate as a normal WPF desktop application at the user's standard privilege level. Memory Trail does not use this capability to request administrator elevation, install drivers or services, or bypass Windows security controls.
 
-### macOS
-
-Memory Trail may use macOS Accessibility permission to identify the active application and obtain supported focused-window context. Accessibility permission can be reviewed or revoked in:
-
-**System Settings → Privacy & Security → Accessibility**
-
-Memory Trail does not use Accessibility permission to create screen or audio recordings.
-
 ## 4. Clipboard capture
 
 Clipboard capture is optional and can be disabled.
