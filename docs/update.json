@@ -1,16 +1,25 @@
 {
-  "version": "1.1.3",
-  "build": 4,
+  "version": "1.1.4",
+  "build": 5,
   "publishedAt": "2026-11-04",
-  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.3/MemoryTrail-1.1.3.dmg",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.4/MemoryTrail-1.1.4.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "Settings now uses a continuous, gap-free card layout.",
-    "Excluded Apps, Storage & History, and Privacy have moved higher on the page.",
-    "Updates and Help now sit at the bottom of Settings.",
-    "Existing Settings controls and styling remain intact."
+    "The up-to-date screen now uses a full illustrated Memory Trail landscape.",
+    "Mountains, sunrise, trees, a winding trail, laptop, and success badge make update checks feel more polished.",
+    "The current version and build remain visible dynamically.",
+    "Keep Exploring still returns you to Memory Trail immediately."
   ],
   "changelog": [
+    {
+      "title": "Freshest Trail, Reimagined",
+      "symbol": "checkmark.seal.fill",
+      "items": [
+        "Replaced the plain update-current screen with a full illustrated Memory Trail scene.",
+        "Added a laptop with the real Memory Trail icon and a green success badge.",
+        "The version/build pill and Keep Exploring action remain dynamic and functional."
+      ]
+    },
     {
       "title": "Settings, Repacked",
       "symbol": "rectangle.grid.1x2.fill",
