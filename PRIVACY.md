@@ -17,7 +17,7 @@ Memory Trail processes and stores captured activity locally on your Mac.
 
 **Memory Trail does not perform AI data scraping of any kind.** It does not harvest captured activity for AI datasets, send captured activity to an AI provider, use captured activity to train or fine-tune AI models, create embeddings in a cloud service, or perform remote AI summarization, profiling, or inference on your activity history.
 
-Memory Trail does not sell your personal information, does not use your captured activity for advertising, and does not include an advertising SDK or analytics SDK.
+Memory Trail does not collect, transmit, sell, share, monetize, process, or store any user data outside the user’s Mac whatsoever. All captured activity remains stored locally on the user’s Mac, is used only to provide Memory Trail’s local features, and is never sent to Memory Trail servers, cloud services, advertisers, analytics providers, AI providers, or data brokers.
 
 ## 2. Information Memory Trail may process locally
 
