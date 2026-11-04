@@ -1,19 +1,23 @@
 {
-  "version": "1.1.5",
-  "build": 6,
+  "version": "1.1.6",
+  "build": 7,
   "publishedAt": "2026-11-04",
-  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.5/MemoryTrail-1.1.5.dmg",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.6/MemoryTrail-1.1.6.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "Clear History confirmations now match the compact Clear Cache visual style.",
-    "JSON export completion now uses a simple success sheet with filename, item count, file size, Show in Finder, and Done.",
-    "Large decorative export and history graphics have been removed.",
-    "Fixed left-edge clipping on the Freshest Trail update screen.",
-    "Moved update-confirmation copy onto a dedicated high-contrast lower panel.",
-    "Repositioned the road and trees so artwork no longer overlaps or blends into text.",
-    "Version/build and Keep Exploring remain fully dynamic and functional."
+    "Restored the missing icon in the JSON export success sheet.",
+    "The export confirmation now uses a reliable document icon with a separate green check badge.",
+    "The compact Clear Cache-style layout remains unchanged."
   ],
   "changelog": [
+    {
+      "title": "Export Success Icon Restored",
+      "symbol": "doc.badge.checkmark.fill",
+      "items": [
+        "Replaced the unreliable combined SF Symbol with a document icon and independent check badge.",
+        "The success icon now renders consistently on supported macOS versions."
+      ]
+    },
     {
       "title": "Cleaner Storage Actions",
       "symbol": "checkmark.circle.fill",

@@ -743,7 +743,7 @@ struct SettingsView: View {
     }
 
     private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.5"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.6"
     }
 
     private var appBuild: Int {
@@ -906,9 +906,21 @@ struct MemoryTrailExportSuccessSheet: View {
                         .fill(Color.green.opacity(0.11))
                         .frame(width: 94, height: 94)
 
-                    Image(systemName: "checkmark.document.fill")
+                    Image(systemName: "doc.text.fill")
                         .font(.system(size: 38, weight: .semibold))
                         .foregroundStyle(.green)
+
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 13, weight: .black))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.green, in: Circle())
+                        .overlay {
+                            Circle()
+                                .stroke(Color.white.opacity(0.88), lineWidth: 2)
+                        }
+                        .shadow(color: Color.green.opacity(0.22), radius: 5, y: 2)
+                        .offset(x: 30, y: 30)
                 }
                 .shadow(
                     color: Color.green.opacity(0.14),

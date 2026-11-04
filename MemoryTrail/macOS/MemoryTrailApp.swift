@@ -325,7 +325,7 @@ struct MemoryTrailApp: App {
     }
 
     private static var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.5"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.6"
     }
 
     private static var appBuild: Int {
@@ -347,6 +347,14 @@ struct MemoryTrailApp: App {
             headline: "More Control Over Your Trail",
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
+                MemoryTrailChangeSection(
+                    title: "Export Success Icon Restored",
+                    symbol: "doc.badge.checkmark.fill",
+                    items: [
+                        "The JSON export success sheet now uses a reliable document icon with a separate green check badge.",
+                        "The compact Clear Cache-style export confirmation remains unchanged otherwise."
+                    ]
+                ),
                 MemoryTrailChangeSection(
                     title: "Cleaner Storage Actions",
                     symbol: "checkmark.circle.fill",

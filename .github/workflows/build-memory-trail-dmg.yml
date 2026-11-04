@@ -24,8 +24,8 @@ concurrency:
 
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
-  RELEASE_VERSION: "1.1.5"
-  RELEASE_BUILD: "6"
+  RELEASE_VERSION: "1.1.6"
+  RELEASE_BUILD: "7"
 
 jobs:
   build-dmg:
@@ -288,10 +288,9 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Clear History confirmations now match the compact Clear Cache visual style.
-          - JSON export completion now uses a simple success sheet with filename, item count, file size, Show in Finder, and Done.
-          - Large decorative export and history graphics have been removed.
-          - Fixed left-edge clipping and decorative overlap on the Freshest Trail update screen.
+          - Restored the missing icon in the JSON export success sheet.
+          - The export confirmation now uses a reliable document icon with a separate green check badge.
+          - The compact Clear Cache-style export layout remains unchanged.
 
 
           Privacy:
