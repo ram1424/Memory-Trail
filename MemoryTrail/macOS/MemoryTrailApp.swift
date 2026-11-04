@@ -325,7 +325,7 @@ struct MemoryTrailApp: App {
     }
 
     private static var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.4"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.5"
     }
 
     private static var appBuild: Int {
@@ -347,6 +347,15 @@ struct MemoryTrailApp: App {
             headline: "More Control Over Your Trail",
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
+                MemoryTrailChangeSection(
+                    title: "Freshest Trail, Refined",
+                    symbol: "text.below.photo.fill",
+                    items: [
+                        "Fixed clipping around the Memory Trail header on the up-to-date screen.",
+                        "Moved all update-confirmation copy onto a dedicated high-contrast lower panel.",
+                        "Repositioned the path, trees, and lower artwork so decorative elements no longer cross or blend into text."
+                    ]
+                ),
                 MemoryTrailChangeSection(
                     title: "Freshest Trail, Reimagined",
                     symbol: "checkmark.seal.fill",
@@ -1643,88 +1652,124 @@ private struct MemoryTrailUpdateSheet: View {
     }
 
     private func upToDateView(version: String) -> some View {
-        ZStack {
-            FreshestTrailBackdrop()
+        GeometryReader { proxy in
+            ZStack {
+                FreshestTrailBackdrop()
+                    .frame(
+                        width: proxy.size.width,
+                        height: proxy.size.height,
+                        alignment: .center
+                    )
+                    .clipped()
 
-            VStack(spacing: 0) {
-                HStack(spacing: 12) {
-                    Image(nsImage: icon)
-                        .resizable()
-                        .interpolation(.high)
-                        .scaledToFit()
-                        .frame(width: 58, height: 58)
-                        .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
-
-                    Text("Memory Trail")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-
-                    Spacer()
-                }
-                .padding(.horizontal, 34)
-                .padding(.top, 26)
-
-                Spacer(minLength: 4)
-
-                FreshestTrailLaptop(icon: icon)
-                    .frame(width: 360, height: 205)
-
-                VStack(spacing: 10) {
-                    Text("You’re on the freshest trail.")
-                        .font(.system(size: 37, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.18), radius: 6, y: 2)
-
-                    Capsule()
-                        .fill(Color.green)
-                        .frame(width: 228, height: 5)
-
-                    Text("No detours. No downloads. Memory Trail is already\nrunning the latest release.")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.86))
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(3)
-                }
-
-                HStack(spacing: 9) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.cyan)
-
-                    Text("Version \(version)")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-                .padding(.horizontal, 20)
-                .frame(height: 46)
-                .background(.white.opacity(0.12), in: Capsule())
-                .overlay {
-                    Capsule()
-                        .stroke(Color.cyan.opacity(0.70), lineWidth: 1.4)
-                }
-                .shadow(color: .cyan.opacity(0.16), radius: 12)
-                .padding(.top, 18)
-
-                Button {
-                    onDismiss()
-                } label: {
+                VStack(spacing: 0) {
                     HStack(spacing: 12) {
-                        Text("Keep Exploring")
-                        Image(systemName: "arrow.right")
-                    }
-                    .font(.system(size: 17, weight: .bold))
-                    .frame(minWidth: 228)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .keyboardShortcut(.defaultAction)
-                .padding(.top, 16)
+                        Image(nsImage: icon)
+                            .resizable()
+                            .interpolation(.high)
+                            .scaledToFit()
+                            .frame(width: 52, height: 52)
+                            .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
 
-                Text("We’ll keep an eye on the trail and let you know when something new arrives.")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.70))
-                    .padding(.top, 14)
-                    .padding(.bottom, 24)
+                        Text("Memory Trail")
+                            .font(.system(size: 29, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.top, 24)
+
+                    FreshestTrailLaptop(icon: icon)
+                        .frame(width: 330, height: 185)
+                        .padding(.top, 8)
+
+                    Spacer(minLength: 10)
+
+                    VStack(spacing: 13) {
+                        Text("You’re on the freshest trail.")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.88)
+
+                        Capsule()
+                            .fill(Color.green)
+                            .frame(width: 210, height: 4)
+
+                        Text("No detours. No downloads. Memory Trail is already running the latest release.")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.90))
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(3)
+                            .frame(maxWidth: 520)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        HStack(spacing: 9) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(.cyan)
+
+                            Text("Version \(version)")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(.horizontal, 18)
+                        .frame(height: 42)
+                        .background(.white.opacity(0.10), in: Capsule())
+                        .overlay {
+                            Capsule()
+                                .stroke(Color.cyan.opacity(0.62), lineWidth: 1.2)
+                        }
+
+                        Button {
+                            onDismiss()
+                        } label: {
+                            HStack(spacing: 12) {
+                                Text("Keep Exploring")
+                                Image(systemName: "arrow.right")
+                            }
+                            .font(.system(size: 16, weight: .bold))
+                            .frame(minWidth: 220)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .keyboardShortcut(.defaultAction)
+
+                        Text("We’ll keep an eye on the trail and let you know when something new arrives.")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.72))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 34)
+                    .padding(.vertical, 22)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.025, green: 0.11, blue: 0.26).opacity(0.90),
+                                Color(red: 0.02, green: 0.08, blue: 0.20).opacity(0.97)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        in: RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .stroke(.white.opacity(0.10), lineWidth: 1)
+                    }
+                    .shadow(color: .black.opacity(0.20), radius: 18, y: 8)
+                    .padding(.horizontal, 22)
+                    .padding(.bottom, 18)
+                }
+                .frame(
+                    width: proxy.size.width,
+                    height: proxy.size.height,
+                    alignment: .top
+                )
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
@@ -1780,39 +1825,40 @@ private struct MemoryTrailUpdateSheet: View {
                     .foregroundStyle(Color(red: 0.08, green: 0.27, blue: 0.55).opacity(0.82))
                     .offset(x: -165, y: 55)
 
-                HStack(alignment: .bottom, spacing: 28) {
-                    ForEach(0..<10, id: \.self) { index in
+                HStack(alignment: .bottom, spacing: 22) {
+                    ForEach(0..<9, id: \.self) { index in
                         Image(systemName: "tree.fill")
-                            .font(.system(size: CGFloat(38 + (index % 4) * 10)))
+                            .font(.system(size: CGFloat(32 + (index % 4) * 8)))
                             .foregroundStyle(
                                 Color(red: 0.02, green: 0.20, blue: 0.34)
-                                    .opacity(0.94)
+                                    .opacity(0.90)
                             )
                     }
                 }
-                .offset(y: 224)
+                .offset(y: 175)
 
                 FreshestTrailRoad()
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(0.88),
-                                Color.yellow.opacity(0.98),
-                                Color.orange.opacity(0.92)
+                                Color.white.opacity(0.76),
+                                Color.yellow.opacity(0.96),
+                                Color.orange.opacity(0.90)
                             ],
                             startPoint: .bottom,
                             endPoint: .top
                         ),
-                        style: StrokeStyle(lineWidth: 11, lineCap: .round)
+                        style: StrokeStyle(lineWidth: 9, lineCap: .round)
                     )
-                    .frame(width: 370, height: 245)
-                    .offset(x: 110, y: 75)
+                    .frame(width: 300, height: 165)
+                    .offset(x: 125, y: -8)
 
                 LinearGradient(
-                    colors: [
-                        Color.clear,
-                        Color.black.opacity(0.10),
-                        Color.black.opacity(0.24)
+                    stops: [
+                        .init(color: .clear, location: 0.0),
+                        .init(color: Color.black.opacity(0.08), location: 0.42),
+                        .init(color: Color(red: 0.02, green: 0.08, blue: 0.20).opacity(0.72), location: 0.72),
+                        .init(color: Color(red: 0.02, green: 0.07, blue: 0.18).opacity(0.94), location: 1.0)
                     ],
                     startPoint: .top,
                     endPoint: .bottom

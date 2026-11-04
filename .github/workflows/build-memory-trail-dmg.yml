@@ -24,8 +24,8 @@ concurrency:
 
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
-  RELEASE_VERSION: "1.1.4"
-  RELEASE_BUILD: "5"
+  RELEASE_VERSION: "1.1.5"
+  RELEASE_BUILD: "6"
 
 jobs:
   build-dmg:
@@ -288,10 +288,10 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - The up-to-date screen now uses a full illustrated Memory Trail landscape.
-          - Mountains, sunrise, trees, a winding trail, laptop, and success badge make update checks feel more polished.
-          - The current version and build remain visible dynamically.
-          - Keep Exploring still returns you to Memory Trail immediately.
+          - Fixed left-edge clipping on the Freshest Trail update screen.
+          - Moved update-confirmation copy onto a dedicated high-contrast lower panel.
+          - Repositioned the road and trees so artwork no longer overlaps or blends into text.
+          - Version/build and Keep Exploring remain fully dynamic and functional.
 
 
           Privacy:

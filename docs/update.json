@@ -1,16 +1,25 @@
 {
-  "version": "1.1.4",
-  "build": 5,
+  "version": "1.1.5",
+  "build": 6,
   "publishedAt": "2026-11-04",
-  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.4/MemoryTrail-1.1.4.dmg",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.5/MemoryTrail-1.1.5.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "The up-to-date screen now uses a full illustrated Memory Trail landscape.",
-    "Mountains, sunrise, trees, a winding trail, laptop, and success badge make update checks feel more polished.",
-    "The current version and build remain visible dynamically.",
-    "Keep Exploring still returns you to Memory Trail immediately."
+    "Fixed left-edge clipping on the Freshest Trail update screen.",
+    "Moved update-confirmation copy onto a dedicated high-contrast lower panel.",
+    "Repositioned the road and trees so artwork no longer overlaps or blends into text.",
+    "Version/build and Keep Exploring remain fully dynamic and functional."
   ],
   "changelog": [
+    {
+      "title": "Freshest Trail, Refined",
+      "symbol": "text.below.photo.fill",
+      "items": [
+        "Constrained the illustrated background to the update sheet bounds.",
+        "Separated artwork and copy into distinct visual zones for reliable readability.",
+        "Removed decorative overlap around the subtitle, version pill, and footer."
+      ]
+    },
     {
       "title": "Freshest Trail, Reimagined",
       "symbol": "checkmark.seal.fill",
