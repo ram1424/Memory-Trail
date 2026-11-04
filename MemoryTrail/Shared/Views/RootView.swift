@@ -486,14 +486,19 @@ struct InsightsView: View {
                     HStack(alignment: .top, spacing: 16) {
                         activityByAppCard(apps)
                             .frame(minWidth: 440, maxWidth: .infinity)
-                            .frame(height: 400, alignment: .top)
+                            .frame(height: 430, alignment: .top)
 
-                        timeDistributionCard(
-                            slices,
-                            activeSeconds: activeSeconds
-                        )
+                        VStack(spacing: 16) {
+                            timeDistributionCard(
+                                slices,
+                                activeSeconds: activeSeconds
+                            )
+                            .frame(height: 258, alignment: .top)
+
+                            activityPatternsCard(visibleItems)
+                                .frame(height: 156, alignment: .top)
+                        }
                         .frame(minWidth: 440, maxWidth: .infinity)
-                        .frame(height: 400, alignment: .top)
                     }
 
                     VStack(spacing: 16) {
@@ -502,25 +507,11 @@ struct InsightsView: View {
                             slices,
                             activeSeconds: activeSeconds
                         )
-                    }
-                }
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 16) {
-                        topItemsCard(Array(visibleItems.prefix(4)))
-                            .frame(minWidth: 440, maxWidth: .infinity)
-                            .frame(height: 300, alignment: .top)
-
-                        activityPatternsCard(visibleItems)
-                            .frame(minWidth: 440, maxWidth: .infinity)
-                            .frame(height: 300, alignment: .top)
-                    }
-
-                    VStack(spacing: 16) {
-                        topItemsCard(Array(visibleItems.prefix(4)))
                         activityPatternsCard(visibleItems)
                     }
                 }
+
+                topItemsCard(Array(visibleItems.prefix(4)))
             }
             .padding(24)
         }
@@ -726,10 +717,10 @@ struct InsightsView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .frame(width: 170, height: 170)
-                    .padding(.vertical, 4)
+                    .frame(width: 146, height: 146)
+                    .padding(.vertical, 2)
 
-                    VStack(alignment: .leading, spacing: 11) {
+                    VStack(alignment: .leading, spacing: 8) {
                         ForEach(slices.prefix(6)) { slice in
                             HStack(spacing: 8) {
                                 Circle()
@@ -820,7 +811,7 @@ struct InsightsView: View {
             symbol: "chart.bar.fill",
             tint: MemoryTrailCategory.productivity.filterTint
         ) {
-            VStack(spacing: 10) {
+            VStack(spacing: 6) {
                 InsightsPatternRow(
                     symbol: "scope",
                     title: "Peak Focus",
@@ -1230,7 +1221,8 @@ private struct InsightsPatternRow: View {
 
             Spacer(minLength: 0)
         }
-        .padding(11)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
         .background(
             category.filterBackground.opacity(0.52),
             in: RoundedRectangle(cornerRadius: 13)
