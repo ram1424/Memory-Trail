@@ -158,7 +158,7 @@ struct MemoryTrailApp: App {
                 MemoryTrailUpdateSheet(
                     presentation: presentation,
                     icon: Self.brandIcon,
-                    currentVersion: Self.appVersion,
+                    currentVersion: Self.displayVersion,
                     isInstallingUpdate: isInstallingUpdate,
                     onUpdate: { manifest in
                         updatePresentation = nil
@@ -166,14 +166,14 @@ struct MemoryTrailApp: App {
                     },
                     onRemindTomorrow: { manifest in
                         remindUpdateAfterEpoch = Date().addingTimeInterval(24 * 60 * 60).timeIntervalSince1970
-                        if skippedUpdateVersion == manifest.version {
+                        if skippedUpdateVersion == manifest.identity {
                             skippedUpdateVersion = ""
                         }
                         updatePresentation = nil
                         refreshAccessibilityAndPromptIfNeeded()
                     },
                     onSkipVersion: { manifest in
-                        skippedUpdateVersion = manifest.version
+                        skippedUpdateVersion = manifest.identity
                         remindUpdateAfterEpoch = 0
                         updatePresentation = nil
                         refreshAccessibilityAndPromptIfNeeded()
@@ -266,16 +266,25 @@ struct MemoryTrailApp: App {
     }
 
     private static var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.0"
+    }
+
+    private static var appBuild: Int {
+        let value = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+        return Int(value) ?? 0
+    }
+
+    private static var displayVersion: String {
+        "\(appVersion) • Build \(appBuild)"
     }
 
     private static var releaseIdentity: String {
-        appVersion
+        "\(appVersion)-build-\(appBuild)"
     }
 
     private static var currentChangelog: MemoryTrailChangelog {
         MemoryTrailChangelog(
-            version: appVersion,
+            version: displayVersion,
             headline: "A Sharper Daily View",
             summary: "Memory Trail \(appVersion) redesigns Today and Insights so your timeline stays front and center while the most useful context is easier to scan at a glance.",
             sections: [
@@ -496,10 +505,11 @@ struct MemoryTrailApp: App {
             let manifest = try await MemoryTrailUpdateService.fetchLatest()
             if MemoryTrailUpdateService.isNewer(
                 manifest,
-                thanVersion: Self.appVersion
+                thanVersion: Self.appVersion,
+                currentBuild: Self.appBuild
             ) {
                 if !manual {
-                    if skippedUpdateVersion == manifest.version {
+                    if skippedUpdateVersion == manifest.identity {
                         return
                     }
 
@@ -508,7 +518,7 @@ struct MemoryTrailApp: App {
                     }
                 }
 
-                if skippedUpdateVersion != manifest.version {
+                if skippedUpdateVersion != manifest.identity {
                     skippedUpdateVersion = ""
                 }
                 if remindUpdateAfterEpoch <= now {
@@ -517,7 +527,7 @@ struct MemoryTrailApp: App {
 
                 updatePresentation = .updateAvailable(manifest)
             } else if manual {
-                updatePresentation = .upToDate(Self.appVersion)
+                updatePresentation = .upToDate(Self.displayVersion)
             }
         } catch {
             guard manual else { return }
@@ -828,11 +838,23 @@ private struct MemoryTrailChangelog: Hashable {
 
 private struct MemoryTrailUpdateManifest: Decodable, Hashable {
     let version: String
+    let build: Int?
     let publishedAt: String?
     let downloadURL: String
     let releaseURL: String
     let highlights: [String]
     let changelog: [MemoryTrailChangeSection]
+
+    var identity: String {
+        "\(version)-build-\(build ?? 0)"
+    }
+
+    var displayVersion: String {
+        if let build {
+            return "\(version) • Build \(build)"
+        }
+        return version
+    }
 }
 
 private enum MemoryTrailUpdatePresentation: Identifiable {
@@ -846,7 +868,7 @@ private enum MemoryTrailUpdatePresentation: Identifiable {
         case .whatsNew(let changelog):
             return "whats-new-\(changelog.version)"
         case .updateAvailable(let manifest):
-            return "update-\(manifest.version)"
+            return "update-\(manifest.identity)"
         case .upToDate(let version):
             return "up-to-date-\(version)"
         case .unavailable:
@@ -928,12 +950,33 @@ private enum MemoryTrailUpdateService {
 
         return MemoryTrailUpdateManifest(
             version: version,
+            build: buildNumber(from: release.name) ?? buildNumber(from: release.body),
             publishedAt: release.published_at,
             downloadURL: dmg.browser_download_url,
             releaseURL: release.html_url,
             highlights: highlights,
             changelog: []
         )
+    }
+
+    private static func buildNumber(from text: String?) -> Int? {
+        guard let text,
+              let expression = try? NSRegularExpression(
+                pattern: #"(?i)\bbuild\s*[:#-]?\s*(\d+)\b"#
+              )
+        else {
+            return nil
+        }
+
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard let match = expression.firstMatch(in: text, range: range),
+              match.numberOfRanges > 1,
+              let numberRange = Range(match.range(at: 1), in: text)
+        else {
+            return nil
+        }
+
+        return Int(text[numberRange])
     }
 
     private static func fetchManifestFallback() async throws -> MemoryTrailUpdateManifest {
@@ -979,9 +1022,15 @@ private enum MemoryTrailUpdateService {
 
     static func isNewer(
         _ manifest: MemoryTrailUpdateManifest,
-        thanVersion currentVersion: String
+        thanVersion currentVersion: String,
+        currentBuild: Int
     ) -> Bool {
-        compare(manifest.version, currentVersion) > 0
+        let versionComparison = compare(manifest.version, currentVersion)
+        if versionComparison != 0 {
+            return versionComparison > 0
+        }
+
+        return (manifest.build ?? 0) > currentBuild
     }
 
     private static func compare(_ lhs: String, _ rhs: String) -> Int {
@@ -1054,7 +1103,8 @@ private enum MemoryTrailBackgroundUpdater {
             try prepareUpdate(
                 temporaryDownload: temporaryDownload,
                 currentAppURL: currentAppURL,
-                expectedVersion: manifest.version
+                expectedVersion: manifest.version,
+                expectedBuild: manifest.build
             )
         }.value
 
@@ -1073,7 +1123,8 @@ private enum MemoryTrailBackgroundUpdater {
     private static func prepareUpdate(
         temporaryDownload: URL,
         currentAppURL: URL,
-        expectedVersion: String
+        expectedVersion: String,
+        expectedBuild: Int?
     ) throws -> (stagedAppURL: URL, stagingRootURL: URL) {
         let fileManager = FileManager.default
         let parentDirectory = currentAppURL.deletingLastPathComponent()
@@ -1125,6 +1176,14 @@ private enum MemoryTrailBackgroundUpdater {
             stagedBundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         guard stagedVersion == expectedVersion else {
             throw UpdateError.versionMismatch
+        }
+
+        if let expectedBuild {
+            let stagedBuildString =
+                stagedBundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+            guard Int(stagedBuildString) == expectedBuild else {
+                throw UpdateError.versionMismatch
+            }
         }
 
         do {
@@ -1354,7 +1413,7 @@ private struct MemoryTrailUpdateSheet: View {
         VStack(spacing: 0) {
             sheetHeader(
                 eyebrow: "A FRESHER TRAIL IS READY",
-                title: "Memory Trail \(manifest.version)",
+                title: "Memory Trail \(manifest.displayVersion)",
                 subtitle: "A new version is ready. Update now, take a day, or skip this release."
             )
 
@@ -1363,7 +1422,7 @@ private struct MemoryTrailUpdateSheet: View {
                 Image(systemName: "arrow.right")
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.secondary)
-                versionPill("New", value: manifest.version, tint: .blue, valueColor: .blue)
+                versionPill("New", value: manifest.displayVersion, tint: .blue, valueColor: .blue)
             }
             .padding(.top, 18)
             .padding(.bottom, 18)

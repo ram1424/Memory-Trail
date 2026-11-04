@@ -22,6 +22,11 @@ concurrency:
   group: memory-trail-release-v2
   cancel-in-progress: true
 
+env:
+  # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
+  RELEASE_VERSION: "1.1.0"
+  RELEASE_BUILD: "1"
+
 jobs:
   build-dmg:
     runs-on: macos-15
@@ -108,8 +113,8 @@ jobs:
             -scheme "Memory Trail" \
             -configuration Release \
             -derivedDataPath "$PWD/build" \
-            MARKETING_VERSION=1.1 \
-            CURRENT_PROJECT_VERSION=1 \
+            MARKETING_VERSION="$RELEASE_VERSION" \
+            CURRENT_PROJECT_VERSION="$RELEASE_BUILD" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             clean build 2>&1 | tee "$PWD/xcodebuild.log"
@@ -141,7 +146,7 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -f state=success \
             -f context=memory-trail-build-diagnostics \
-            -f description="Memory Trail 1.1 macOS release build passed." >/dev/null
+            -f description="Memory Trail $RELEASE_VERSION build $RELEASE_BUILD macOS release passed." >/dev/null
 
       - name: Capture screenshots from real Memory Trail windows
         id: screenshots
@@ -248,7 +253,7 @@ jobs:
         run: |
           set -euo pipefail
           APP="$PWD/build/Build/Products/Release/Memory Trail.app"
-          DMG="$PWD/MemoryTrail-1.1.dmg"
+          DMG="$PWD/MemoryTrail-$RELEASE_VERSION.dmg"
           test -d "$APP"
 
           rm -rf "$PWD/dmg-root"
@@ -270,16 +275,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="v1.1"
-          DMG="MemoryTrail-1.1.dmg"
-          TITLE="Memory Trail 1.1"
+          TAG="v$RELEASE_VERSION"
+          DMG="MemoryTrail-$RELEASE_VERSION.dmg"
+          TITLE="Memory Trail $RELEASE_VERSION (Build $RELEASE_BUILD)"
           API="https://api.github.com/repos/$GITHUB_REPOSITORY"
           AUTH_HEADER="Authorization: Bearer $GH_TOKEN"
           ACCEPT_HEADER="Accept: application/vnd.github+json"
           VERSION_HEADER="X-GitHub-Api-Version: 2022-11-28"
 
-          cat > release-notes.md <<'EOF'
-          Memory Trail 1.1 for macOS.
+          cat > release-notes.md <<EOF
+          Memory Trail $RELEASE_VERSION for macOS.
+          Build: $RELEASE_BUILD
 
           Highlights:
           - Redesigned Today view with the timeline in the most prominent position.

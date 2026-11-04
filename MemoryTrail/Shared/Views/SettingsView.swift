@@ -197,7 +197,7 @@ struct SettingsView: View {
 
                     HStack {
                         Label(
-                            "Version \(appVersion)",
+                            "Version \(appVersion) • Build \(appBuild)",
                             systemImage: "shippingbox.fill"
                         )
                         .font(.footnote.weight(.medium))
@@ -392,7 +392,7 @@ struct SettingsView: View {
 
                     HStack {
                         Label(
-                            "Version \(appVersion)",
+                            "Version \(appVersion) • Build \(appBuild)",
                             systemImage: "shippingbox.fill"
                         )
                         .font(.footnote.weight(.medium))
@@ -605,8 +605,8 @@ struct SettingsView: View {
             )
 
             settingsMetric(
-                value: appVersion,
-                label: "Version",
+                value: displayVersion,
+                label: "Version / Build",
                 symbol: "shippingbox.fill",
                 category: .chat
             )
@@ -665,7 +665,7 @@ struct SettingsView: View {
 
             Spacer()
 
-            Text("Version \(appVersion) • Created By: Roman Zakharov")
+            Text("Version \(appVersion) • Build \(appBuild) • Created By: Roman Zakharov")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -747,7 +747,16 @@ struct SettingsView: View {
     }
 
     private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.0"
+    }
+
+    private var appBuild: Int {
+        let value = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+        return Int(value) ?? 0
+    }
+
+    private var displayVersion: String {
+        "\(appVersion) • Build \(appBuild)"
     }
 
     private var alwaysExcludedOptions: [RecallExclusionOption] {
