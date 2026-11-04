@@ -32,11 +32,15 @@ struct MemoryTrailApp: App {
         switch String(argument.dropFirst("--screenshot-demo=".count)) {
         case "timeline":
             return .today
+        case "insights":
+            return .insights
         case "ask":
             return .search
+        case "clipboard":
+            return .clipboard
         case "favorites":
             return .favorites
-        case "privacy":
+        case "settings", "privacy":
             return .settings
         default:
             return nil

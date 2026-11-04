@@ -210,8 +210,11 @@ jobs:
           }
 
           capture_screen timeline today-ui.png
+          capture_screen insights insights-ui.png
           capture_screen ask ask-memory-trail-ui.png
+          capture_screen clipboard clipboard-history-ui.png
           capture_screen favorites favorites-ui.png
+          capture_screen settings settings-ui.png
 
       - name: Publish refreshed app screenshots
         if: github.event_name == 'push' && steps.screenshots.outcome == 'success'
