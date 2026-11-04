@@ -931,8 +931,13 @@ struct InsightsView: View {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: 16) {
                         activityByAppCard(apps)
-                            .frame(minWidth: 440, maxWidth: .infinity)
-                            .frame(height: 430, alignment: .top)
+                            .frame(
+                            minWidth: 440,
+                            maxWidth: .infinity,
+                            alignment: .top
+                        )
+                        .fixedSize(horizontal: false, vertical: true)
+                            .frame(minHeight: 430, alignment: .top)
 
                         VStack(spacing: 16) {
                             timeDistributionCard(
@@ -942,7 +947,7 @@ struct InsightsView: View {
                             .frame(height: 258, alignment: .top)
 
                             activityPatternsCard(visibleItems)
-                                .frame(height: 156, alignment: .top)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(minWidth: 440, maxWidth: .infinity)
                     }
