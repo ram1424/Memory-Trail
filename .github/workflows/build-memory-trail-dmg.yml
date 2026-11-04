@@ -108,7 +108,7 @@ jobs:
             -scheme "Memory Trail" \
             -configuration Release \
             -derivedDataPath "$PWD/build" \
-            MARKETING_VERSION=1.0.5 \
+            MARKETING_VERSION=1.1 \
             CURRENT_PROJECT_VERSION=1 \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -141,7 +141,7 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -f state=success \
             -f context=memory-trail-build-diagnostics \
-            -f description="Memory Trail 1.0.5 macOS release build passed." >/dev/null
+            -f description="Memory Trail 1.1 macOS release build passed." >/dev/null
 
       - name: Capture screenshots from real Memory Trail windows
         id: screenshots
@@ -266,7 +266,7 @@ jobs:
         run: |
           set -euo pipefail
           APP="$PWD/build/Build/Products/Release/Memory Trail.app"
-          DMG="$PWD/MemoryTrail-1.0.5.dmg"
+          DMG="$PWD/MemoryTrail-1.1.dmg"
           test -d "$APP"
 
           rm -rf "$PWD/dmg-root"
@@ -288,16 +288,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="v1.0.5"
-          DMG="MemoryTrail-1.0.5.dmg"
-          TITLE="Memory Trail 1.0.5"
+          TAG="v1.1"
+          DMG="MemoryTrail-1.1.dmg"
+          TITLE="Memory Trail 1.1"
           API="https://api.github.com/repos/$GITHUB_REPOSITORY"
           AUTH_HEADER="Authorization: Bearer $GH_TOKEN"
           ACCEPT_HEADER="Accept: application/vnd.github+json"
           VERSION_HEADER="X-GitHub-Api-Version: 2022-11-28"
 
           cat > release-notes.md <<'EOF'
-          Memory Trail 1.0.5 for macOS.
+          Memory Trail 1.1 for macOS.
 
           Highlights:
           - Redesigned Today view with the timeline in the most prominent position.
