@@ -111,7 +111,7 @@ enum SearchService {
         let queryTokens = meaningfulTokens(for: trimmed).filter { token in
             !(contentIntent?.intentWords.contains(token) ?? false)
         }
-        let ranked = candidates
+        let rankedCandidates = candidates
             .map { item -> (MemoryItem, Int) in
                 let text = item.searchableText
                 var score = 0
@@ -128,12 +128,30 @@ enum SearchService {
                 if $0.1 == $1.1 { return $0.0.createdAt > $1.0.createdAt }
                 return $0.1 > $1.1
             }
-            .prefix(12)
             .map { $0.0 }
+
+        let returnsCompleteConversationHistory: Bool
+        if case .conversations? = contentIntent {
+            returnsCompleteConversationHistory = queryTokens.isEmpty
+        } else {
+            returnsCompleteConversationHistory = false
+        }
+
+        let ranked: [MemoryItem]
+        if returnsCompleteConversationHistory {
+            ranked = rankedCandidates
+        } else {
+            ranked = Array(rankedCandidates.prefix(12))
+        }
 
         let results: [MemoryItem]
         if ranked.isEmpty && queryTokens.isEmpty {
-            results = Array(candidates.sorted { $0.createdAt > $1.createdAt }.prefix(12))
+            let sortedCandidates = candidates.sorted { $0.createdAt > $1.createdAt }
+            if returnsCompleteConversationHistory {
+                results = sortedCandidates
+            } else {
+                results = Array(sortedCandidates.prefix(12))
+            }
         } else {
             results = ranked
         }

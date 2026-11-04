@@ -1,15 +1,24 @@
 {
-  "version": "1.1.7",
-  "build": 8,
+  "version": "1.2",
+  "build": 1,
   "publishedAt": "2026-11-04",
-  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.7/MemoryTrail-1.1.7.dmg",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.2/MemoryTrail-1.2.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "Restored the original simple Check for Updates success screen.",
-    "The green checkmark, version/build pill, Keep Exploring button, and clean light background are back.",
-    "Removed the illustrated mountains, laptop, trail, and full-bleed artwork from the up-to-date state."
+    "Broad conversation questions now return all matching conversation activity for the requested day instead of stopping at 12 items.",
+    "Supporting Activity now appears directly below the Ask Memory Trail answer at full width.",
+    "Supporting Activity includes a result count for clearer context."
   ],
   "changelog": [
+    {
+      "title": "Ask Memory Trail, Expanded",
+      "symbol": "bubble.left.and.bubble.right.fill",
+      "items": [
+        "What conversations did I have today? now returns the complete matching conversation history for today.",
+        "Supporting Activity uses the same full-width alignment for every Ask Memory Trail result.",
+        "Specific keyword searches keep their focused result cap to avoid overwhelming the user."
+      ]
+    },
     {
       "title": "Classic Update Screen Restored",
       "symbol": "checkmark.circle.fill",

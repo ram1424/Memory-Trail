@@ -325,7 +325,7 @@ struct MemoryTrailApp: App {
     }
 
     private static var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.7"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.2"
     }
 
     private static var appBuild: Int {
@@ -347,6 +347,15 @@ struct MemoryTrailApp: App {
             headline: "More Control Over Your Trail",
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
+                MemoryTrailChangeSection(
+                    title: "Ask Memory Trail, Expanded",
+                    symbol: "bubble.left.and.bubble.right.fill",
+                    items: [
+                        "Broad conversation questions such as “What conversations did I have today?” now return the complete matching conversation history for the requested day instead of stopping at 12 items.",
+                        "Supporting Activity now always appears directly below the answer at full width, matching the rest of Ask Memory Trail.",
+                        "Supporting Activity now shows the number of returned items for clearer result context."
+                    ]
+                ),
                 MemoryTrailChangeSection(
                     title: "Classic Update Screen Restored",
                     symbol: "checkmark.circle.fill",

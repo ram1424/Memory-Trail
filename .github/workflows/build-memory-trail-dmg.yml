@@ -24,8 +24,8 @@ concurrency:
 
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
-  RELEASE_VERSION: "1.1.7"
-  RELEASE_BUILD: "8"
+  RELEASE_VERSION: "1.2"
+  RELEASE_BUILD: "1"
 
 jobs:
   build-dmg:
@@ -288,9 +288,9 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Restored the original simple Check for Updates success screen.
-          - The green checkmark, version/build pill, Keep Exploring button, and clean light background are back.
-          - Removed the illustrated mountains, laptop, trail, and full-bleed artwork from the up-to-date state.
+          - Broad conversation questions now return all matching conversation activity for the requested day instead of stopping at 12 items.
+          - Supporting Activity now appears directly below the Ask Memory Trail answer at full width.
+          - Supporting Activity includes a result count for clearer context.
 
 
           Privacy:

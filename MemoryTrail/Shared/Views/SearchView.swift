@@ -28,22 +28,13 @@ struct SearchView: View {
                 askBox
 
                 if let answer {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .top, spacing: 16) {
-                            answerCard(answer)
-                                .frame(minWidth: 360, maxWidth: .infinity)
+                    VStack(spacing: 16) {
+                        answerCard(answer)
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                            if !answer.items.isEmpty {
-                                activityResults(answer.items)
-                                    .frame(minWidth: 420, maxWidth: .infinity)
-                            }
-                        }
-
-                        VStack(spacing: 16) {
-                            answerCard(answer)
-                            if !answer.items.isEmpty {
-                                activityResults(answer.items)
-                            }
+                        if !answer.items.isEmpty {
+                            activityResults(answer.items)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                 } else {
@@ -335,8 +326,17 @@ struct SearchView: View {
 
     private func activityResults(_ items: [MemoryItem]) -> some View {
         LazyVStack(alignment: .leading, spacing: 10) {
-            Text("Supporting Activity")
-                .font(.headline)
+            HStack(spacing: 10) {
+                Text("Supporting Activity")
+                    .font(.headline)
+
+                Spacer(minLength: 0)
+
+                Text("\(items.count) item\(items.count == 1 ? "" : "s")")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
 
             ForEach(items) { item in
                 Button {
@@ -350,11 +350,13 @@ struct SearchView: View {
                             .foregroundStyle(.tertiary)
                     }
                     .contentShape(Rectangle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
                 .help("Open activity details")
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func feature(_ symbol: String, _ title: String) -> some View {
