@@ -54,7 +54,8 @@ Memory Trail provides controls that may include:
 - Enable or disable app/window activity capture.
 - Enable or disable clipboard capture.
 - Exclude applications or processes from capture.
-- Clear activity history.
+- Clear the last 7 days, the last 30 days, or all activity history.
+- Export your locally stored activity history to a JSON file you choose.
 - Clear temporary app cache or reset preferences without deleting saved history where indicated.
 
 Users should configure exclusions for applications containing information they do not want represented in their local timeline.
@@ -65,7 +66,7 @@ Captured activity is stored locally on the device running Memory Trail.
 
 On Windows, local data is stored within the user's Windows profile and local application-data locations.
 
-On macOS, local data is stored using Apple platform storage technologies and standard local preference/application-support locations.
+On macOS, captured activity is stored in a clearly named local SwiftData store at `~/Library/Application Support/Memory Trail/MemoryTrail.store` (or the corresponding app-container Application Support path when macOS sandboxing applies).
 
 Memory Trail does not provide cloud synchronization for the captured timeline.
 
@@ -113,7 +114,7 @@ You are responsible for securing your device using appropriate account security,
 
 ## 10. Data retention and deletion
 
-Memory Trail retains locally stored history until you delete it using available app controls, remove the app's local data, or erase the device or storage containing it.
+Memory Trail retains locally stored captured history for **30 days by default**. Activity older than 30 days is automatically removed from the local Memory Trail store. You can also delete the last 7 days, the last 30 days, or all local history at any time from Settings.
 
 Deleting the application itself may not automatically delete every preference, cache, database, or application-support file maintained by the operating system.
 

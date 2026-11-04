@@ -152,6 +152,26 @@ struct TimelineView: View {
                 in: Capsule()
             )
 
+            if dayOffset != 0 {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        dayOffset = 0
+                    }
+                } label: {
+                    Label("Go to Today", systemImage: "arrow.uturn.forward.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 11)
+                        .frame(height: 34)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(MemoryTrailCategory.allApps.filterTint)
+                .background(
+                    MemoryTrailCategory.allApps.filterBackground,
+                    in: Capsule()
+                )
+                .help("Return to today")
+            }
+
             HStack(spacing: 0) {
                 Button {
                     dayOffset -= 1

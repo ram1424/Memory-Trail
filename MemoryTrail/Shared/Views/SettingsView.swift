@@ -1,6 +1,8 @@
 import SwiftUI
+import SwiftData
 #if os(macOS)
 import AppKit
+import UniformTypeIdentifiers
 #endif
 
 extension Notification.Name {
@@ -9,11 +11,16 @@ extension Notification.Name {
 
 struct SettingsView: View {
     @Environment(RecallPreferences.self) private var preferences
+    @Environment(\.modelContext) private var modelContext
     @State private var captureCoordinator = MacCaptureCoordinator.shared
     @State private var customExclusions = ""
     @State private var showingInstalledAppPicker = false
     @State private var installedApps: [InstalledApplication] = []
     @State private var showingClearCacheSheet = false
+    @State private var pendingHistoryClear: HistoryClearRange?
+    @State private var showingHistoryClearConfirmation = false
+    @State private var showingStorageResult = false
+    @State private var storageResultMessage = ""
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some View {
@@ -419,6 +426,10 @@ struct SettingsView: View {
                     }
                 }
 
+                settingsCard("Storage & History", systemImage: "internaldrive.fill") {
+                    storageAndHistoryContent
+                }
+
                 settingsCard("Privacy", systemImage: "lock.shield.fill") {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("Privacy-first by design")
@@ -433,7 +444,7 @@ struct SettingsView: View {
                     privacyStatement(
                         icon: "internaldrive.fill",
                         title: "Sourced and stored locally",
-                        text: "Timeline data comes from local macOS app/window context, local files and paths, and the clipboard when enabled. Captured history is stored locally on this Mac using SwiftData."
+                        text: "Timeline data comes from local macOS app/window context, local files and paths, and the clipboard when enabled. Captured history is stored locally on this Mac using SwiftData and is automatically retained for 30 days by default."
                     )
 
                     privacyStatement(
@@ -545,6 +556,30 @@ struct SettingsView: View {
             ).autoconnect()
         ) { _ in
             captureCoordinator.refreshAccessibilityStatus()
+        }
+        .confirmationDialog(
+            pendingHistoryClear.map { "Clear \($0.title)?" } ?? "Clear History?",
+            isPresented: $showingHistoryClearConfirmation,
+            titleVisibility: .visible
+        ) {
+            if let range = pendingHistoryClear {
+                Button("Clear \(range.title)", role: .destructive) {
+                    clearHistory(range)
+                }
+            }
+
+            Button("Cancel", role: .cancel) {
+                pendingHistoryClear = nil
+            }
+        } message: {
+            if let range = pendingHistoryClear {
+                Text(range.confirmationMessage)
+            }
+        }
+        .alert("Storage & History", isPresented: $showingStorageResult) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(storageResultMessage)
         }
         .sheet(isPresented: $showingClearCacheSheet) {
             MemoryTrailClearCacheSheet {
@@ -710,12 +745,167 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private var storageAndHistoryContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "clock.badge.checkmark")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(MemoryTrailCategory.files.filterTint)
+                    .frame(width: 38, height: 38)
+                    .background(
+                        MemoryTrailCategory.files.filterBackground,
+                        in: RoundedRectangle(cornerRadius: 11)
+                    )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("30-day local history")
+                        .font(.subheadline.weight(.semibold))
+
+                    Text("Memory Trail keeps captured history on this Mac for 30 days by default. Items older than 30 days are removed automatically.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Local database")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Text(MemoryTrailStorage.storeURL.path)
+                    .font(.system(size: 11.5, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+
+                Text("All activity remains local unless you explicitly export a JSON copy.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Button {
+                exportActivityAsJSON()
+            } label: {
+                Label("Export Activity as JSON", systemImage: "square.and.arrow.up")
+            }
+            .buttonStyle(.borderedProminent)
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Clear history")
+                    .font(.subheadline.weight(.semibold))
+
+                Text("Choose how much recent activity to remove. These actions permanently delete matching local timeline, clipboard, favorite, and manual-memory records.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 10) {
+                    historyClearButton(.lastWeek)
+                    historyClearButton(.lastMonth)
+                    historyClearButton(.all)
+                }
+            }
+        }
+    }
+
+    private func historyClearButton(_ range: HistoryClearRange) -> some View {
+        Button(role: .destructive) {
+            pendingHistoryClear = range
+            showingHistoryClearConfirmation = true
+        } label: {
+            Label(range.buttonTitle, systemImage: range.symbol)
+        }
+        .buttonStyle(.bordered)
+    }
+
+    private func clearHistory(_ range: HistoryClearRange) {
+        do {
+            let descriptor = FetchDescriptor<MemoryItem>()
+            let allItems = try modelContext.fetch(descriptor)
+            let cutoff = range.cutoffDate
+
+            let matches = allItems.filter { item in
+                guard let cutoff else { return true }
+                return item.createdAt >= cutoff
+            }
+
+            for item in matches {
+                modelContext.delete(item)
+            }
+
+            try modelContext.save()
+            pendingHistoryClear = nil
+            storageResultMessage = "Deleted \(matches.count) local history item\(matches.count == 1 ? "" : "s") from \(range.title.lowercased())."
+            showingStorageResult = true
+        } catch {
+            storageResultMessage = "Memory Trail could not clear the selected history: \(error.localizedDescription)"
+            showingStorageResult = true
+        }
+    }
+
+    private func exportActivityAsJSON() {
+#if os(macOS)
+        do {
+            var descriptor = FetchDescriptor<MemoryItem>(
+                sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+            )
+            descriptor.fetchLimit = 100_000
+            let items = try modelContext.fetch(descriptor)
+
+            let export = MemoryTrailActivityExport(
+                exportedAt: Date(),
+                version: appVersion,
+                build: appBuild,
+                retentionDays: MemoryTrailStorage.retentionDays,
+                items: items.map { MemoryTrailActivityExport.Item($0) }
+            )
+
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+            encoder.dateEncodingStrategy = .iso8601
+            let data = try encoder.encode(export)
+
+            let panel = NSSavePanel()
+            panel.title = "Export Memory Trail Activity"
+            panel.prompt = "Export"
+            panel.nameFieldStringValue = "MemoryTrail-Activity-\(Self.exportDateFormatter.string(from: Date())).json"
+            panel.allowedContentTypes = [.json]
+            panel.canCreateDirectories = true
+
+            guard panel.runModal() == .OK, let url = panel.url else {
+                return
+            }
+
+            try data.write(to: url, options: .atomic)
+            storageResultMessage = "Exported \(items.count) activity item\(items.count == 1 ? "" : "s") to \(url.lastPathComponent)."
+            showingStorageResult = true
+        } catch {
+            storageResultMessage = "Memory Trail could not export activity: \(error.localizedDescription)"
+            showingStorageResult = true
+        }
+#endif
+    }
+
+    private static let exportDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
     private func settingsCategory(for title: String) -> MemoryTrailCategory {
         switch title {
         case "Capture": .allApps
         case "Excluded Apps & Services": .files
         case "Updates": .web
         case "Help": .chat
+        case "Storage & History": .files
         case "Privacy": .remoteAccess
         default: .other
         }
@@ -782,6 +972,93 @@ struct SettingsView: View {
 
 }
 
+
+private enum HistoryClearRange: Identifiable {
+    case lastWeek
+    case lastMonth
+    case all
+
+    var id: String { title }
+
+    var title: String {
+        switch self {
+        case .lastWeek: "Last 7 Days"
+        case .lastMonth: "Last 30 Days"
+        case .all: "All History"
+        }
+    }
+
+    var buttonTitle: String {
+        switch self {
+        case .lastWeek: "Last Week"
+        case .lastMonth: "Last Month"
+        case .all: "All History"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .lastWeek: "calendar.badge.minus"
+        case .lastMonth: "calendar"
+        case .all: "trash.fill"
+        }
+    }
+
+    var cutoffDate: Date? {
+        let calendar = Calendar.current
+        switch self {
+        case .lastWeek:
+            return calendar.date(byAdding: .day, value: -7, to: Date())
+        case .lastMonth:
+            return calendar.date(byAdding: .day, value: -30, to: Date())
+        case .all:
+            return nil
+        }
+    }
+
+    var confirmationMessage: String {
+        switch self {
+        case .lastWeek:
+            "This permanently deletes all locally stored activity from the last 7 days."
+        case .lastMonth:
+            "This permanently deletes all locally stored activity from the last 30 days."
+        case .all:
+            "This permanently deletes all locally stored Memory Trail history."
+        }
+    }
+}
+
+private struct MemoryTrailActivityExport: Encodable {
+    let exportedAt: Date
+    let version: String
+    let build: Int
+    let retentionDays: Int
+    let items: [Item]
+
+    struct Item: Encodable {
+        let id: UUID
+        let createdAt: Date
+        let title: String
+        let body: String
+        let sourceApp: String
+        let sourceBundleID: String
+        let sourceKind: String
+        let sourceURL: String?
+        let isFavorite: Bool
+
+        init(_ item: MemoryItem) {
+            id = item.id
+            createdAt = item.createdAt
+            title = item.title
+            body = item.body
+            sourceApp = item.sourceApp
+            sourceBundleID = item.sourceBundleID
+            sourceKind = item.sourceKindRaw
+            sourceURL = item.sourceURL
+            isFavorite = item.isFavorite
+        }
+    }
+}
 
 private struct MemoryTrailClearCacheSheet: View {
     @Environment(\.dismiss) private var dismiss

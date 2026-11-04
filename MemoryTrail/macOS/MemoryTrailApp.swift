@@ -5,6 +5,57 @@ import Foundation
 import SwiftUI
 import SwiftData
 
+enum MemoryTrailStorage {
+    static let retentionDays = 30
+
+    static var applicationSupportDirectory: URL {
+        FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first!
+    }
+
+    static var directoryURL: URL {
+        applicationSupportDirectory
+            .appendingPathComponent("Memory Trail", isDirectory: true)
+    }
+
+    static var storeURL: URL {
+        directoryURL.appendingPathComponent("MemoryTrail.store")
+    }
+
+    private static var legacyStoreURL: URL {
+        applicationSupportDirectory.appendingPathComponent("default.store")
+    }
+
+    static func preparePersistentStore() throws {
+        let fileManager = FileManager.default
+        try fileManager.createDirectory(
+            at: directoryURL,
+            withIntermediateDirectories: true
+        )
+
+        guard !fileManager.fileExists(atPath: storeURL.path),
+              fileManager.fileExists(atPath: legacyStoreURL.path)
+        else {
+            return
+        }
+
+        for suffix in ["", "-shm", "-wal"] {
+            let source = URL(fileURLWithPath: legacyStoreURL.path + suffix)
+            let destination = URL(fileURLWithPath: storeURL.path + suffix)
+
+            guard fileManager.fileExists(atPath: source.path),
+                  !fileManager.fileExists(atPath: destination.path)
+            else {
+                continue
+            }
+
+            try fileManager.moveItem(at: source, to: destination)
+        }
+    }
+}
+
 @main
 struct MemoryTrailApp: App {
     private let container: ModelContainer
@@ -110,7 +161,15 @@ struct MemoryTrailApp: App {
                     configurations: configuration
                 )
             } else {
-                container = try ModelContainer(for: MemoryItem.self)
+                try MemoryTrailStorage.preparePersistentStore()
+                let configuration = ModelConfiguration(
+                    "MemoryTrail",
+                    url: MemoryTrailStorage.storeURL
+                )
+                container = try ModelContainer(
+                    for: MemoryItem.self,
+                    configurations: configuration
+                )
             }
         } catch {
             fatalError("Unable to initialize Memory Trail database: \(error)")
@@ -285,9 +344,26 @@ struct MemoryTrailApp: App {
     private static var currentChangelog: MemoryTrailChangelog {
         MemoryTrailChangelog(
             version: displayVersion,
-            headline: "A Sharper Daily View",
-            summary: "Memory Trail \(appVersion) redesigns Today and Insights so your timeline stays front and center while the most useful context is easier to scan at a glance.",
+            headline: "More Control Over Your Trail",
+            summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
+                MemoryTrailChangeSection(
+                    title: "Storage & History",
+                    symbol: "internaldrive.fill",
+                    items: [
+                        "Activity now uses a clearly named local MemoryTrail.store inside Memory Trail’s Application Support folder.",
+                        "Export your locally stored activity history as a readable JSON file from Settings.",
+                        "History is retained locally for 30 days by default, with controls to clear the last week, last month, or all history."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Jump Back to Today",
+                    symbol: "calendar.badge.clock",
+                    items: [
+                        "When browsing earlier dates, a Go to Today control returns you to the present day in one click.",
+                        "Date navigation remains available for retracing earlier activity."
+                    ]
+                ),
                 MemoryTrailChangeSection(
                     title: "Today, Reorganized",
                     symbol: "calendar",
@@ -392,6 +468,8 @@ struct MemoryTrailApp: App {
         await runStartupSequence()
         await maximizeWindowOnLaunch()
 
+        Self.pruneExpiredHistory(in: container.mainContext)
+
         // Check for a newer release on every normal app launch.
         await checkForUpdates(manual: false)
 
@@ -407,7 +485,34 @@ struct MemoryTrailApp: App {
         while !Task.isCancelled {
             try? await Task.sleep(nanoseconds: 6 * 60 * 60 * 1_000_000_000)
             guard !Task.isCancelled else { return }
+            Self.pruneExpiredHistory(in: container.mainContext)
             await performAutomaticUpdateCheckIfNeeded()
+        }
+    }
+
+    @MainActor
+    private static func pruneExpiredHistory(in context: ModelContext) {
+        guard let cutoff = Calendar.current.date(
+            byAdding: .day,
+            value: -MemoryTrailStorage.retentionDays,
+            to: Date()
+        ) else {
+            return
+        }
+
+        do {
+            let items = try context.fetch(FetchDescriptor<MemoryItem>())
+            let expired = items.filter { $0.createdAt < cutoff }
+
+            guard !expired.isEmpty else { return }
+
+            for item in expired {
+                context.delete(item)
+            }
+
+            try context.save()
+        } catch {
+            NSLog("Memory Trail retention cleanup failed: %@", error.localizedDescription)
         }
     }
 

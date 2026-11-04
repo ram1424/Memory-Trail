@@ -1,17 +1,44 @@
 {
-  "version": "1.1.0",
-  "build": 1,
+  "version": "1.1.1",
+  "build": 2,
   "publishedAt": "2026-11-04",
-  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.0/MemoryTrail-1.1.0.dmg",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.1/MemoryTrail-1.1.1.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "First official release of Memory Trail.",
-    "Privacy-first local activity timeline with newest activity first.",
-    "Ask Memory Trail search across locally stored history.",
-    "Browser, email, chat, files, documents, clipboard, favorites, manual memories, and Insights.",
-    "Built-in update checking and a comprehensive What’s New experience."
+    "Activity now uses a clearly named local MemoryTrail.store in Memory Trail’s Application Support folder.",
+    "Export all locally stored activity to a readable JSON file from Settings.",
+    "Captured history is retained locally for 30 days by default.",
+    "Clear the last 7 days, last 30 days, or all local history from Settings.",
+    "Use Go to Today when browsing earlier dates.",
+    "Clipboard History items remain interactive with detail and copy controls."
   ],
   "changelog": [
+    {
+      "title": "Storage & History",
+      "symbol": "internaldrive.fill",
+      "items": [
+        "Memory Trail now stores activity in a clearly named MemoryTrail.store under its local Application Support folder.",
+        "Existing default SwiftData history is migrated forward automatically when possible.",
+        "Export local history as JSON and manage deletion from Settings."
+      ]
+    },
+    {
+      "title": "30-Day Local Retention",
+      "symbol": "clock.badge.checkmark",
+      "items": [
+        "Captured history is retained locally for 30 days by default.",
+        "Items older than 30 days are removed automatically.",
+        "Manual controls can clear the last week, last month, or all history."
+      ]
+    },
+    {
+      "title": "Go to Today",
+      "symbol": "calendar.badge.clock",
+      "items": [
+        "A Go to Today button appears when browsing earlier dates.",
+        "Return to the present day in one click."
+      ]
+    },
     {
       "title": "Your Day, Remembered",
       "symbol": "clock.arrow.circlepath",

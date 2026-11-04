@@ -24,8 +24,8 @@ concurrency:
 
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
-  RELEASE_VERSION: "1.1.0"
-  RELEASE_BUILD: "1"
+  RELEASE_VERSION: "1.1.1"
+  RELEASE_BUILD: "2"
 
 jobs:
   build-dmg:
@@ -288,13 +288,13 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Redesigned Today view with the timeline in the most prominent position.
-          - Full-width Today at a Glance summary for activity, apps, active time, files/documents, and clipboard items.
-          - Top Apps Today, Key Takeaways, and Recent Files & Documents supporting panels.
-          - Rebalanced Insights dashboard with aligned card rows and consistent spacing.
-          - Shared filter-inspired color system across Today and Insights.
-          - Ask Memory Trail natural-language search across locally stored history.
-          - Built-in manual and automatic update checking.
+          - Activity now uses a clearly named local MemoryTrail.store under Memory Trail’s Application Support folder.
+          - Existing default SwiftData history is migrated forward automatically when possible.
+          - Export all locally stored activity to JSON from Settings.
+          - Captured history is retained locally for 30 days by default.
+          - Clear the last 7 days, last 30 days, or all local history from Settings.
+          - Go to Today returns date navigation to the present day in one click.
+          - Clipboard History remains interactive with detail and copy controls.
 
 
           Privacy:
