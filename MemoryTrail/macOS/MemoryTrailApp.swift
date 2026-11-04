@@ -244,12 +244,12 @@ struct MemoryTrailApp: App {
     }
 
     private static var releaseIdentity: String {
-        appVersion
+        "1.0"
     }
 
     private static var currentChangelog: MemoryTrailChangelog {
         MemoryTrailChangelog(
-            version: appVersion,
+            version: "1.0",
             headline: "First Official Release",
             summary: "Welcome to the first official release of Memory Trail — a privacy-first, local activity history for rediscovering what you worked on, viewed, discussed, opened, and copied throughout your day.",
             sections: [
@@ -460,11 +460,11 @@ struct MemoryTrailApp: App {
         await runStartupSequence()
         await maximizeWindowOnLaunch()
 
-        if hasCompletedOnboarding {
-            await checkForUpdates(manual: false)
-            if updatePresentation == nil {
-                await presentWhatsNewIfNeeded()
-            }
+        // Check for a newer release on every normal app launch.
+        await checkForUpdates(manual: false)
+
+        if hasCompletedOnboarding, updatePresentation == nil {
+            await presentWhatsNewIfNeeded()
         }
 
         while !Task.isCancelled {

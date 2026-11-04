@@ -1,8 +1,8 @@
 {
-  "version": "1.0",
-  "build": 2,
+  "version": "1.0.1",
+  "build": 3,
   "publishedAt": "2026-11-03",
-  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/latest/download/MemoryTrail-1.0.dmg",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/latest/download/MemoryTrail-1.0.1.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
     "First official release of Memory Trail.",
