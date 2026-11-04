@@ -841,49 +841,23 @@ enum MemoryTrailHistoryClearRange: Identifiable {
         }
     }
 
-    var funMessage: String {
-        switch self {
-        case .lastWeek:
-            "Sweep away the last 7 days and keep your trail fresh!"
-        case .lastMonth:
-            "Time for a monthly tidy-up! Remove the last 30 days of activity."
-        case .all:
-            "The full reset! Wipe the slate clean and start a brand-new trail."
-        }
-    }
-
     var actionTitle: String {
         switch self {
-        case .lastWeek: "Sweep Last Week"
-        case .lastMonth: "Tidy Last Month"
-        case .all: "Start Fresh"
+        case .lastWeek: "Clear Last Week"
+        case .lastMonth: "Clear Last Month"
+        case .all: "Clear All History"
         }
     }
 
     var accent: Color {
         switch self {
         case .lastWeek:
-            Color(red: 0.05, green: 0.43, blue: 0.98)
+            .blue
         case .lastMonth:
-            Color(red: 0.48, green: 0.18, blue: 0.96)
+            .indigo
         case .all:
-            Color(red: 0.94, green: 0.08, blue: 0.28)
+            .red
         }
-    }
-
-    var backgroundColors: [Color] {
-        switch self {
-        case .lastWeek:
-            [Color(red: 0.89, green: 0.96, blue: 1.0), .white]
-        case .lastMonth:
-            [Color(red: 0.95, green: 0.91, blue: 1.0), .white]
-        case .all:
-            [Color(red: 1.0, green: 0.91, blue: 0.94), .white]
-        }
-    }
-
-    var waveColor: Color {
-        accent.opacity(0.10)
     }
 }
 
@@ -911,207 +885,85 @@ struct MemoryTrailExportSuccessSheet: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.12, green: 0.31, blue: 0.82),
-                    Color(red: 0.18, green: 0.20, blue: 0.62),
-                    Color(red: 0.26, green: 0.17, blue: 0.55)
+                    Color(red: 0.92, green: 0.97, blue: 1.00),
+                    Color.white,
+                    Color(red: 0.96, green: 0.98, blue: 1.00)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+            .ignoresSafeArea()
+
+            Circle()
+                .fill(Color.green.opacity(0.10))
+                .frame(width: 260, height: 260)
+                .blur(radius: 48)
+                .offset(x: 150, y: -150)
 
             VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.11))
+                        .frame(width: 94, height: 94)
+
+                    Image(systemName: "checkmark.document.fill")
+                        .font(.system(size: 38, weight: .semibold))
+                        .foregroundStyle(.green)
+                }
+                .shadow(
+                    color: Color.green.opacity(0.14),
+                    radius: 18,
+                    y: 7
+                )
+
+                Text("Activity exported.")
+                    .font(.system(size: 27, weight: .bold, design: .rounded))
+                    .multilineTextAlignment(.center)
+
+                Text("Your trail. Your data. Your file.")
+                    .font(.system(size: 14.5, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                VStack(spacing: 4) {
+                    Text(receipt.url.lastPathComponent)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+
+                    Text("\(receipt.itemCount.formatted()) items • \(receipt.formattedSize)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 54)
+                .frame(maxWidth: 390)
+                .background(Color.green.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.green.opacity(0.10), lineWidth: 1)
+                }
+
                 HStack(spacing: 10) {
-                    Image(systemName: "point.bottomleft.forward.to.point.topright.scurvepath.fill")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(.white)
-
-                    Text("Memory Trail")
-                        .font(.system(size: 27, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-
-                MemoryTrailExportArtwork()
-                    .frame(height: 225)
-
-                VStack(spacing: 8) {
-                    Text("Activity Exported!")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-
-                    Text("Your trail. Your data. Your file.")
-                        .font(.system(size: 19, weight: .semibold, design: .rounded))
-                        .italic()
-                        .foregroundStyle(.white.opacity(0.86))
-                }
-
-                HStack(spacing: 12) {
-                    Image(systemName: "doc.text.fill")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(Color(red: 0.64, green: 0.69, blue: 1.0))
-                        .frame(width: 42, height: 42)
-                        .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 11))
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(receipt.url.lastPathComponent)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-
-                        Text("\(receipt.itemCount.formatted()) items  •  \(receipt.formattedSize)")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.72))
-                    }
-
-                    Spacer(minLength: 8)
-
                     Button {
                         onShowInFinder()
                     } label: {
-                        Image(systemName: "folder.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .frame(width: 42, height: 36)
+                        Label("Show in Finder", systemImage: "folder")
                     }
                     .buttonStyle(.bordered)
-                    .tint(.white)
-                    .help("Show in Finder")
-                }
-                .padding(14)
-                .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 16))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(.white.opacity(0.12), lineWidth: 1)
-                }
+                    .controlSize(.large)
 
-                Button {
-                    onDone()
-                } label: {
-                    Label("Done", systemImage: "checkmark")
-                        .font(.system(size: 16, weight: .bold))
-                        .frame(minWidth: 170)
+                    Button("Done") {
+                        onDone()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .keyboardShortcut(.defaultAction)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .keyboardShortcut(.defaultAction)
             }
-            .padding(28)
+            .padding(30)
         }
-        .frame(width: 660, height: 650)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-    }
-}
-
-private struct MemoryTrailExportArtwork: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.56, green: 0.69, blue: 1.0).opacity(0.72),
-                    Color(red: 0.98, green: 0.63, blue: 0.61).opacity(0.46),
-                    Color(red: 0.18, green: 0.31, blue: 0.70).opacity(0.20)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 22))
-
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [.yellow.opacity(0.95), .orange.opacity(0.16)],
-                        center: .center,
-                        startRadius: 8,
-                        endRadius: 58
-                    )
-                )
-                .frame(width: 88, height: 88)
-                .offset(x: -112, y: 18)
-
-            Image(systemName: "mountain.2.fill")
-                .font(.system(size: 132))
-                .foregroundStyle(Color(red: 0.27, green: 0.38, blue: 0.72).opacity(0.68))
-                .offset(y: 38)
-
-            HStack(spacing: 24) {
-                ForEach(0..<6, id: \.self) { index in
-                    Image(systemName: "tree.fill")
-                        .font(.system(size: CGFloat(25 + (index % 3) * 8)))
-                        .foregroundStyle(Color(red: 0.10, green: 0.27, blue: 0.52).opacity(0.78))
-                }
-            }
-            .offset(y: 64)
-
-            MemoryTrailRoadShape()
-                .stroke(
-                    LinearGradient(
-                        colors: [.yellow.opacity(0.96), .white.opacity(0.82)],
-                        startPoint: .bottom,
-                        endPoint: .top
-                    ),
-                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                )
-                .frame(width: 270, height: 130)
-                .offset(x: -82, y: 44)
-
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(.white.opacity(0.96))
-                    .frame(width: 142, height: 150)
-                    .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
-
-                VStack(spacing: 10) {
-                    Image(systemName: "curlybraces")
-                        .font(.system(size: 38, weight: .bold))
-                        .foregroundStyle(Color(red: 0.42, green: 0.32, blue: 0.96))
-
-                    Text("JSON")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 16)
-                        .frame(height: 36)
-                        .background(
-                            LinearGradient(
-                                colors: [
-                                    Color(red: 0.49, green: 0.28, blue: 0.96),
-                                    Color(red: 0.34, green: 0.36, blue: 0.95)
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
-                            in: RoundedRectangle(cornerRadius: 10)
-                        )
-                }
-
-                Image(systemName: "checkmark")
-                    .font(.system(size: 28, weight: .black))
-                    .foregroundStyle(.white)
-                    .frame(width: 58, height: 58)
-                    .background(
-                        LinearGradient(
-                            colors: [.green, Color(red: 0.23, green: 0.72, blue: 0.18)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        in: Circle()
-                    )
-                    .shadow(color: .black.opacity(0.16), radius: 8, y: 4)
-                    .offset(x: 71, y: 58)
-            }
-            .offset(x: 104, y: -2)
-        }
-    }
-}
-
-private struct MemoryTrailRoadShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX * 0.15, y: rect.maxY))
-        path.addCurve(
-            to: CGPoint(x: rect.midX * 1.62, y: rect.minY),
-            control1: CGPoint(x: rect.midX * 1.25, y: rect.maxY * 0.72),
-            control2: CGPoint(x: rect.midX * 0.45, y: rect.maxY * 0.30)
-        )
-        return path
+        .frame(width: 500, height: 390)
     }
 }
 
@@ -1123,41 +975,59 @@ struct MemoryTrailHistoryClearSheet: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: range.backgroundColors,
+                colors: [
+                    Color(red: 0.92, green: 0.97, blue: 1.00),
+                    Color.white,
+                    Color(red: 0.96, green: 0.98, blue: 1.00)
+                ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+            .ignoresSafeArea()
 
-            VStack(spacing: 22) {
-                MemoryTrailHistoryIllustration(range: range)
-                    .frame(height: 190)
+            Circle()
+                .fill(range.accent.opacity(0.10))
+                .frame(width: 260, height: 260)
+                .blur(radius: 48)
+                .offset(x: 150, y: -150)
 
-                VStack(spacing: 8) {
-                    Text(range.dialogTitle)
-                        .font(.system(size: 31, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color(red: 0.05, green: 0.12, blue: 0.31))
+            VStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(range.accent.opacity(0.11))
+                        .frame(width: 94, height: 94)
 
-                    Text(range.funMessage)
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Color(red: 0.10, green: 0.18, blue: 0.35).opacity(0.84))
-                        .frame(maxWidth: 470)
+                    Image(systemName: range.symbol)
+                        .font(.system(size: 38, weight: .semibold))
+                        .foregroundStyle(range.accent)
                 }
+                .shadow(
+                    color: range.accent.opacity(0.14),
+                    radius: 18,
+                    y: 7
+                )
 
-                HStack(spacing: 14) {
+                Text(range.dialogTitle)
+                    .font(.system(size: 27, weight: .bold, design: .rounded))
+                    .multilineTextAlignment(.center)
+
+                Text(range.confirmationMessage)
+                    .font(.system(size: 14.5, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 390)
+
+                HStack(spacing: 10) {
                     Button("Cancel") {
                         onCancel()
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.large)
-                    .frame(minWidth: 130)
 
                     Button(role: .destructive) {
                         onConfirm()
                     } label: {
-                        Label(range.actionTitle, systemImage: "trash.fill")
-                            .font(.system(size: 15, weight: .bold))
-                            .frame(minWidth: 190)
+                        Label(range.actionTitle, systemImage: "trash")
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
@@ -1165,124 +1035,9 @@ struct MemoryTrailHistoryClearSheet: View {
                     .keyboardShortcut(.defaultAction)
                 }
             }
-            .padding(28)
+            .padding(30)
         }
-        .frame(width: 620, height: 510)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-    }
-}
-
-private struct MemoryTrailHistoryIllustration: View {
-    let range: MemoryTrailHistoryClearRange
-
-    var body: some View {
-        ZStack {
-            MemoryTrailFunWave()
-                .fill(range.waveColor)
-                .frame(height: 105)
-                .offset(y: 61)
-
-            switch range {
-            case .lastWeek:
-                ZStack {
-                    MemoryTrailCalendarTile(number: "7", tint: range.accent)
-                    Text("😎")
-                        .font(.system(size: 42))
-                        .offset(x: 18, y: -17)
-                    Text("👍")
-                        .font(.system(size: 30))
-                        .offset(x: 70, y: 0)
-                    Image(systemName: "doc.text.fill")
-                        .font(.system(size: 25))
-                        .foregroundStyle(.white.opacity(0.80))
-                        .rotationEffect(.degrees(14))
-                        .offset(x: 115, y: -40)
-                }
-
-            case .lastMonth:
-                ZStack {
-                    MemoryTrailCalendarTile(number: "30", tint: range.accent)
-                        .offset(x: -28)
-                    Text("🧹")
-                        .font(.system(size: 54))
-                        .rotationEffect(.degrees(-18))
-                        .offset(x: 46, y: 24)
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 30, weight: .bold))
-                        .foregroundStyle(.yellow)
-                        .offset(x: 86, y: -52)
-                }
-
-            case .all:
-                ZStack {
-                    VStack(spacing: -30) {
-                        ForEach(0..<3, id: \.self) { index in
-                            RoundedRectangle(cornerRadius: 13)
-                                .fill(.white.opacity(0.94))
-                                .frame(width: 145, height: 78)
-                                .overlay {
-                                    Image(systemName: "doc.text.fill")
-                                        .font(.system(size: 26))
-                                        .foregroundStyle(range.accent.opacity(0.72))
-                                }
-                                .offset(x: CGFloat(index * 8))
-                        }
-                    }
-                    .rotationEffect(.degrees(-4))
-
-                    Text("😎")
-                        .font(.system(size: 42))
-                        .offset(x: 16, y: -18)
-                    Text("🏖️")
-                        .font(.system(size: 72))
-                        .offset(x: 92, y: -48)
-                }
-            }
-        }
-    }
-}
-
-private struct MemoryTrailCalendarTile: View {
-    let number: String
-    let tint: Color
-
-    var body: some View {
-        VStack(spacing: 0) {
-            RoundedRectangle(cornerRadius: 19)
-                .fill(tint)
-                .frame(width: 132, height: 44)
-                .overlay(alignment: .top) {
-                    HStack(spacing: 56) {
-                        Capsule().fill(.white.opacity(0.9)).frame(width: 10, height: 25)
-                        Capsule().fill(.white.opacity(0.9)).frame(width: 10, height: 25)
-                    }
-                    .offset(y: -9)
-                }
-
-            Text(number)
-                .font(.system(size: 58, weight: .bold, design: .rounded))
-                .foregroundStyle(tint)
-                .frame(width: 132, height: 100)
-                .background(.white.opacity(0.97))
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
-        .shadow(color: tint.opacity(0.24), radius: 18, y: 9)
-    }
-}
-
-private struct MemoryTrailFunWave: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: 0, y: rect.height * 0.45))
-        path.addCurve(
-            to: CGPoint(x: rect.width, y: rect.height * 0.32),
-            control1: CGPoint(x: rect.width * 0.24, y: rect.height * 0.05),
-            control2: CGPoint(x: rect.width * 0.68, y: rect.height * 0.82)
-        )
-        path.addLine(to: CGPoint(x: rect.width, y: rect.height))
-        path.addLine(to: CGPoint(x: 0, y: rect.height))
-        path.closeSubpath()
-        return path
+        .frame(width: 500, height: 390)
     }
 }
 

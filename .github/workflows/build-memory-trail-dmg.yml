@@ -288,10 +288,10 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Fixed left-edge clipping on the Freshest Trail update screen.
-          - Moved update-confirmation copy onto a dedicated high-contrast lower panel.
-          - Repositioned the road and trees so artwork no longer overlaps or blends into text.
-          - Version/build and Keep Exploring remain fully dynamic and functional.
+          - Clear History confirmations now match the compact Clear Cache visual style.
+          - JSON export completion now uses a simple success sheet with filename, item count, file size, Show in Finder, and Done.
+          - Large decorative export and history graphics have been removed.
+          - Fixed left-edge clipping and decorative overlap on the Freshest Trail update screen.
 
 
           Privacy:

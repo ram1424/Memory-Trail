@@ -5,12 +5,24 @@
   "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.5/MemoryTrail-1.1.5.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
+    "Clear History confirmations now match the compact Clear Cache visual style.",
+    "JSON export completion now uses a simple success sheet with filename, item count, file size, Show in Finder, and Done.",
+    "Large decorative export and history graphics have been removed.",
     "Fixed left-edge clipping on the Freshest Trail update screen.",
     "Moved update-confirmation copy onto a dedicated high-contrast lower panel.",
     "Repositioned the road and trees so artwork no longer overlaps or blends into text.",
     "Version/build and Keep Exploring remain fully dynamic and functional."
   ],
   "changelog": [
+    {
+      "title": "Cleaner Storage Actions",
+      "symbol": "checkmark.circle.fill",
+      "items": [
+        "Clear Last Week, Clear Last Month, and Clear All History now use the same compact visual language as Clear Cache.",
+        "Activity Exported now uses a smaller success sheet instead of a large illustrated scene.",
+        "All existing deletion and export behavior remains unchanged."
+      ]
+    },
     {
       "title": "Freshest Trail, Refined",
       "symbol": "text.below.photo.fill",

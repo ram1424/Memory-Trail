@@ -348,6 +348,15 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "Cleaner Storage Actions",
+                    symbol: "checkmark.circle.fill",
+                    items: [
+                        "Clear History confirmations now use the same compact, simple visual treatment as Clear Cache.",
+                        "JSON export completion now uses a smaller success sheet with filename, item count, file size, Show in Finder, and Done.",
+                        "Large decorative export and history illustrations have been removed for a cleaner Settings experience."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "Freshest Trail, Refined",
                     symbol: "text.below.photo.fill",
                     items: [
