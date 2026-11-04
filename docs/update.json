@@ -1,15 +1,24 @@
 {
   "version": "1.2",
-  "build": 2,
+  "build": 3,
   "publishedAt": "2026-11-04",
   "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.2/MemoryTrail-1.2.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "New Outlook no longer mistakes the Focused/Other inbox selector for the selected email subject.",
-    "Top Apps Today now allows app names to wrap to two centered lines and scale slightly when needed.",
-    "About Memory Trail now shows Version 1.2 • Build 2 instead of a bare parenthesized build number."
+    "New Outlook no longer treats sender-only email addresses as message subjects.",
+    "Outlook date-group headers such as Today, Expanded are rejected as UI chrome.",
+    "Selected Outlook rows are filtered before subject extraction to avoid non-message controls."
   ],
   "changelog": [
+    {
+      "title": "New Outlook, Refined Again",
+      "symbol": "envelope.badge.fill",
+      "items": [
+        "Rejects sender-only email addresses as Outlook subjects.",
+        "Rejects Today/Yesterday/weekday group headers with Expanded or Collapsed state.",
+        "Keeps Classic Outlook subject capture and fallback behavior intact."
+      ]
+    },
     {
       "title": "New Outlook, Correctly Remembered",
       "symbol": "envelope.open.fill",

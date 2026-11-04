@@ -989,7 +989,14 @@ final class MacCaptureCoordinator {
 
     private func outlookSelectedMessageSubject(in root: AXUIElement) -> String? {
         for selected in selectedAccessibilityRows(in: root) {
-            if let subject = outlookSubjectFromSelectedElement(selected, requireStrongSignal: false) {
+            guard isOutlookMessageSelectionCandidate(selected) else {
+                continue
+            }
+
+            if let subject = outlookSubjectFromSelectedElement(
+                selected,
+                requireStrongSignal: false
+            ) {
                 return subject
             }
         }
@@ -1061,6 +1068,8 @@ final class MacCaptureCoordinator {
             ] {
                 guard let raw = attributeString(element, attribute) else { continue }
                 guard !isOutlookNavigationChrome(raw) else { continue }
+                guard !isOutlookSenderOnlyValue(raw) else { continue }
+                guard !isOutlookMessageGroupHeader(raw) else { continue }
                 guard let subject = sanitizedOutlookSubject(raw) else { continue }
 
                 let lowerRaw = raw.lowercased()
@@ -1107,7 +1116,9 @@ final class MacCaptureCoordinator {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         let initialLower = value.lowercased()
-        if isOutlookNavigationChrome(value) {
+        if isOutlookNavigationChrome(value) ||
+            isOutlookSenderOnlyValue(value) ||
+            isOutlookMessageGroupHeader(value) {
             return nil
         }
 
@@ -1133,6 +1144,74 @@ final class MacCaptureCoordinator {
 
         guard isLikelyOutlookSubject(value) else { return nil }
         return String(value.prefix(250))
+    }
+
+    private func isOutlookSenderOnlyValue(_ rawValue: String) -> Bool {
+        let value = rawValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        guard !value.isEmpty else { return false }
+
+        let emailPattern = #"^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$"#
+        return value.range(
+            of: emailPattern,
+            options: [.regularExpression, .caseInsensitive]
+        ) != nil
+    }
+
+    private func isOutlookMessageGroupHeader(_ rawValue: String) -> Bool {
+        let value = rawValue
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        guard !value.isEmpty else { return false }
+
+        let normalized = value
+            .replacingOccurrences(of: ",", with: " ")
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
+
+        let relativeGroups = [
+            "today",
+            "yesterday",
+            "this week",
+            "last week",
+            "older",
+            "earlier this month",
+            "last month"
+        ]
+
+        let weekdays = [
+            "monday", "tuesday", "wednesday", "thursday",
+            "friday", "saturday", "sunday"
+        ]
+
+        let hasExpansionState =
+            normalized.hasSuffix(" expanded") ||
+            normalized.hasSuffix(" collapsed")
+
+        if hasExpansionState {
+            let base = normalized
+                .replacingOccurrences(of: " expanded", with: "")
+                .replacingOccurrences(of: " collapsed", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if relativeGroups.contains(base) || weekdays.contains(base) {
+                return true
+            }
+
+            let dateHeaderPattern = #"^[a-z]+\s+\d{1,2}(\s+\d{4})?$"#
+            if base.range(
+                of: dateHeaderPattern,
+                options: [.regularExpression, .caseInsensitive]
+            ) != nil {
+                return true
+            }
+        }
+
+        return relativeGroups.contains(normalized) || weekdays.contains(normalized)
     }
 
     private func isOutlookNavigationChrome(_ rawValue: String) -> Bool {
@@ -2662,6 +2741,8 @@ final class MacCaptureCoordinator {
 
         if exactGeneric.contains(lower) { return false }
         if isOutlookNavigationChrome(subject) { return false }
+        if isOutlookSenderOnlyValue(subject) { return false }
+        if isOutlookMessageGroupHeader(subject) { return false }
         if lower.contains("unread message") { return false }
         if lower.hasPrefix("from ") && lower.contains(" to ") && lower.contains(" events") { return false }
         if lower.contains("copyright ©") || lower.contains("all rights reserved") { return false }

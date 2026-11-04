@@ -348,6 +348,15 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "New Outlook, Refined Again",
+                    symbol: "envelope.badge.fill",
+                    items: [
+                        "New Outlook no longer treats sender-only email addresses as message subjects.",
+                        "Date-group headers such as “Today, Expanded” and “Yesterday, Collapsed” are rejected as Outlook UI chrome.",
+                        "Selected Outlook rows are filtered before subject extraction so only plausible message containers are inspected."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "New Outlook, Correctly Remembered",
                     symbol: "envelope.open.fill",
                     items: [
