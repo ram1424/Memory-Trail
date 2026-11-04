@@ -325,7 +325,7 @@ struct MemoryTrailApp: App {
     }
 
     private static var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.0"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.1.2"
     }
 
     private static var appBuild: Int {
@@ -347,6 +347,23 @@ struct MemoryTrailApp: App {
             headline: "More Control Over Your Trail",
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
+                MemoryTrailChangeSection(
+                    title: "Exported with Style",
+                    symbol: "square.and.arrow.up.fill",
+                    items: [
+                        "JSON exports now finish with a polished Memory Trail success screen.",
+                        "The export receipt shows the real filename, item count, file size, and a Show in Finder shortcut.",
+                        "Your trail. Your data. Your file."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Cleanup with a Smile",
+                    symbol: "sparkles",
+                    items: [
+                        "History cleanup now uses playful, visual confirmation sheets for the last week, last month, and full-history reset.",
+                        "The Today activity-feed clear action uses the same friendly full-reset experience."
+                    ]
+                ),
                 MemoryTrailChangeSection(
                     title: "Storage & History",
                     symbol: "internaldrive.fill",

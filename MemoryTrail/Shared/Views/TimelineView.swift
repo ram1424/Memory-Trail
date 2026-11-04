@@ -11,7 +11,7 @@ struct TimelineView: View {
 
     @State private var selectedMemoryID: UUID?
     @State private var dayOffset = 0
-    @State private var showingClearTimelineConfirmation = false
+    @State private var pendingTimelineClear: MemoryTrailHistoryClearRange?
     @State private var now = Date()
 
     var body: some View {
@@ -78,7 +78,7 @@ struct TimelineView: View {
         .toolbar {
             ToolbarItem {
                 Button(role: .destructive) {
-                    showingClearTimelineConfirmation = true
+                    pendingTimelineClear = .all
                 } label: {
                     Image(systemName: "trash")
                 }
@@ -86,17 +86,17 @@ struct TimelineView: View {
                 .help("Clear Timeline")
             }
         }
-        .confirmationDialog(
-            "Clear Timeline?",
-            isPresented: $showingClearTimelineConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Clear Entire Timeline", role: .destructive) {
-                clearTimeline()
-            }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("This permanently deletes all \(memories.count) timeline items from Memory Trail.")
+        .sheet(item: $pendingTimelineClear) { range in
+            MemoryTrailHistoryClearSheet(
+                range: range,
+                onCancel: {
+                    pendingTimelineClear = nil
+                },
+                onConfirm: {
+                    clearTimeline()
+                    pendingTimelineClear = nil
+                }
+            )
         }
         .onAppear {
             ensureSelection(in: visibleItems)

@@ -24,8 +24,8 @@ concurrency:
 
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
-  RELEASE_VERSION: "1.1.1"
-  RELEASE_BUILD: "2"
+  RELEASE_VERSION: "1.1.2"
+  RELEASE_BUILD: "3"
 
 jobs:
   build-dmg:
@@ -288,13 +288,11 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Activity now uses a clearly named local MemoryTrail.store under Memory Trail’s Application Support folder.
-          - Existing default SwiftData history is migrated forward automatically when possible.
-          - Export all locally stored activity to JSON from Settings.
-          - Captured history is retained locally for 30 days by default.
-          - Clear the last 7 days, last 30 days, or all local history from Settings.
-          - Go to Today returns date navigation to the present day in one click.
-          - Clipboard History remains interactive with detail and copy controls.
+          - JSON exports now finish with a polished Activity Exported success screen.
+          - Export receipts show the real filename, item count, file size, Show in Finder, and Done.
+          - History cleanup now uses playful confirmation graphics for the last week, last month, and all history.
+          - The Today activity-feed trash action uses the same friendly full-reset confirmation.
+          - Your trail. Your data. Your file.
 
 
           Privacy:

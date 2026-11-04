@@ -1,18 +1,35 @@
 {
-  "version": "1.1.1",
-  "build": 2,
+  "version": "1.1.2",
+  "build": 3,
   "publishedAt": "2026-11-04",
-  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.1/MemoryTrail-1.1.1.dmg",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.1.2/MemoryTrail-1.1.2.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "Activity now uses a clearly named local MemoryTrail.store in Memory Trail’s Application Support folder.",
-    "Export all locally stored activity to a readable JSON file from Settings.",
-    "Captured history is retained locally for 30 days by default.",
-    "Clear the last 7 days, last 30 days, or all local history from Settings.",
-    "Use Go to Today when browsing earlier dates.",
-    "Clipboard History items remain interactive with detail and copy controls."
+    "JSON exports now finish with a polished Activity Exported confirmation screen.",
+    "Export receipts show the actual filename, item count, file size, and a Show in Finder shortcut.",
+    "History cleanup now uses playful confirmation graphics for last week, last month, and all history.",
+    "The Today activity-feed clear action uses the same friendly full-reset design.",
+    "Your trail. Your data. Your file."
   ],
   "changelog": [
+    {
+      "title": "Exported with Style",
+      "symbol": "square.and.arrow.up.fill",
+      "items": [
+        "A new Activity Exported success sheet confirms JSON export completion.",
+        "The export sheet shows filename, exported item count, file size, Show in Finder, and Done.",
+        "The export tagline is: Your trail. Your data. Your file."
+      ]
+    },
+    {
+      "title": "Cleanup with a Smile",
+      "symbol": "sparkles",
+      "items": [
+        "Clear Last Week uses a playful blue cleanup confirmation.",
+        "Clear Last Month uses a purple monthly tidy-up confirmation.",
+        "Clear All History and the Today activity-feed trash action use the full-reset confirmation."
+      ]
+    },
     {
       "title": "Storage & History",
       "symbol": "internaldrive.fill",
