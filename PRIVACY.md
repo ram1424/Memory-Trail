@@ -1,159 +1,184 @@
 # Memory Trail Privacy Policy
 
 **Effective date:** November 3, 2026  
-**Applies to:** Memory Trail for macOS
+**Last updated:** November 3, 2026  
+**Applies to:** Memory Trail for Windows and macOS
 
-Memory Trail is designed as a privacy-first, locally run activity-history application. Its purpose is to help you retrace what you worked on, viewed, opened, discussed, and copied on your Mac without creating a cloud copy of your activity history.
+Memory Trail is a privacy-first, locally run productivity application designed to help you retrace recent computer activity without creating a cloud copy of your captured history.
 
 ## 1. Privacy by design
 
-Memory Trail processes and stores captured activity locally on your Mac.
+Memory Trail processes and stores captured activity locally on your computer.
 
-**Memory Trail has no external data connectors of any kind.** It does not connect your captured activity to email accounts, cloud drives, calendars, collaboration platforms, browser-sync accounts, AI providers, analytics platforms, advertising systems, data brokers, or other external services for ingestion, enrichment, synchronization, or analysis.
+Memory Trail does **not** operate a cloud timeline service, does not require a Memory Trail account, and does not transmit your captured activity history to Memory Trail servers.
 
-**There is no Memory Trail account to create, no sign-in, no subscription account, and no remote user profile.** Memory Trail does not require credentials for a Memory Trail service because no such account service exists.
-
-**Memory Trail does not process, transmit, upload, synchronize, back up, or store your captured activity data on any cloud service.** Captured timeline data, clipboard history, files and paths, conversation context, searches, Favorites, and manual memories remain on your Mac unless you intentionally move or copy them yourself outside the app.
-
-**Memory Trail does not perform AI data scraping of any kind.** It does not harvest captured activity for AI datasets, send captured activity to an AI provider, use captured activity to train or fine-tune AI models, create embeddings in a cloud service, or perform remote AI summarization, profiling, or inference on your activity history.
-
-Memory Trail does not collect, transmit, sell, share, monetize, process, or store any user data outside the user’s Mac whatsoever. All captured activity remains stored locally on the user’s Mac, is used only to provide Memory Trail’s local features, and is never sent to Memory Trail servers, cloud services, advertisers, analytics providers, AI providers, or data brokers. Put another way: Memory Trail servers can’t receive your data because, in a rather privacy-friendly plot twist, Memory Trail servers do not exist.
+Memory Trail does not sell captured activity data and does not use captured activity for advertising, behavioral profiling, or AI model training.
 
 ## 2. Information Memory Trail may process locally
 
-Depending on the features you enable, the applications you use, and what macOS exposes to the app, Memory Trail may process and store information such as:
+Depending on your operating system, enabled features, permissions, applications, and the information exposed locally by those applications, Memory Trail may process and store:
 
-- Application names and bundle identifiers.
-- Focused window, page, tab, document, notebook, or conversation titles.
-- Browser URLs when a supported browser exposes them.
-- Email subject and sender context when a supported mail application exposes it.
-- Chat or conversation titles when supported applications expose them.
-- File names, folder names, document names, and local file paths when available.
+- Application names and process or bundle identifiers.
+- Focused window, page, tab, document, notebook, email, or conversation titles.
+- Browser URLs when exposed by a supported browser.
+- File, folder, and document names or local paths when available.
 - Clipboard text, links, or code when clipboard capture is enabled.
 - Manual memories, notes, Favorites, and other information you intentionally add.
-- Local settings such as capture preferences, exclusions, update preferences, and onboarding state.
-- Dates and times associated with captured activity.
+- Local timestamps, categories, preferences, exclusions, onboarding state, and similar app settings.
 
-The exact information available depends on macOS permissions and the source application. Memory Trail is intended to capture useful context, not the full contents of every application you use.
+Memory Trail is intended to capture useful activity context, not the complete contents of every application you use.
 
-## 3. Accessibility permission
+Memory Trail does **not intentionally capture passwords or credentials**. Sensitive applications can be excluded from capture, and common credential-related applications may be excluded by default.
 
-Memory Trail uses the macOS Accessibility permission to read supported active-application and focused-window context. This can include items such as browser page titles, Outlook subjects, Teams conversation titles, document names, and similar interface information exposed by macOS.
+## 3. Platform permissions and local activity capture
 
-Accessibility permission is used for local activity capture. Memory Trail does not use this permission to create screen recordings or audio recordings.
+### Windows
 
-If Accessibility permission is disabled, Memory Trail can continue running, but detailed focused-window context may be incomplete. The app may prompt you to enable Accessibility so the timeline can function as intended.
+Memory Trail may use standard Windows desktop APIs and Windows UI Automation to identify the foreground application and obtain locally visible window context. This can include window titles, browser titles, email subject lines, conversation titles, document names, and related metadata exposed by Windows or supported applications.
 
-You can review or revoke this permission at any time in:
+The Microsoft Store build is a packaged classic desktop application and may use the `runFullTrust` capability so it can operate as a normal WPF desktop application at the user's standard privilege level. Memory Trail does not use this capability to request administrator elevation, install drivers or services, or bypass Windows security controls.
+
+### macOS
+
+Memory Trail may use macOS Accessibility permission to identify the active application and obtain supported focused-window context. Accessibility permission can be reviewed or revoked in:
 
 **System Settings → Privacy & Security → Accessibility**
 
+Memory Trail does not use Accessibility permission to create screen or audio recordings.
+
 ## 4. Clipboard capture
 
-Clipboard capture is optional and can be disabled in Memory Trail settings.
+Clipboard capture is optional and can be disabled.
 
-When enabled, supported copied text, links, or code may be stored in your local Memory Trail history. Memory Trail does not upload clipboard history to a Memory Trail server.
+When enabled, supported copied text, links, or code may be stored in your local Memory Trail history.
 
-## 5. Excluded applications
+Memory Trail does not upload clipboard history to a Memory Trail server.
 
-Memory Trail allows you to exclude applications and processes from capture.
+## 5. Excluded applications and capture controls
 
-Sensitive applications such as **Passwords** and **Wallet** are excluded by default. Additional applications can be excluded in Settings.
+Memory Trail provides controls that may include:
 
-Memory Trail attempts to honor configured exclusions for supported activity and clipboard capture. Because application behavior and macOS accessibility interfaces can change, users should still avoid copying or displaying sensitive information in applications they do not want represented in their local history.
+- Pause all capture.
+- Enable or disable app/window activity capture.
+- Enable or disable clipboard capture.
+- Exclude applications or processes from capture.
+- Clear activity history.
+- Clear temporary app cache or reset preferences without deleting saved history where indicated.
 
-## 6. Where your captured data is stored
+Users should configure exclusions for applications containing information they do not want represented in their local timeline.
 
-Captured Memory Trail history is stored locally on your Mac using Apple platform storage technologies, including SwiftData. Preferences and app state may also be stored locally using standard macOS preference storage.
+## 6. Where captured data is stored
+
+Captured activity is stored locally on the device running Memory Trail.
+
+On Windows, local data is stored within the user's Windows profile and local application-data locations.
+
+On macOS, local data is stored using Apple platform storage technologies and standard local preference/application-support locations.
 
 Memory Trail does not provide cloud synchronization for the captured timeline.
 
-Your local activity history remains on the Mac unless you delete it, remove the relevant local app data, or otherwise erase the device/storage containing it.
+## 7. Network connections and software updates
 
-The **Clear App Cache** feature resets temporary capture state and preferences. It is not intended to delete your saved timeline history.
+Memory Trail does not send captured timeline entries, clipboard contents, window titles, document paths, conversation titles, Favorites, searches, or manually added memories as part of an update check.
 
-## 7. Network connections and update checks
+### Microsoft Store version
 
-Memory Trail has **no data connectors** and does not connect to any external service to import, export, enrich, analyze, synchronize, or store your captured activity.
+The Microsoft Store version relies on Microsoft Store and Windows for application distribution and updates. Memory Trail's GitHub self-updater is disabled in the Microsoft Store build.
 
-Memory Trail's captured timeline, clipboard history, files, paths, conversations, searches, Favorites, and manual memories are never included in update checks or GitHub requests.
+Microsoft may process ordinary Store and device information according to Microsoft's own privacy terms.
 
-The only routine external network activity built into Memory Trail is limited to GitHub-hosted resources for software maintenance and documentation, such as:
+### Direct-download versions
 
-- Checking whether a newer Memory Trail release is available.
-- Downloading a Memory Trail update after you choose to update.
-- Opening the Memory Trail source repository, release page, or privacy policy.
+Direct-download builds may contact public GitHub resources to:
 
-These requests may expose ordinary network information to GitHub, such as your IP address, user agent, and request timestamp, as is typical when accessing a website or downloading a file. GitHub's handling of that information is governed by GitHub's own privacy practices.
+- Check whether a newer Memory Trail release is available.
+- Download an application update you choose to install.
+- Open the public source repository, releases, documentation, or privacy policy.
 
-Memory Trail does not embed GitHub account credentials in the application for update checking, does not require you to sign in to GitHub, and does not access your GitHub account or repositories through the app.
+These requests may expose ordinary network information to GitHub, such as IP address, user agent, and request timestamp. GitHub handles that information under its own privacy practices.
 
-This limited GitHub connectivity is **not a data connector**. It is used only to check release metadata, download application updates you choose to install, and open public project documentation or source-code pages.
+This update connectivity does **not** include your captured activity history.
 
-## 8. Analytics, tracking, advertising, profiling, and AI
+## 8. Analytics, advertising, profiling, and AI
 
-Memory Trail does not include third-party analytics, advertising SDKs, behavioral advertising, telemetry services for captured activity, or a remote account system.
+Memory Trail does not include third-party advertising SDKs or behavioral advertising.
 
-Memory Trail does not use your captured timeline to create advertising profiles.
+Memory Trail does not use your captured activity to create advertising profiles.
 
-Memory Trail does not scrape your activity for AI use. It does not send captured activity to OpenAI, Anthropic, Google, Microsoft, or any other AI provider; it does not use captured activity to train, fine-tune, evaluate, or improve AI models; and it does not create a cloud-based AI profile of your activity.
+Memory Trail does not send captured activity to external AI providers for model training, fine-tuning, remote summarization, profiling, or inference.
 
-Memory Trail does not perform remote AI summarization or remote AI analysis of your captured history.
+Memory Trail does not scrape your captured activity for AI datasets.
 
 ## 9. Sharing and sale of captured activity
 
 Memory Trail does not sell your captured activity history.
 
-Memory Trail does not transmit your captured activity history to advertisers or data brokers.
+Memory Trail does not transmit captured activity to advertisers or data brokers.
 
-Because Memory Trail stores information locally, anyone who has sufficient access to your Mac or its storage may potentially access local application data. You are responsible for securing your Mac with appropriate macOS account, password, encryption, and device-security controls.
+Because Memory Trail stores information locally, anyone or any software with sufficient access to your operating-system account or local files may potentially access Memory Trail data.
+
+You are responsible for securing your device using appropriate account security, passwords, encryption, operating-system updates, and other device-security controls.
 
 ## 10. Data retention and deletion
 
-Memory Trail retains local history until it is deleted through available app controls, removed with the app's local data, or erased from the Mac.
+Memory Trail retains locally stored history until you delete it using available app controls, remove the app's local data, or erase the device or storage containing it.
 
-Deleting the application alone may not remove every local preference or database file maintained by macOS. If you want to fully remove local Memory Trail data, you may also need to remove the corresponding application-support, preference, or database data from your macOS user account.
+Deleting the application itself may not automatically delete every preference, cache, database, or application-support file maintained by the operating system.
 
-## 11. Children
+The **Clear App Cache** function is intended to reset temporary state and preferences and is not intended to delete saved timeline history unless the app specifically states otherwise.
 
-Memory Trail is a general-purpose productivity application and is not specifically designed to collect information from children. Because the app stores captured activity locally and does not operate a user-account service, Memory Trail does not intentionally create remote profiles of children.
+## 11. Children's privacy
+
+Memory Trail is a general-purpose productivity application and is not designed specifically for children.
+
+Memory Trail does not operate a remote account service that knowingly creates cloud profiles of children based on captured activity.
 
 ## 12. Security
 
-Memory Trail minimizes privacy risk by keeping captured activity local and avoiding a cloud timeline service. However, no software or local storage system can guarantee absolute security.
+Memory Trail reduces privacy exposure by keeping captured activity local and avoiding a cloud timeline service.
 
-Users should keep macOS updated, use FileVault where appropriate, protect their user account, and configure exclusions for applications containing information they do not want stored in their local timeline.
+No software or local storage system can guarantee absolute security. Users should keep their operating system updated, protect their account, use device encryption where appropriate, and configure exclusions for sensitive applications.
 
-## 13. Open-source verification
+## 13. Third-party applications and services
 
-Memory Trail's source code is publicly available for review. This allows users and security researchers to inspect how the app captures, processes, stores, and updates information.
+Memory Trail reads information made locally available by the operating system and supported applications.
+
+Memory Trail does not control the privacy practices of Microsoft Windows, macOS, GitHub, Microsoft Store, Microsoft Outlook, Microsoft Teams, web browsers, or other third-party products and services.
+
+Those products may independently collect or process information under their own privacy policies.
+
+## 14. Source-code transparency
+
+Memory Trail's source code is publicly available for review so users and security researchers can inspect how capture, storage, privacy controls, and update behavior are implemented.
 
 Source repository:
 
 https://github.com/ram1424/Memory-Trail
 
-## 14. Changes to this policy
+## 15. Changes to this policy
 
-This Privacy Policy may be updated when Memory Trail's functionality, storage model, permissions, or network behavior changes.
+This Privacy Policy may be updated when Memory Trail's functionality, permissions, storage model, distribution method, or network behavior changes.
 
-Material changes should be reflected in the public repository. The effective date at the top of this policy identifies the current version.
+Material privacy-related changes will be reflected in the public repository and, when appropriate, in the application changelog or release notes.
 
-## 15. Contact and questions
+## 16. Contact and questions
 
 Questions, privacy concerns, or reports about Memory Trail can be submitted through the Memory Trail GitHub repository:
 
 https://github.com/ram1424/Memory-Trail/issues
 
+Do not include passwords, credentials, private timeline content, clipboard contents, or other sensitive personal information in a public GitHub issue.
+
 ---
 
 ## Plain-language summary
 
-Memory Trail is built to keep your activity history **on your Mac**.
+Memory Trail is built around a simple principle: **your captured activity belongs on your computer.**
 
-- **No connectors:** Memory Trail has no external data connectors of any kind.
-- **No accounts:** there is no Memory Trail account, sign-in, remote profile, or account creation.
-- **No cloud data processing:** captured activity is not processed, transmitted, synchronized, backed up, or stored on cloud services.
-- **No AI scraping:** captured activity is not harvested for AI datasets, sent to AI providers, used for model training, or remotely summarized/analyzed by AI.
-- **No analytics or advertising SDKs:** Memory Trail does not profile your activity for ads or telemetry.
-
-The app may make limited requests to public GitHub resources only for update checks, update downloads, source-code links, releases, and this privacy policy. Those requests do not contain your captured timeline, clipboard history, files, conversations, searches, Favorites, or manual memories.
+- **Local-first:** captured activity is processed and stored locally.
+- **No Memory Trail cloud timeline:** captured history is not uploaded to Memory Trail servers.
+- **No Memory Trail account required:** there is no remote profile required for capture.
+- **No sale of captured activity:** Memory Trail does not sell captured activity data.
+- **No advertising or AI training:** captured activity is not used for behavioral advertising or external AI model training.
+- **Store-managed updates on Windows Store builds:** the Microsoft Store version relies on Microsoft Store for updates.
+- **Limited GitHub connectivity on direct builds:** direct-download builds may use GitHub for public release checks, downloads, source code, and documentation; captured activity is not included in those requests.

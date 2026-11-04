@@ -1,6 +1,6 @@
 # Memory Trail
 
-> **Privacy Policy:** [Read the Memory Trail Privacy Policy](PRIVACY.md)
+> 🔒 **Privacy Policy:** [Read the official Memory Trail Privacy Policy](https://github.com/ram1424/Memory-Trail/blob/main/PRIVACY.md)
 
 
 <p align="center">
@@ -57,6 +57,8 @@ Requires **macOS 14 or later**. Detailed window and activity capture requires ma
 _All screenshots use generic demo data._
 
 ## Privacy
+
+**Official Privacy Policy:** [https://github.com/ram1424/Memory-Trail/blob/main/PRIVACY.md](https://github.com/ram1424/Memory-Trail/blob/main/PRIVACY.md)
 
 Memory Trail is designed around a simple principle: **your captured activity history stays on your Mac.**
 
