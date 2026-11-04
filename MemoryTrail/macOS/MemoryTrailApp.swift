@@ -16,7 +16,7 @@ struct MemoryTrailApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("memoryTrail.lastPresentedWhatsNewRelease") private var lastPresentedWhatsNewRelease = ""
     @AppStorage("memoryTrail.lastUpdateCheckEpoch") private var lastUpdateCheckEpoch = 0.0
-    @AppStorage("memoryTrail.didRequestInitialFullScreen") private var didRequestInitialFullScreen = false
+    @AppStorage("memoryTrail.didRequestInitialMaximizedWindow") private var didRequestInitialMaximizedWindow = false
 
     private static let screenshotDemoSelection: SidebarItem? = {
         guard let argument = ProcessInfo.processInfo.arguments.first(where: {
@@ -435,7 +435,7 @@ struct MemoryTrailApp: App {
     @MainActor
     private func launchAndMonitorUpdates() async {
         await runStartupSequence()
-        await enterFullScreenOnFirstLaunchIfNeeded()
+        await maximizeWindowOnFirstLaunchIfNeeded()
 
         if hasCompletedOnboarding {
             await presentWhatsNewIfNeeded()
@@ -450,9 +450,9 @@ struct MemoryTrailApp: App {
     }
 
     @MainActor
-    private func enterFullScreenOnFirstLaunchIfNeeded() async {
+    private func maximizeWindowOnFirstLaunchIfNeeded() async {
         guard Self.screenshotDemoSelection == nil,
-              !didRequestInitialFullScreen
+              !didRequestInitialMaximizedWindow
         else {
             return
         }
@@ -461,7 +461,9 @@ struct MemoryTrailApp: App {
         NSApplication.shared.activate(ignoringOtherApps: true)
 
         // Wait until SwiftUI/AppKit has presented the first real app window,
-        // then enter native macOS full screen exactly once.
+        // then expand it to the screen's visible work area exactly once.
+        // This keeps Memory Trail as a normal macOS window and does not enter
+        // native full-screen mode or create a separate full-screen Space.
         for _ in 0..<20 {
             if let window = NSApplication.shared.keyWindow
                 ?? NSApplication.shared.windows.first(where: {
@@ -473,11 +475,11 @@ struct MemoryTrailApp: App {
 
                 window.makeKeyAndOrderFront(nil)
 
-                if !window.styleMask.contains(.fullScreen) {
-                    window.toggleFullScreen(nil)
+                if let screen = window.screen ?? NSScreen.main {
+                    window.setFrame(screen.visibleFrame, display: true, animate: true)
                 }
 
-                didRequestInitialFullScreen = true
+                didRequestInitialMaximizedWindow = true
                 return
             }
 
