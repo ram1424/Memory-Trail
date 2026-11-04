@@ -1,5 +1,8 @@
 # Memory Trail
 
+> **Privacy Policy:** [Read the Memory Trail Privacy Policy](PRIVACY.md)
+
+
 <p align="center">
   <img src="Branding/MemoryTrailIconMaster.png" width="168" alt="Memory Trail app icon">
 </p>

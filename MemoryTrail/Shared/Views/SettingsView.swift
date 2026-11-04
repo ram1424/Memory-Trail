@@ -258,10 +258,29 @@ struct SettingsView: View {
                         text: "The source code is available publicly so you can review and verify how Memory Trail captures, processes, and stores data."
                     )
 
-                    Link(destination: URL(string: "https://github.com/ram1424/Memory-Lane")!) {
-                        Label("Review Memory Trail Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Privacy Policy")
+                            .font(.headline)
+
+                        Text("Read the full policy covering local activity capture, Accessibility, clipboard history, exclusions, storage, update checks, GitHub network requests, retention, and deletion.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        HStack(spacing: 10) {
+                            Link(destination: URL(string: "https://github.com/ram1424/Memory-Trail/blob/main/PRIVACY.md")!) {
+                                Label("View Privacy Policy", systemImage: "doc.text.fill")
+                            }
+                            .buttonStyle(.borderedProminent)
+
+                            Link(destination: URL(string: "https://github.com/ram1424/Memory-Trail")!) {
+                                Label("Review Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                            }
+                            .buttonStyle(.bordered)
+                        }
                     }
-                    .buttonStyle(.borderedProminent)
 
                     Divider()
 
@@ -278,7 +297,7 @@ struct SettingsView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Link(destination: URL(string: "https://github.com/ram1424/Memory-Lane")!) {
+                    Link(destination: URL(string: "https://github.com/ram1424/Memory-Trail")!) {
                         HStack(spacing: 5) {
                             Label("About Memory Trail", systemImage: "info.circle")
                             Image(systemName: "arrow.up.right.square")
