@@ -1,8 +1,21 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 9) - November 5, 2026
+## 1.3 (Build 10) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### New Outlook Non-Column Layout Fix
+
+- Confirmed a layout-specific bug: Column Layout/right-side reading pane worked more reliably because Memory Trail still contained geometry assumptions that the message list was on the left and the message header was in the right side of the Outlook window.
+- Removed the horizontal left-side cutoff from clicked message-row identity. New Outlook can now identify the actual selected row when the message list spans the full width above a bottom reading pane.
+- Increased selected-row Accessibility scanning from 500 to 1,500 elements for the larger hierarchy used by non-column layouts.
+- Selected-row identity now comes from Outlook's `AXSelectedRows` first and includes row frame information, making it layout-independent and better at distinguishing repeated messages.
+- Semantic reading-pane frames are honored wherever Outlook positions them: right, bottom, fill-screen, or other supported locations.
+- Structural Message header fallback now anchors the capture region to the header's actual vertical position instead of assuming the pane begins at the top of the Outlook window.
+- Wide or lower Message header structures are treated as bottom/full-width layouts and scanned across the available width.
+- The final fallback is layout-neutral rather than hard-coded to the right 55% of the window.
+- Subject and sender candidates near the detected structural Message header receive an additional score boost so message-list text cannot outrank the opened message.
+- Increased allowed vertical Subject-to-From spacing for non-column layouts where Outlook uses taller header spacing.
 
 ### New Outlook Selection-State Reliability
 

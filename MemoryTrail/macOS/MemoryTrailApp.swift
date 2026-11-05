@@ -369,6 +369,9 @@ struct MemoryTrailApp: App {
                         "Clicked message-row identity is carried into asynchronous capture so separate messages with identical Subject and From values can still be distinguished.",
                         "Reading-pane, selected-object, and selected-row identities are merged instead of allowing one stale identity source to override the others.",
                         "The Outlook-specific 150 ms logging throttle has been removed; signature and selection-state checks now handle duplicate suppression without discarding legitimate captures.",
+                        "New Outlook non-column/bottom reading-pane layouts are now handled explicitly instead of assuming the message list is on the left and the reading pane is on the right.",
+                        "Selected-row identity is read from Outlook's actual selected row across both column and non-column layouts.",
+                        "When Outlook exposes only a structural Message header, the capture region is anchored to that header's real vertical position, supporting reading panes below the message list.",
                         "Sender presence states such as Available, Busy, Away, and Offline are removed from captured sender information."
                     ]
                 ),
