@@ -10,6 +10,18 @@ struct SearchView: View {
     @State private var selectedResult: MemoryItem?
     @FocusState private var searchFocused: Bool
 
+#if APP_STORE_EDITION
+    private let examples = [
+        "What apps did I use earlier today?",
+        "Show my activity from this week",
+        "What was I doing around 10:30 AM?",
+        "Show my most recent activity",
+        "Find clipboard text from today",
+        "What did I do before opening Outlook?",
+        "What did I do after using Teams?",
+        "Find a project or note I saved"
+    ]
+#else
     private let examples = [
         "What was I doing earlier today?",
         "Show my activity from this week",
@@ -20,6 +32,7 @@ struct SearchView: View {
         "Show my most recent activity",
         "Find a project I worked on"
     ]
+#endif
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -132,7 +145,11 @@ struct SearchView: View {
                 Text("Ask Memory Trail")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
 
+#if APP_STORE_EDITION
+                Text("Find the moments you remember — by time, app, copied text, note, or project.")
+#else
                 Text("Find the moments you remember — by time, app, page, email, chat, file, or project.")
+#endif
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -248,7 +265,7 @@ struct SearchView: View {
             HStack(alignment: .top, spacing: 16) {
                 searchCapabilityCard(
                     title: "Search your day",
-                    detail: "Use natural phrases to find activity by time, app, page, file, email, or conversation.",
+                    detail: "Use natural phrases to find locally captured activity by time, app, text, note, file, or project.",
                     symbol: "clock.badge.questionmark",
                     category: .allApps
                 )
@@ -271,7 +288,7 @@ struct SearchView: View {
             VStack(spacing: 12) {
                 searchCapabilityCard(
                     title: "Search your day",
-                    detail: "Use natural phrases to find activity by time, app, page, file, email, or conversation.",
+                    detail: "Use natural phrases to find locally captured activity by time, app, text, note, file, or project.",
                     symbol: "clock.badge.questionmark",
                     category: .allApps
                 )

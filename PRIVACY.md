@@ -1,7 +1,7 @@
 # Memory Trail Privacy Policy
 
 **Effective date:** November 3, 2026  
-**Last updated:** November 3, 2026  
+**Last updated:** November 5, 2026  
 **Applies to:** Memory Trail for Windows and macOS
 
 Memory Trail is a privacy-first, locally run productivity application designed to help you retrace recent computer activity without creating a cloud copy of your captured history.
@@ -37,6 +37,22 @@ Memory Trail does **not intentionally capture passwords or credentials**. Sensit
 Memory Trail may use standard Windows desktop APIs and Windows UI Automation to identify the foreground application and obtain locally visible window context. This can include window titles, browser titles, email subject lines, conversation titles, document names, and related metadata exposed by Windows or supported applications.
 
 The Microsoft Store build is a packaged classic desktop application and may use the `runFullTrust` capability so it can operate as a normal WPF desktop application at the user's standard privilege level. Memory Trail does not use this capability to request administrator elevation, install drivers or services, or bypass Windows security controls.
+
+### macOS — direct-download edition
+
+The direct-download macOS edition may use Accessibility APIs, after the user grants macOS Accessibility permission, to read locally exposed focused-window context such as supported browser page titles, Outlook subjects and senders, Teams conversation titles, and document names.
+
+### macOS — Mac App Store edition
+
+The Mac App Store edition runs inside Apple’s App Sandbox and does **not** use Accessibility / AXUIElement to inspect other applications.
+
+The App Store edition may process locally:
+
+- Foreground application activation events published by macOS, including the application name and bundle identifier.
+- Clipboard text only when the user explicitly enables Clipboard Capture. Clipboard Capture is off by default for this edition.
+- Manual memories, Favorites, searches, local timestamps, preferences, and exclusions.
+
+The Mac App Store edition does not capture detailed Outlook subjects or senders, Teams conversation titles, browser-tab titles, or other focused-window content from other applications.
 
 ## 4. Clipboard capture
 
@@ -79,6 +95,12 @@ Memory Trail does not send captured timeline entries, clipboard contents, window
 The Microsoft Store version relies on Microsoft Store and Windows for application distribution and updates. Memory Trail's GitHub self-updater is disabled in the Microsoft Store build.
 
 Microsoft may process ordinary Store and device information according to Microsoft's own privacy terms.
+
+### Mac App Store version
+
+The Mac App Store edition relies on the Mac App Store for application distribution and updates. Memory Trail's GitHub self-updater is not included in this build.
+
+Apple may process ordinary App Store and device information according to Apple's own privacy terms.
 
 ### Direct-download versions
 
