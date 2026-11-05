@@ -1,8 +1,15 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 11) - November 5, 2026
+## 1.3 (Build 12) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### What’s New Reorganization
+
+- Reorganized the in-app **What’s New** screen into a cleaner release-style flow.
+- Consolidated the many Outlook implementation bullets into one concise **Outlook Capture & Reliability** section.
+- Separated the rest of the release into **Today & Timeline**, **Ask Memory Trail**, **Insights, Favorites & Consistency**, **Storage, History & Export**, **Settings, Updates & Polish**, and **Privacy First**.
+- Removed repetitive technical wording while preserving the user-facing improvements included in Memory Trail 1.3.
 
 ### New Outlook Fail-Closed Header Fix
 

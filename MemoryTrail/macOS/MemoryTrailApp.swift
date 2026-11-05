@@ -344,61 +344,49 @@ struct MemoryTrailApp: App {
     private static var currentChangelog: MemoryTrailChangelog {
         MemoryTrailChangelog(
             version: displayVersion,
-            headline: "Memory Trail 1.3",
-            summary: "Memory Trail \(appVersion) improves Outlook reliability, timeline clarity, local history controls, and overall polish while keeping your data on your Mac.",
+            headline: "What’s New in Memory Trail 1.3",
+            summary: "Version \(appVersion) focuses on more reliable Outlook capture, a clearer timeline, more useful search results, and a cleaner overall experience — while keeping your activity private and local.",
             sections: [
                 MemoryTrailChangeSection(
-                    title: "Outlook Capture, Rebuilt",
+                    title: "Outlook Capture & Reliability",
                     symbol: "envelope.open.fill",
                     items: [
-                        "Classic Outlook keeps its proven clicked-message capture path for accurate subject and sender information.",
-                        "New Outlook reads only the actual Subject and From data from the right-side message header and ignores toolbar controls, Copilot labels, structural header names, search controls, and other Outlook UI chrome.",
-                        "Every New Outlook click now performs a validated selected-message check, preventing valid emails from being missed when Outlook exposes an unexpected row role or truncated list subject.",
-                        "Outlook retries unresolved or stale message headers for longer while still returning immediately when the selected message is ready.",
-                        "Selected-row identity is retained independently of subject parsing so separate messages with the same subject and sender are not mistaken for the previously logged message.",
-                        "New Outlook now supports both split-pane and full-width/open-message layouts, so subjects and senders positioned outside the traditional right-side reading pane are still captured.",
-                        "Sent/received timestamps, recipient lines, presence/status text, and other header metadata can no longer be mistaken for the email subject.",
-                        "When the visible New Outlook header cannot expose a usable subject, Memory Trail falls back to the selected Outlook message object or selected row instead of silently dropping the email.",
-                        "Legitimate subjects that look like email addresses are now preserved instead of being misclassified as sender text.",
-                        "External/Guest/security badges are treated as Outlook UI metadata and can no longer replace the real sender or subject.",
-                        "Sender/subject selection relies more heavily on their physical position in the message header rather than the text format.",
-                        "Calendar/meeting invitation emails now recognize Organizer, Meeting Organizer, Organized by, and Invited by as From-equivalent sender fields.",
-                        "Invite response controls such as Accept, Tentative, Decline, and Propose New Time are excluded from subject capture.",
-                        "Timeline rows now display Outlook activity as Subject  From: Sender for faster scanning.",
-                        "New Outlook detection is now persistent for the Outlook process once confirmed, preventing Search, Sent, custom folders, and full-width views from falling back to the Classic parser.",
-                        "Clicked message-row identity is carried into asynchronous capture so separate messages with identical Subject and From values can still be distinguished.",
-                        "Reading-pane, selected-object, and selected-row identities are merged instead of allowing one stale identity source to override the others.",
-                        "The Outlook-specific 150 ms logging throttle has been removed; signature and selection-state checks now handle duplicate suppression without discarding legitimate captures.",
-                        "New Outlook non-column/bottom reading-pane layouts are now handled explicitly instead of assuming the message list is on the left and the reading pane is on the right.",
-                        "Selected-row identity is read from Outlook's actual selected row across both column and non-column layouts.",
-                        "When Outlook exposes only a structural Message header, the capture region is anchored to that header's real vertical position, supporting reading panes below the message list.",
-                        "If New Outlook does not expose a proven reading/message pane or Message Header container, Memory Trail now fails closed and falls back to the selected message object/row instead of scanning the entire Outlook window.",
-                        "Outlook navigation/account chrome such as All Accounts can no longer become an email subject through reading-pane or click-hint fallback paths.",
-                        "Presence Unknown and Unknown Presence are stripped from captured sender information.",
-                        "Sender presence states such as Available, Busy, Away, and Offline are removed from captured sender information."
+                        "Classic and New Outlook now use separate capture paths tuned to each interface.",
+                        "New Outlook supports column, bottom reading-pane, full-width, Search, Sent, custom-folder, and open-message layouts.",
+                        "Email subjects and sender information are read from the actual message header while Outlook navigation, toolbar, Copilot, recipient, presence, and account chrome are ignored.",
+                        "Repeated messages, same-subject emails, truncated list subjects, slow-loading headers, external senders, service accounts, and email-address-style subjects are handled more reliably.",
+                        "Calendar and meeting invitations now recognize Organizer, Meeting Organizer, Organized by, Organised by, and Invited by as sender information.",
+                        "Outlook timeline entries now show the sender inline as Subject  From: Sender."
                     ]
                 ),
                 MemoryTrailChangeSection(
                     title: "Today & Timeline",
                     symbol: "clock.arrow.circlepath",
                     items: [
-                        "Today uses a clearer activity-first layout with summary metrics, filtering, and a more prominent timeline.",
-                        "The right-side activity details panel is restored, with single-click selection and double-click reopening support.",
+                        "Today has a clearer activity-first layout with summary metrics, filtering, and a more prominent timeline.",
+                        "The activity details panel is restored with single-click selection, double-click reopening, and a visible Close button.",
                         "Go to Today makes it easy to return to the current day after browsing earlier activity.",
                         "Top Apps Today handles longer application names more cleanly."
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "Insights, Ask Memory Trail & Favorites",
+                    title: "Ask Memory Trail",
                     symbol: "sparkles.rectangle.stack.fill",
                     items: [
-                        "Insights uses a more consistent dashboard layout with useful context such as Top Apps, Key Takeaways, and recent files.",
-                        "Ask Memory Trail no longer imposes arbitrary result-count limits on Supporting Activity; all activity matching the interpreted query can be returned.",
-                        "A floating Back to Top control makes long Supporting Activity result sets easier to navigate.",
-                        "Quick-start prompts now use distinct, relevant icons for email, conversations, websites, files, projects, time-based activity, and more.",
-                        "Expanded activity details now include a clearly visible Close button directly in the activity header.",
-                        "Supporting Activity remains full-width and shows the complete number of matching items.",
-                        "Favorites, Clipboard History, Settings, and Ask Memory Trail share a more consistent visual structure."
+                        "Supporting Activity no longer has arbitrary result-count limits; all matching local activity can be returned.",
+                        "Conversation and email questions can return fuller day-level history instead of stopping at a small fixed set.",
+                        "A floating Back to Top control makes long result sets easier to navigate.",
+                        "Quick-start prompts now use distinct icons for email, conversations, websites, files, projects, and time-based activity.",
+                        "Supporting Activity remains full-width and clearly shows how many matching items were found."
+                    ]
+                ),
+                MemoryTrailChangeSection(
+                    title: "Insights, Favorites & Consistency",
+                    symbol: "chart.bar.xaxis",
+                    items: [
+                        "Insights uses a cleaner dashboard layout with Top Apps, Key Takeaways, activity patterns, and recent files.",
+                        "Favorites has clearer saved-item context and a more useful empty state.",
+                        "Insights, Favorites, Clipboard History, Ask Memory Trail, and Settings now share a more consistent visual structure."
                     ]
                 ),
                 MemoryTrailChangeSection(
@@ -407,26 +395,26 @@ struct MemoryTrailApp: App {
                     items: [
                         "Local activity is stored in the clearly named MemoryTrail.store database inside Application Support.",
                         "History is retained locally for 30 days by default, with controls to clear the last week, last month, or all history.",
-                        "JSON export includes a cleaner completion experience with filename, item count, file size, and Show in Finder.",
-                        "History and export confirmation screens have been simplified."
+                        "JSON export includes filename, item count, file size, and Show in Finder.",
+                        "History and export confirmations have been simplified."
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "Settings & Updates",
+                    title: "Settings, Updates & Polish",
                     symbol: "gearshape.2.fill",
                     items: [
-                        "Settings is reorganized into a more compact continuous card layout with privacy, exclusions, and storage controls easier to reach.",
-                        "The update experience has been refined while keeping the simple up-to-date confirmation flow.",
-                        "About Memory Trail shows the version and build number in a clearer format."
+                        "Settings is reorganized into a cleaner continuous layout with privacy, exclusions, and storage controls easier to reach.",
+                        "The update experience has been refined while keeping a simple up-to-date confirmation flow.",
+                        "About Memory Trail now presents the version and build number more clearly."
                     ]
                 ),
                 MemoryTrailChangeSection(
                     title: "Privacy First",
                     symbol: "lock.shield.fill",
                     items: [
-                        "Captured activity continues to be sourced, processed, and stored locally on the Mac.",
+                        "Captured activity continues to be sourced, processed, and stored locally on your Mac.",
                         "No cloud timeline sync, external data connectors, advertising SDKs, or AI timeline summarization were added.",
-                        "Passwords and Wallet remain excluded by default, and app exclusion and capture controls remain available.",
+                        "Passwords and Wallet remain excluded by default, with additional app/process exclusion controls available.",
                         "The source code remains available for review and verification."
                     ]
                 )
