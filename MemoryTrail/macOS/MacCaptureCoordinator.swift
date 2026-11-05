@@ -16,6 +16,8 @@ final class MacCaptureCoordinator {
     @ObservationIgnored private var mouseMonitor: Any?
     @ObservationIgnored private var outlookClickCaptureTask: Task<Void, Never>?
     @ObservationIgnored private var lastOutlookMessageKey: String?
+    @ObservationIgnored private var lastOutlookSelectionHint: String?
+    @ObservationIgnored private var confirmedNewOutlookPIDs: Set<pid_t> = []
     @ObservationIgnored private var lastClipboardChangeCount = NSPasteboard.general.changeCount
     @ObservationIgnored private var lastWindowSignature = ""
     @ObservationIgnored private var lastWindowLoggedAt = Date.distantPast
@@ -111,6 +113,10 @@ final class MacCaptureCoordinator {
         outlookClickCaptureTask?.cancel()
         outlookClickCaptureTask = nil
         lastOutlookMessageKey = nil
+        lastOutlookSelectionHint = nil
+        confirmedNewOutlookPIDs.removeAll(
+            keepingCapacity: true
+        )
         lastClipboardChangeCount = NSPasteboard.general.changeCount
         didRequestAccessibilityThisLaunch = false
         enhancedAccessibilityPIDs.removeAll(keepingCapacity: true)
@@ -300,11 +306,11 @@ final class MacCaptureCoordinator {
                     outlookSelectedSender(
                         pid: app.processIdentifier
                     )
-
-                // Classic Outlook's proven click path does not need
-                // a separate row identity. Subject + sender come directly
-                // from the clicked message element.
-                clickedIdentity = nil
+                clickedIdentity =
+                    outlookClickedSelectionIdentity(
+                        from: hitElement,
+                        pid: app.processIdentifier
+                    )
             } else {
                 clickedSubject = nil
                 clickedSender = nil
@@ -316,7 +322,10 @@ final class MacCaptureCoordinator {
             ) {
                 scheduleOutlookMessageCapture(
                     application: app,
-                    bundleID: bundleID
+                    bundleID: bundleID,
+                    expectedSubject: clickedSubject,
+                    selectionSenderHint: clickedSender,
+                    selectionIdentityHint: clickedIdentity
                 )
                 return
             }
@@ -340,7 +349,10 @@ final class MacCaptureCoordinator {
 
             scheduleOutlookMessageCapture(
                 application: app,
-                bundleID: bundleID
+                bundleID: bundleID,
+                expectedSubject: clickedSubject,
+                selectionSenderHint: clickedSender,
+                selectionIdentityHint: clickedIdentity
             )
             return
         }
@@ -514,6 +526,10 @@ final class MacCaptureCoordinator {
     private func outlookUsesNewOutlookLayout(
         pid: pid_t
     ) -> Bool {
+        if confirmedNewOutlookPIDs.contains(pid) {
+            return true
+        }
+
         let appElement =
             AXUIElementCreateApplication(pid)
 
@@ -540,12 +556,26 @@ final class MacCaptureCoordinator {
         var inspected = 0
         var sawReadingPaneIdentifier = false
         var sawNewInboxSelectionState = false
+        var sawWebContent = false
+        var sawMessageHeaderStructure = false
 
         while index < queue.count,
-              inspected < 420 {
+              inspected < 900 {
             let element = queue[index]
             index += 1
             inspected += 1
+
+            let role =
+                attributeString(
+                    element,
+                    kAXRoleAttribute as CFString
+                )?.lowercased() ?? ""
+
+            if role.contains("webarea") ||
+                role.contains("webcontent") ||
+                role.contains("browser") {
+                sawWebContent = true
+            }
 
             let identifier =
                 attributeString(
@@ -558,6 +588,12 @@ final class MacCaptureCoordinator {
                 identifier.contains("messagepane") ||
                 identifier.contains("message-pane") {
                 sawReadingPaneIdentifier = true
+            }
+
+            if identifier.contains("messageheader") ||
+                identifier.contains("message-header") ||
+                identifier.contains("mail-header") {
+                sawMessageHeaderStructure = true
             }
 
             for attribute in [
@@ -582,6 +618,7 @@ final class MacCaptureCoordinator {
                     lower.contains(
                         "copilot summary"
                     ) {
+                    confirmedNewOutlookPIDs.insert(pid)
                     return true
                 }
 
@@ -596,18 +633,42 @@ final class MacCaptureCoordinator {
                     ) {
                     sawNewInboxSelectionState = true
                 }
+
+                if isNewOutlookStructuralHeaderLabel(
+                    raw
+                ) {
+                    sawMessageHeaderStructure = true
+                }
             }
 
             appendChildren(
                 of: element,
                 to: &queue,
-                limit: 70
+                limit: 90
             )
         }
 
-        return sawReadingPaneIdentifier &&
-            sawNewInboxSelectionState
+        let confirmed =
+            (
+                sawReadingPaneIdentifier &&
+                (
+                    sawNewInboxSelectionState ||
+                    sawWebContent ||
+                    sawMessageHeaderStructure
+                )
+            ) ||
+            (
+                sawWebContent &&
+                sawMessageHeaderStructure
+            )
+
+        if confirmed {
+            confirmedNewOutlookPIDs.insert(pid)
+        }
+
+        return confirmed
     }
+
 
     private func outlookClickTargetsMessageSelection(
         at point: CGPoint,
@@ -675,11 +736,101 @@ final class MacCaptureCoordinator {
 
         return true
     }
+    private func outlookClickedSelectionIdentity(
+        from hitElement: AXUIElement,
+        pid: pid_t
+    ) -> String? {
+        guard let row =
+            nearestAccessibilityRow(
+                from: hitElement
+            )
+        else {
+            return nil
+        }
+
+        let role = attributeString(
+            row,
+            kAXRoleAttribute as CFString
+        )?.lowercased() ?? ""
+
+        guard role.contains("row") ||
+                role.contains("cell") ||
+                role.contains("outline") ||
+                role.contains("list")
+        else {
+            return nil
+        }
+
+        guard isOutlookMessageSelectionCandidate(
+            row
+        ) else {
+            return nil
+        }
+
+        let appElement =
+            AXUIElementCreateApplication(pid)
+        var focusedWindowValue: CFTypeRef?
+
+        if AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        ) == .success,
+        let focusedWindowValue,
+        CFGetTypeID(focusedWindowValue) ==
+            AXUIElementGetTypeID(),
+        let rowFrame = accessibilityFrame(of: row) {
+            let window = unsafeBitCast(
+                focusedWindowValue,
+                to: AXUIElement.self
+            )
+
+            if let windowFrame =
+                accessibilityFrame(of: window) {
+                let messageListCutoff =
+                    windowFrame.minX +
+                    (windowFrame.width * 0.72)
+
+                guard rowFrame.midX <=
+                        messageListCutoff
+                else {
+                    return nil
+                }
+
+                let rowIdentity =
+                    outlookSelectedRowIdentity(
+                        row
+                    ) ?? ""
+
+                let frameIdentity = [
+                    Int(rowFrame.minX.rounded()),
+                    Int(rowFrame.minY.rounded()),
+                    Int(rowFrame.width.rounded()),
+                    Int(rowFrame.height.rounded())
+                ]
+                .map(String.init)
+                .joined(separator: ",")
+
+                return [
+                    "clicked-row",
+                    rowIdentity,
+                    frameIdentity
+                ]
+                .filter { !$0.isEmpty }
+                .joined(separator: "|")
+            }
+        }
+
+        return outlookSelectedRowIdentity(row)
+    }
+
 
     private func scheduleOutlookMessageCapture(
         application: NSRunningApplication,
         bundleID: String,
-        expectedSubject: String? = nil
+        expectedSubject: String? = nil,
+        selectionSenderHint: String? = nil,
+        selectionIdentityHint: String? = nil
     ) {
         outlookClickCaptureTask?.cancel()
 
@@ -689,6 +840,8 @@ final class MacCaptureCoordinator {
             "Microsoft Outlook"
         let previousMessageKey =
             lastOutlookMessageKey
+        let previousSelectionHint =
+            lastOutlookSelectionHint
 
         outlookClickCaptureTask = Task {
             @MainActor [weak self] in
@@ -722,7 +875,11 @@ final class MacCaptureCoordinator {
                     self.outlookSelectedMessageContext(
                         pid: pid,
                         expectedNewOutlookSubject:
-                            expectedSubject
+                            expectedSubject,
+                        selectionSenderHint:
+                            selectionSenderHint,
+                        selectionIdentityHint:
+                            selectionIdentityHint
                     )
                 else {
                     continue
@@ -731,8 +888,14 @@ final class MacCaptureCoordinator {
                 let messageKey =
                     self.outlookMessageKey(message)
 
+                let hasNewSelectionHint =
+                    selectionIdentityHint != nil &&
+                    selectionIdentityHint !=
+                        previousSelectionHint
+
                 if let previousMessageKey,
                    messageKey == previousMessageKey,
+                   !hasNewSelectionHint,
                    attempt <
                     retryDelays.count - 1 {
                     continue
@@ -740,7 +903,8 @@ final class MacCaptureCoordinator {
 
                 if let previousMessageKey,
                    messageKey ==
-                    previousMessageKey {
+                    previousMessageKey,
+                   !hasNewSelectionHint {
                     return
                 }
 
@@ -757,7 +921,9 @@ final class MacCaptureCoordinator {
                             "From: \($0)"
                         },
                     activityIdentity:
-                        message.identity
+                        message.identity,
+                    selectionDiscriminator:
+                        selectionIdentityHint
                 )
                 return
             }
@@ -918,7 +1084,8 @@ final class MacCaptureCoordinator {
         applicationName: String,
         bundleID: String,
         baseDetail: String? = nil,
-        activityIdentity: String? = nil
+        activityIdentity: String? = nil,
+        selectionDiscriminator: String? = nil
     ) {
         let lowerBundleID = bundleID.lowercased()
         let normalizedTitleSignature =
@@ -940,11 +1107,31 @@ final class MacCaptureCoordinator {
         ].joined(separator: "|")
 
         let now = Date()
-        guard signature != lastWindowSignature else { return }
 
-        let minimumLogInterval: TimeInterval =
-            bundleID.lowercased() == "com.microsoft.outlook" ? 0.15 : 0.6
-        guard now.timeIntervalSince(lastWindowLoggedAt) >= minimumLogInterval else { return }
+        if lowerBundleID ==
+            "com.microsoft.outlook" {
+            if signature == lastWindowSignature {
+                guard let selectionDiscriminator,
+                      selectionDiscriminator !=
+                        lastOutlookSelectionHint
+                else {
+                    return
+                }
+            }
+        } else {
+            guard signature !=
+                    lastWindowSignature
+            else {
+                return
+            }
+
+            guard now.timeIntervalSince(
+                lastWindowLoggedAt
+            ) >= 0.6
+            else {
+                return
+            }
+        }
 
         lastWindowSignature = signature
         lastWindowLoggedAt = now
@@ -969,6 +1156,8 @@ final class MacCaptureCoordinator {
                 normalizedOutlookIdentity(title),
                 normalizedOutlookIdentity(sender ?? "")
             ].joined(separator: "|")
+            lastOutlookSelectionHint =
+                selectionDiscriminator
         } else if isTeamsBundleID(lowerBundleID) {
             storedBody = ""
         } else {
@@ -1149,6 +1338,62 @@ final class MacCaptureCoordinator {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
     }
+    private func mergedOutlookIdentity(
+        _ identities: [String?]
+    ) -> String? {
+        var result: [String] = []
+
+        for identity in identities {
+            guard let identity else {
+                continue
+            }
+
+            let value = identity.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+            guard !value.isEmpty,
+                  !result.contains(value)
+            else {
+                continue
+            }
+
+            result.append(value)
+        }
+
+        guard !result.isEmpty else {
+            return nil
+        }
+
+        return result.joined(
+            separator: "||"
+        )
+    }
+
+    private func outlookSubjectsLikelySame(
+        _ first: String,
+        _ second: String
+    ) -> Bool {
+        let left =
+            normalizedOutlookIdentity(first)
+        let right =
+            normalizedOutlookIdentity(second)
+
+        if left == right {
+            return true
+        }
+
+        let shortest =
+            min(left.count, right.count)
+
+        guard shortest >= 8 else {
+            return false
+        }
+
+        return left.hasPrefix(right) ||
+            right.hasPrefix(left)
+    }
+
 
     private func captureOutlookSelectedSubject(application: NSRunningApplication) {
         guard let message = outlookSelectedMessageContext(
@@ -2655,7 +2900,9 @@ final class MacCaptureCoordinator {
 
     private func outlookSelectedMessageContext(
         pid: pid_t,
-        expectedNewOutlookSubject: String? = nil
+        expectedNewOutlookSubject: String? = nil,
+        selectionSenderHint: String? = nil,
+        selectionIdentityHint: String? = nil
     ) -> OutlookMessageContext? {
         let appElement =
             AXUIElementCreateApplication(pid)
@@ -2697,22 +2944,25 @@ final class MacCaptureCoordinator {
                 return nil
             }
 
+            let hasNewSelectionHint =
+                selectionIdentityHint != nil &&
+                selectionIdentityHint !=
+                    lastOutlookSelectionHint
+
             if let expectedNewOutlookSubject {
-                let expected =
-                    normalizedOutlookIdentity(
-                        expectedNewOutlookSubject
-                    )
-                let actual =
-                    normalizedOutlookIdentity(
+                let subjectsMatch =
+                    outlookSubjectsLikelySame(
+                        expectedNewOutlookSubject,
                         readingPaneMessage.subject
                     )
 
-                if expected != actual,
+                if !subjectsMatch,
                    let previousMessageKey =
                     lastOutlookMessageKey,
                    outlookMessageKey(
                         readingPaneMessage
-                   ) == previousMessageKey {
+                   ) == previousMessageKey,
+                   !hasNewSelectionHint {
                     return nil
                 }
             }
@@ -2735,17 +2985,31 @@ final class MacCaptureCoordinator {
             let matchingRow =
                 selectedRowMessage.flatMap {
                     message in
-                    normalizedOutlookIdentity(
-                        message.subject
-                    ) == subjectKey
+                    outlookSubjectsLikelySame(
+                        message.subject,
+                        readingPaneMessage.subject
+                    )
                     ? message
                     : nil
                 }
 
+            let hintMatchesSubject =
+                expectedNewOutlookSubject.map {
+                    outlookSubjectsLikelySame(
+                        $0,
+                        readingPaneMessage.subject
+                    )
+                } ?? false
+
             let sender =
                 readingPaneMessage.sender ??
                 matchingObject?.sender ??
-                matchingRow?.sender
+                matchingRow?.sender ??
+                (
+                    hintMatchesSubject
+                    ? selectionSenderHint
+                    : nil
+                )
 
             guard let sender,
                   !sender.isEmpty
@@ -2758,10 +3022,12 @@ final class MacCaptureCoordinator {
                     readingPaneMessage.subject,
                 sender: sender,
                 identity:
-                    matchingObject?.identity ??
-                    matchingRow?.identity ??
-                    readingPaneMessage.identity ??
-                    selectedRowIdentity,
+                    mergedOutlookIdentity([
+                        matchingObject?.identity,
+                        matchingRow?.identity,
+                        readingPaneMessage.identity,
+                        selectedRowIdentity
+                    ]),
                 isNewOutlookReadingPane: true
             )
         }
@@ -2779,7 +3045,16 @@ final class MacCaptureCoordinator {
                !isOutlookHeaderMetadataText(
                     selectedObjectMessage.subject
                ) {
-                return selectedObjectMessage
+                return OutlookMessageContext(
+                    subject:
+                        selectedObjectMessage.subject,
+                    sender: sender,
+                    identity:
+                        mergedOutlookIdentity([
+                            selectedObjectMessage.identity,
+                            selectedRowIdentity
+                        ])
+                )
             }
 
             if let selectedRowMessage,
@@ -2789,7 +3064,32 @@ final class MacCaptureCoordinator {
                !isOutlookHeaderMetadataText(
                     selectedRowMessage.subject
                ) {
-                return selectedRowMessage
+                return OutlookMessageContext(
+                    subject:
+                        selectedRowMessage.subject,
+                    sender: sender,
+                    identity:
+                        mergedOutlookIdentity([
+                            selectedRowMessage.identity,
+                            selectedRowIdentity
+                        ])
+                )
+            }
+
+            if let expectedNewOutlookSubject,
+               let selectionSenderHint,
+               !selectionSenderHint.isEmpty,
+               !isOutlookHeaderMetadataText(
+                    expectedNewOutlookSubject
+               ) {
+                return OutlookMessageContext(
+                    subject:
+                        expectedNewOutlookSubject,
+                    sender:
+                        selectionSenderHint,
+                    identity: nil,
+                    isNewOutlookReadingPane: true
+                )
             }
 
             return nil
@@ -2808,15 +3108,35 @@ final class MacCaptureCoordinator {
                     subject: subject,
                     sender: sender,
                     identity:
-                        selectedObjectMessage?.identity ??
-                        selectedRowIdentity ??
-                        selectedRowMessage?.identity
+                        mergedOutlookIdentity([
+                            selectedObjectMessage?.identity,
+                            selectedRowIdentity,
+                            selectedRowMessage?.identity
+                        ])
                 )
             }
         }
 
-        return resolvedReadingPaneMessage()
+        if let readingPane =
+            resolvedReadingPaneMessage() {
+            return readingPane
+        }
+
+        if let expectedNewOutlookSubject,
+           let selectionSenderHint,
+           !selectionSenderHint.isEmpty {
+            return OutlookMessageContext(
+                subject:
+                    expectedNewOutlookSubject,
+                sender:
+                    selectionSenderHint,
+                identity: nil
+            )
+        }
+
+        return nil
     }
+
 
     private func outlookSelectedSubject(pid: pid_t) -> String? {
         if let subject = outlookSelectedSubjectFromAccessibility(pid: pid) {
