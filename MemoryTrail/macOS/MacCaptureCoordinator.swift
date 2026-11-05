@@ -159,7 +159,7 @@ final class MacCaptureCoordinator {
             lastWindowLoggedAt = .distantPast
 
             Task { @MainActor [weak self] in
-                try? await Task.sleep(nanoseconds: 350_000_000)
+                try? await Task.sleep(nanoseconds: 180_000_000)
                 self?.pollFocusedWindow(forceExpensiveApps: true)
             }
             return
@@ -216,12 +216,12 @@ final class MacCaptureCoordinator {
     private func startFocusedWindowCapture() {
         windowTimer?.invalidate()
 
-        let timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+        let timer = Timer.scheduledTimer(withTimeInterval: 1.25, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.pollFocusedWindow()
             }
         }
-        timer.tolerance = 0.60
+        timer.tolerance = 0.15
         windowTimer = timer
     }
 
@@ -245,7 +245,15 @@ final class MacCaptureCoordinator {
 
                 self.enableDetailedAccessibilityIfNeeded(for: app)
 
-                try? await Task.sleep(nanoseconds: 220_000_000)
+                if bundleID.lowercased() == "com.microsoft.outlook" {
+                    self.scheduleOutlookMessageCapture(
+                        application: app,
+                        bundleID: bundleID
+                    )
+                    return
+                }
+
+                try? await Task.sleep(nanoseconds: 160_000_000)
                 self.captureClickedContext(at: point)
             }
         }
@@ -275,19 +283,9 @@ final class MacCaptureCoordinator {
         )
 
         if lowerBundleID == "com.microsoft.outlook" {
-            guard result == .success,
-                  let hitElement,
-                  let row = nearestAccessibilityRow(from: hitElement),
-                  isOutlookMessageSelectionCandidate(row)
-            else {
-                // Only log Outlook activity when a message row was actually clicked.
-                return
-            }
-
-            // New Outlook updates the reading pane asynchronously. A direct read
-            // on mouse-up can still see the previously opened email, which pairs
-            // the click with the wrong subject/sender. Cancel any pending capture,
-            // let the pane settle, then sample it twice and prefer the newest value.
+            // Any Outlook click can change the selected/open message. Scheduling
+            // directly is faster and more reliable than waiting for AX hit-testing
+            // to classify the clicked message row.
             scheduleOutlookMessageCapture(
                 application: app,
                 bundleID: bundleID
@@ -439,24 +437,19 @@ final class MacCaptureCoordinator {
         outlookClickCaptureTask = Task { @MainActor [weak self] in
             guard let self else { return }
 
-            try? await Task.sleep(nanoseconds: 480_000_000)
+            // The previous implementation performed two complete Outlook AX-tree
+            // scans after long settle delays. On large mailboxes that could make
+            // the visible result lag by several seconds. One short settle period
+            // is enough for both Classic and New Outlook, while rapid clicks still
+            // cancel the older pending capture.
+            try? await Task.sleep(nanoseconds: 240_000_000)
+
             guard !Task.isCancelled,
-                  NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
+                  NSWorkspace.shared.frontmostApplication?.processIdentifier == pid,
+                  let message = self.outlookSelectedMessageContext(pid: pid)
             else {
                 return
             }
-
-            let first = self.outlookSelectedMessageContext(pid: pid)
-
-            try? await Task.sleep(nanoseconds: 260_000_000)
-            guard !Task.isCancelled,
-                  NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
-            else {
-                return
-            }
-
-            let second = self.outlookSelectedMessageContext(pid: pid)
-            guard let message = second ?? first else { return }
 
             self.lastExpensiveWindowPollAt = Date()
             self.logActivity(
@@ -507,10 +500,17 @@ final class MacCaptureCoordinator {
 
         if isExpensiveAccessibilityApp && !forceExpensiveApps {
             let now = Date()
-            // Conversation changes are short-lived and easy to miss, so chat
-            // clients are sampled on every 3-second focused-window timer tick.
-            // Outlook and OneNote keep the slower accessibility-tree throttle.
-            let minimumPollInterval: TimeInterval = isChatAccessibilityApp ? 3.0 : 9.0
+            let minimumPollInterval: TimeInterval
+            if lowerBundleID == "com.microsoft.outlook" {
+                // Outlook selections should feel nearly live even when a click
+                // event is missed by the global monitor.
+                minimumPollInterval = 1.25
+            } else if isChatAccessibilityApp {
+                minimumPollInterval = 3.0
+            } else {
+                minimumPollInterval = 9.0
+            }
+
             guard now.timeIntervalSince(lastExpensiveWindowPollAt) >= minimumPollInterval else {
                 return
             }
@@ -623,7 +623,10 @@ final class MacCaptureCoordinator {
 
         let now = Date()
         guard signature != lastWindowSignature else { return }
-        guard now.timeIntervalSince(lastWindowLoggedAt) >= 0.6 else { return }
+
+        let minimumLogInterval: TimeInterval =
+            bundleID.lowercased() == "com.microsoft.outlook" ? 0.15 : 0.6
+        guard now.timeIntervalSince(lastWindowLoggedAt) >= minimumLogInterval else { return }
 
         lastWindowSignature = signature
         lastWindowLoggedAt = now
@@ -1135,12 +1138,25 @@ final class MacCaptureCoordinator {
         var inspected = 0
         var elements: [ReadingPaneElement] = []
 
-        while index < queue.count, inspected < 1_500 {
+        let farLeftCutoff = windowFrame.minX + (windowFrame.width * 0.42)
+
+        while index < queue.count, inspected < 1_200 {
             let current = queue[index]
             index += 1
             inspected += 1
 
             let element = current.element
+            let frame = accessibilityFrame(of: element)
+
+            // The mailbox/folder navigation tree is never the open message
+            // header. Pruning deep nodes that live entirely in the far-left
+            // column avoids hundreds of unnecessary AX attribute reads.
+            if current.depth > 2,
+               let frame,
+               frame.maxX < farLeftCutoff {
+                continue
+            }
+
             let role = attributeString(
                 element,
                 kAXRoleAttribute as CFString
@@ -1153,17 +1169,17 @@ final class MacCaptureCoordinator {
             elements.append((
                 element,
                 current.depth,
-                accessibilityFrame(of: element),
+                frame,
                 role,
                 identifier
             ))
 
-            if current.depth < 14 {
+            if current.depth < 13 {
                 appendAccessibilityChildren(
                     of: element,
                     depth: current.depth,
                     to: &queue,
-                    limit: 120
+                    limit: 90
                 )
             }
         }

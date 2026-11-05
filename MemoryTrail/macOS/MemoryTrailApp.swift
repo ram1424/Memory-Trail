@@ -348,6 +348,15 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "Faster Outlook Capture",
+                    symbol: "bolt.fill",
+                    items: [
+                        "Outlook activity now refreshes directly from click events instead of waiting for message-row hit-testing.",
+                        "The Outlook capture path performs one settled accessibility scan instead of two full scans, dramatically reducing the delay before a selected email appears in Memory Trail.",
+                        "The Outlook fallback poll now runs roughly once per second, and duplicate suppression is shorter so rapid message changes appear promptly in both Classic and New Outlook."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "New Outlook Visible Header Capture",
                     symbol: "envelope.open.fill",
                     items: [

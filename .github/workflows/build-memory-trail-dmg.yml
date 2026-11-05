@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.2"
-  RELEASE_BUILD: "7"
+  RELEASE_BUILD: "8"
 
 jobs:
   build-dmg:
@@ -288,9 +288,9 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - New Outlook now reads the visible subject directly below the Summary by Copilot card, including when Outlook exposes it as generic accessibility text.
-          - Sender text immediately below the subject is captured by position and validated; subject capture no longer fails just because Outlook omits a sender accessibility identifier.
-          - Outlook window titles such as “Inbox • account” are rejected as email subjects.
+          - Outlook capture is now event-driven on clicks and performs one settled accessibility scan instead of two full scans.
+          - Outlook fallback polling now runs roughly once per second instead of waiting up to nine seconds.
+          - Reading-pane scanning prunes irrelevant navigation subtrees while preserving the Build 7 subject/sender capture logic for both Classic and New Outlook.
 
 
           Privacy:
