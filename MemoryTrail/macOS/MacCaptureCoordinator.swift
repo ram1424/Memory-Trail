@@ -3171,6 +3171,9 @@ final class MacCaptureCoordinator {
                !selectionSenderHint.isEmpty,
                !isOutlookHeaderMetadataText(
                     expectedNewOutlookSubject
+               ),
+               !isOutlookNavigationChrome(
+                    expectedNewOutlookSubject
                ) {
                 return OutlookMessageContext(
                     subject:
