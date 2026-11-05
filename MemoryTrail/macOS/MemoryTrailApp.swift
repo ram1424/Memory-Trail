@@ -348,6 +348,16 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "New Outlook Message Header Lock",
+                    symbol: "rectangle.bottomhalf.inset.filled",
+                    items: [
+                        "New Outlook now excludes command-bar controls and their child accessibility text, preventing Delete, Archive, Move, Flag, and similar actions from being mistaken for message data.",
+                        "When Summary by Copilot is visible, Memory Trail treats the area below that card as the start of the actual email header and ignores everything above it.",
+                        "Sender matching is now directional: the sender must be positioned with or below the selected subject, so toolbar actions above the message cannot appear in the From field.",
+                        "Classic Outlook remains on the restored pre-New-Outlook capture path and is unchanged in this build."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "Classic Outlook Restored, New Outlook Isolated",
                     symbol: "arrow.trianglehead.2.clockwise.rotate.90",
                     items: [

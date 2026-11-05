@@ -1188,6 +1188,52 @@ final class MacCaptureCoordinator {
         )
     }
 
+    private func isOutlookCommandBarDescendant(
+        _ element: AXUIElement
+    ) -> Bool {
+        var current: AXUIElement? = element
+        var depth = 0
+
+        while let candidate = current,
+              depth < 6 {
+            let role = attributeString(
+                candidate,
+                kAXRoleAttribute as CFString
+            )?.lowercased() ?? ""
+            let identifier = attributeString(
+                candidate,
+                kAXIdentifierAttribute as CFString
+            )?.lowercased() ?? ""
+
+            let controlRole =
+                role.contains("button") ||
+                role.contains("toolbar") ||
+                role.contains("menuitem") ||
+                role == "axmenu" ||
+                role.contains("popup") ||
+                role.contains("combobox") ||
+                role.contains("segmented") ||
+                role.contains("tab")
+
+            let commandIdentifier =
+                identifier.contains("commandbar") ||
+                identifier.contains("command-bar") ||
+                identifier.contains("toolbar") ||
+                identifier.contains("ribbon") ||
+                identifier.contains("actionbar") ||
+                identifier.contains("action-bar")
+
+            if controlRole || commandIdentifier {
+                return true
+            }
+
+            current = parentElement(of: candidate)
+            depth += 1
+        }
+
+        return false
+    }
+
     private func outlookReadingPaneMessage(in root: AXUIElement) -> OutlookMessageContext? {
         guard let windowFrame = accessibilityFrame(of: root),
               windowFrame.width > 0,
@@ -1287,6 +1333,50 @@ final class MacCaptureCoordinator {
 
         let headerBottom = paneFrame.minY + (paneFrame.height * 0.48)
 
+        // In New Outlook the command bar (Delete / Archive / Move / Flag)
+        // sits above the actual message header. When the Summary by Copilot
+        // card is present, use its bottom edge as an authoritative start for
+        // message-header content so command-bar labels can never outrank the
+        // real subject.
+        var copilotBottomY: CGFloat?
+
+        for item in elements {
+            guard let frame = item.frame,
+                  frame.midX >= paneFrame.minX,
+                  frame.midX <= paneFrame.maxX,
+                  frame.midY >= paneFrame.minY,
+                  frame.midY <= headerBottom
+            else {
+                continue
+            }
+
+            for attribute in [
+                kAXTitleAttribute as CFString,
+                kAXValueAttribute as CFString,
+                kAXDescriptionAttribute as CFString
+            ] {
+                guard let raw = attributeString(
+                    item.element,
+                    attribute
+                ) else {
+                    continue
+                }
+
+                let lower = raw.lowercased()
+                if lower.contains("summary by copilot") ||
+                    lower.contains("copilot summary") {
+                    copilotBottomY = max(
+                        copilotBottomY ?? frame.maxY,
+                        frame.maxY
+                    )
+                }
+            }
+        }
+
+        let messageHeaderTop =
+            copilotBottomY.map { $0 + 4 } ??
+            paneFrame.minY
+
         var subjectCandidates: [
             (
                 subject: String,
@@ -1317,9 +1407,12 @@ final class MacCaptureCoordinator {
             guard let frame = item.frame,
                   frame.midX >= paneFrame.minX,
                   frame.midX <= paneFrame.maxX,
-                  frame.midY >= paneFrame.minY,
+                  frame.midY >= messageHeaderTop,
                   frame.midY <= paneFrame.maxY,
-                  frame.midY <= headerBottom
+                  frame.midY <= headerBottom,
+                  !isOutlookCommandBarDescendant(
+                    item.element
+                  )
             else {
                 continue
             }
@@ -1441,24 +1534,61 @@ final class MacCaptureCoordinator {
             return nil
         }
 
+        let newOutlookCommandLabels = Set([
+            "delete",
+            "archive",
+            "move",
+            "move to",
+            "flag",
+            "mark read",
+            "mark unread",
+            "new mail",
+            "junk",
+            "report",
+            "categorize",
+            "snooze",
+            "pin",
+            "print"
+        ])
+
+        guard !newOutlookCommandLabels.contains(
+            normalizedOutlookIdentity(
+                bestSubject.subject
+            )
+        ) else {
+            return nil
+        }
+
         let subjectKey =
             normalizedOutlookIdentity(bestSubject.subject)
 
         let bestSender = senderCandidates
             .compactMap { sender -> (sender: String, score: Int)? in
-                guard normalizedOutlookIdentity(
-                    sender.sender
-                ) != subjectKey
+                let senderKey =
+                    normalizedOutlookIdentity(
+                        sender.sender
+                    )
+
+                guard senderKey != subjectKey,
+                      !newOutlookCommandLabels.contains(
+                        senderKey
+                      )
                 else {
                     return nil
                 }
 
-                let verticalDistance = abs(
-                    sender.frame.midY - bestSubject.frame.midY
-                )
-                guard verticalDistance <= 210 else {
+                let verticalOffset =
+                    sender.frame.midY -
+                    bestSubject.frame.midY
+
+                guard verticalOffset >= -12,
+                      verticalOffset <= 210
+                else {
                     return nil
                 }
+
+                let verticalDistance =
+                    abs(verticalOffset)
 
                 let horizontalDistance = abs(
                     sender.frame.midX - bestSubject.frame.midX
@@ -1487,14 +1617,17 @@ final class MacCaptureCoordinator {
         let bestTimestamp = timestampCandidates
             .compactMap {
                 candidate -> (value: String, score: Int)? in
-                let distance = abs(
+                let offset =
                     candidate.frame.midY -
                     bestSubject.frame.midY
-                )
 
-                guard distance <= 260 else {
+                guard offset >= -20,
+                      offset <= 260
+                else {
                     return nil
                 }
+
+                let distance = abs(offset)
 
                 return (
                     candidate.value,

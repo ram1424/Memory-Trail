@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.2"
-  RELEASE_BUILD: "11"
+  RELEASE_BUILD: "12"
 
 jobs:
   build-dmg:
@@ -288,10 +288,10 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Classic Outlook is restored to the proven pre-New-Outlook clicked-row subject/sender flow and no longer runs the generic reading-pane scanner first.
-          - New Outlook is isolated behind its own right-pane parser and must match the visible reading-pane subject to the clicked row before activity is logged.
-          - Outlook accessibility chrome such as “Title bar”, “search”, search fields, and toolbar labels is permanently rejected as email subject data.
-          - Classic and New Outlook now use separate primary extraction paths so changes for one interface cannot regress the other.
+          - New Outlook now excludes command-bar controls and their accessibility descendants so actions such as Move, Flag, Delete, and Archive cannot be captured as message data.
+          - When Summary by Copilot is visible, only the message-header region below that card is eligible for subject and sender capture.
+          - New Outlook sender matching is directional and cannot pair toolbar text above the subject with the From field.
+          - Classic Outlook remains on the restored pre-New-Outlook capture path and is unchanged in this build.
 
 
           Privacy:
