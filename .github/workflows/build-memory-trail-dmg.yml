@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.3"
-  RELEASE_BUILD: "10"
+  RELEASE_BUILD: "11"
 
 jobs:
   build-dmg:
@@ -288,15 +288,14 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Fixed a New Outlook layout-specific capture bug that appeared when Column Layout/right-side reading pane was not being used.
-          - Selected message identity now comes from Outlook's actual selected row first, so capture no longer assumes the message list is physically on the left side of the window.
-          - Removed the horizontal left-side cutoff from the clicked-row fallback; this supports message lists that span the full width above a bottom reading pane.
-          - Increased selected-row Accessibility scanning for the larger hierarchy exposed by New Outlook's non-column layouts.
-          - When a semantic reading pane is available, its real frame is used whether it is on the right, below the message list, full-screen, or in another supported position.
-          - When Outlook exposes only a structural Message header, Memory Trail anchors the capture region to that header's actual X/Y position instead of the top of the window.
-          - The final fallback is now layout-neutral rather than hard-coded to the right 55% of Outlook.
-          - Subject/From candidates near the structural message header receive priority, preventing message-list rows from outranking the opened email.
-          - Existing Memory Trail 1.3 Outlook state/identity fixes, calendar invites, timeline sender, Ask Memory Trail, Insights, storage/history/export, Settings, and privacy-first refinements remain included.
+          - Fixed a Build 10 regression where New Outlook's layout-neutral fallback could scan the entire Outlook window and incorrectly capture navigation/account chrome such as All Accounts as the email subject.
+          - New Outlook now requires a proven reading/message pane or structural Message Header before using reading-pane subject/sender candidates.
+          - If Outlook does not expose a trustworthy message pane/header, Memory Trail falls back to the selected Outlook message object or selected row rather than inventing a Subject/From pair from unrelated UI regions.
+          - All Accounts, All Mailboxes, All Folders, and account-list labels are explicitly classified as Outlook navigation chrome and cannot become subjects.
+          - The click-hint fallback now applies the same navigation-chrome validation, closing a secondary path that could reintroduce All Accounts.
+          - Presence Unknown / Unknown Presence is stripped from Outlook sender values instead of appearing after From.
+          - Build 10 non-column/right/bottom reading-pane support remains intact when Outlook exposes a real semantic pane or structural Message Header.
+          - Existing Memory Trail 1.3 Outlook selection-state, calendar invite, timeline sender, Ask Memory Trail, Insights, storage/history/export, Settings, and privacy-first refinements remain included.
 
 
           Privacy:

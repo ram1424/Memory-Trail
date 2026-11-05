@@ -1,8 +1,18 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 10) - November 5, 2026
+## 1.3 (Build 11) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### New Outlook Fail-Closed Header Fix
+
+- Fixed a Build 10 regression where the last-resort non-column fallback scanned the entire Outlook window. That allowed navigation/account chrome such as `All Accounts` to be paired with a real sender and logged as if it were an email subject.
+- Reading-pane parsing now requires either an explicit semantic reading/message pane or a structural Message Header container.
+- If neither is exposed, Memory Trail falls back to the selected Outlook message object/row instead of scanning unrelated Outlook UI.
+- Added `All Accounts`, `All Mailboxes`, `All Folders`, and account-list labels to the Outlook navigation-chrome filter.
+- Added the same navigation-chrome validation to the clicked-subject fallback so invalid labels cannot re-enter after reading-pane rejection.
+- `Presence Unknown` and `Unknown Presence` are now treated as Outlook presence metadata and removed from the captured From value.
+- The valid non-column/bottom-pane geometry improvements from Build 10 remain in place when Outlook exposes a trustworthy message pane/header.
 
 ### New Outlook Non-Column Layout Fix
 

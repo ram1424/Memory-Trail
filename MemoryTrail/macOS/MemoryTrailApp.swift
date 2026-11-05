@@ -372,6 +372,9 @@ struct MemoryTrailApp: App {
                         "New Outlook non-column/bottom reading-pane layouts are now handled explicitly instead of assuming the message list is on the left and the reading pane is on the right.",
                         "Selected-row identity is read from Outlook's actual selected row across both column and non-column layouts.",
                         "When Outlook exposes only a structural Message header, the capture region is anchored to that header's real vertical position, supporting reading panes below the message list.",
+                        "If New Outlook does not expose a proven reading/message pane or Message Header container, Memory Trail now fails closed and falls back to the selected message object/row instead of scanning the entire Outlook window.",
+                        "Outlook navigation/account chrome such as All Accounts can no longer become an email subject through reading-pane or click-hint fallback paths.",
+                        "Presence Unknown and Unknown Presence are stripped from captured sender information.",
                         "Sender presence states such as Available, Busy, Away, and Offline are removed from captured sender information."
                     ]
                 ),
