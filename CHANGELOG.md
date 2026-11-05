@@ -1,8 +1,15 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 4) - November 5, 2026
+## 1.3 (Build 5) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### Ask Memory Trail Navigation & Supporting Activity
+
+- Removed the arbitrary Supporting Activity count limits from general searches, Outlook email searches, and before/after activity searches.
+- Supporting Activity can now contain the full set of locally stored activity matching the interpreted query and its date/app/content filters.
+- Added a floating **Back to Top** control to Ask Memory Trail so long result sets can be navigated without manually scrolling back to the query area.
+- Added a clearly visible **Close** button directly in the expanded activity header. The existing toolbar close control remains available.
 
 ### New Outlook Subject Reliability Fix
 

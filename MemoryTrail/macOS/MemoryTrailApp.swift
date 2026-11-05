@@ -377,8 +377,10 @@ struct MemoryTrailApp: App {
                     symbol: "sparkles.rectangle.stack.fill",
                     items: [
                         "Insights uses a more consistent dashboard layout with useful context such as Top Apps, Key Takeaways, and recent files.",
-                        "Ask Memory Trail can return complete day-level conversation results instead of stopping at a small fixed set.",
-                        "Supporting Activity is clearer, full-width, and shows the number of matching items.",
+                        "Ask Memory Trail no longer imposes arbitrary result-count limits on Supporting Activity; all activity matching the interpreted query can be returned.",
+                        "A floating Back to Top control makes long Supporting Activity result sets easier to navigate.",
+                        "Expanded activity details now include a clearly visible Close button directly in the activity header.",
+                        "Supporting Activity remains full-width and shows the complete number of matching items.",
                         "Favorites, Clipboard History, Settings, and Ask Memory Trail share a more consistent visual structure."
                     ]
                 ),

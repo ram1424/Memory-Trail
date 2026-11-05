@@ -130,30 +130,17 @@ enum SearchService {
             }
             .map { $0.0 }
 
-        let returnsCompleteConversationHistory: Bool
-        if case .conversations? = contentIntent {
-            returnsCompleteConversationHistory = queryTokens.isEmpty
-        } else {
-            returnsCompleteConversationHistory = false
-        }
-
-        let ranked: [MemoryItem]
-        if returnsCompleteConversationHistory {
-            ranked = rankedCandidates
-        } else {
-            ranked = Array(rankedCandidates.prefix(12))
-        }
-
+        // Supporting Activity should represent the complete matching local
+        // history for the interpreted query. Do not truncate the results to an
+        // arbitrary count; the query's date, app, content, and relevance filters
+        // are the boundary.
         let results: [MemoryItem]
-        if ranked.isEmpty && queryTokens.isEmpty {
-            let sortedCandidates = candidates.sorted { $0.createdAt > $1.createdAt }
-            if returnsCompleteConversationHistory {
-                results = sortedCandidates
-            } else {
-                results = Array(sortedCandidates.prefix(12))
+        if rankedCandidates.isEmpty && queryTokens.isEmpty {
+            results = candidates.sorted {
+                $0.createdAt > $1.createdAt
             }
         } else {
-            results = ranked
+            results = rankedCandidates
         }
 
         return MemoryTrailAnswer(
@@ -319,7 +306,7 @@ enum SearchService {
 
         let strict = ranked.filter { $0.strictMatch }
         let selected = strict.isEmpty ? ranked : strict
-        let results = Array(selected.prefix(12).map { $0.item })
+        let results = selected.map { $0.item }
 
         return MemoryTrailAnswer(
             summary: outlookAnswerSummary(query: query, items: results),
@@ -727,14 +714,16 @@ enum SearchService {
 
         if before {
             let lowerBound = target.createdAt.addingTimeInterval(-60 * 60)
-            window = Array(ordered.filter {
-                $0.createdAt < target.createdAt && $0.createdAt >= lowerBound
-            }.suffix(12))
+            window = ordered.filter {
+                $0.createdAt < target.createdAt &&
+                    $0.createdAt >= lowerBound
+            }
         } else {
             let upperBound = target.createdAt.addingTimeInterval(60 * 60)
-            window = Array(ordered.filter {
-                $0.createdAt > target.createdAt && $0.createdAt <= upperBound
-            }.prefix(12))
+            window = ordered.filter {
+                $0.createdAt > target.createdAt &&
+                    $0.createdAt <= upperBound
+            }
         }
 
         var result = before ? Array(window.reversed()) : window
@@ -749,7 +738,6 @@ enum SearchService {
             }
         }
 
-        result = Array(result.prefix(8))
         let relationship = before ? "before" : "after"
         let summary: String
 

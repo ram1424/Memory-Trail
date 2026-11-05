@@ -22,26 +22,78 @@ struct SearchView: View {
     ]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
-                askBox
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    header
+                        .id("ask-memory-trail-top")
 
-                if let answer {
-                    VStack(spacing: 16) {
-                        answerCard(answer)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    askBox
 
-                        if !answer.items.isEmpty {
-                            activityResults(answer.items)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                    if let answer {
+                        VStack(spacing: 16) {
+                            answerCard(answer)
+                                .frame(
+                                    maxWidth: .infinity,
+                                    alignment: .leading
+                                )
+
+                            if !answer.items.isEmpty {
+                                activityResults(answer.items)
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        alignment: .leading
+                                    )
+                            }
                         }
+                    } else {
+                        quickStartDashboard
                     }
-                } else {
-                    quickStartDashboard
+                }
+                .padding(24)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if answer != nil {
+                    Button {
+                        withAnimation(
+                            .easeInOut(duration: 0.22)
+                        ) {
+                            proxy.scrollTo(
+                                "ask-memory-trail-top",
+                                anchor: .top
+                            )
+                        }
+                    } label: {
+                        Label(
+                            "Back to Top",
+                            systemImage: "arrow.up"
+                        )
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 14)
+                        .frame(height: 38)
+                        .background(
+                            .ultraThinMaterial,
+                            in: Capsule()
+                        )
+                        .overlay {
+                            Capsule()
+                                .stroke(
+                                    MemoryTrailPalette.border,
+                                    lineWidth: 1
+                                )
+                        }
+                        .shadow(
+                            color: .black.opacity(0.10),
+                            radius: 10,
+                            y: 4
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .help("Back to top")
+                    .padding(.trailing, 28)
+                    .padding(.bottom, 24)
                 }
             }
-            .padding(24)
         }
         .background(
             LinearGradient(

@@ -67,17 +67,67 @@ struct MemoryDetailView: View {
 
             Spacer()
 
-            Button {
-                item.isFavorite.toggle()
-            } label: {
-                Image(systemName: item.isFavorite ? "star.fill" : "star")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(item.isFavorite ? .yellow : .secondary)
+            HStack(spacing: 8) {
+                Button {
+                    item.isFavorite.toggle()
+                } label: {
+                    Image(
+                        systemName:
+                            item.isFavorite
+                            ? "star.fill"
+                            : "star"
+                    )
+                    .font(
+                        .system(
+                            size: 18,
+                            weight: .semibold
+                        )
+                    )
+                    .foregroundStyle(
+                        item.isFavorite
+                        ? .yellow
+                        : .secondary
+                    )
                     .frame(width: 38, height: 38)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 11))
+                    .background(
+                        .thinMaterial,
+                        in: RoundedRectangle(
+                            cornerRadius: 11
+                        )
+                    )
+                }
+                .buttonStyle(.plain)
+                .help(
+                    item.isFavorite
+                    ? "Remove from Favorites"
+                    : "Add to Favorites"
+                )
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(
+                            .system(
+                                size: 16,
+                                weight: .semibold
+                            )
+                        )
+                        .foregroundStyle(.secondary)
+                        .frame(width: 38, height: 38)
+                        .background(
+                            .thinMaterial,
+                            in: RoundedRectangle(
+                                cornerRadius: 11
+                            )
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("Close activity details")
+                .accessibilityLabel(
+                    "Close activity details"
+                )
             }
-            .buttonStyle(.plain)
-            .help(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
         }
         .padding(20)
         .background(MemoryTrailPalette.elevated.opacity(0.96), in: RoundedRectangle(cornerRadius: 20))
