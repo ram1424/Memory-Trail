@@ -740,37 +740,10 @@ final class MacCaptureCoordinator {
         from hitElement: AXUIElement,
         pid: pid_t
     ) -> String? {
-        guard let row =
-            nearestAccessibilityRow(
-                from: hitElement
-            )
-        else {
-            return nil
-        }
-
-        let role = attributeString(
-            row,
-            kAXRoleAttribute as CFString
-        )?.lowercased() ?? ""
-
-        guard role.contains("row") ||
-                role.contains("cell") ||
-                role.contains("outline") ||
-                role.contains("list")
-        else {
-            return nil
-        }
-
-        guard isOutlookMessageSelectionCandidate(
-            row
-        ) else {
-            return nil
-        }
-
         let appElement =
             AXUIElementCreateApplication(pid)
-        var focusedWindowValue: CFTypeRef?
 
+        var focusedWindowValue: CFTypeRef?
         if AXUIElementCopyAttributeValue(
             appElement,
             kAXFocusedWindowAttribute as CFString,
@@ -778,50 +751,93 @@ final class MacCaptureCoordinator {
         ) == .success,
         let focusedWindowValue,
         CFGetTypeID(focusedWindowValue) ==
-            AXUIElementGetTypeID(),
-        let rowFrame = accessibilityFrame(of: row) {
+            AXUIElementGetTypeID() {
             let window = unsafeBitCast(
                 focusedWindowValue,
                 to: AXUIElement.self
             )
 
-            if let windowFrame =
-                accessibilityFrame(of: window) {
-                let messageListCutoff =
-                    windowFrame.minX +
-                    (windowFrame.width * 0.72)
-
-                guard rowFrame.midX <=
-                        messageListCutoff
-                else {
-                    return nil
+            for selected in
+                selectedAccessibilityRows(in: window) {
+                guard isOutlookMessageSelectionCandidate(
+                    selected
+                ) else {
+                    continue
                 }
 
-                let rowIdentity =
+                let selectedIdentity =
                     outlookSelectedRowIdentity(
-                        row
+                        selected
                     ) ?? ""
 
-                let frameIdentity = [
-                    Int(rowFrame.minX.rounded()),
-                    Int(rowFrame.minY.rounded()),
-                    Int(rowFrame.width.rounded()),
-                    Int(rowFrame.height.rounded())
-                ]
-                .map(String.init)
-                .joined(separator: ",")
+                let frameIdentity: String
+                if let frame =
+                    accessibilityFrame(of: selected) {
+                    frameIdentity = [
+                        Int(frame.minX.rounded()),
+                        Int(frame.minY.rounded()),
+                        Int(frame.width.rounded()),
+                        Int(frame.height.rounded())
+                    ]
+                    .map(String.init)
+                    .joined(separator: ",")
+                } else {
+                    frameIdentity = ""
+                }
 
-                return [
-                    "clicked-row",
-                    rowIdentity,
+                let identity = [
+                    "selected-row",
+                    selectedIdentity,
                     frameIdentity
                 ]
                 .filter { !$0.isEmpty }
                 .joined(separator: "|")
+
+                if !identity.isEmpty {
+                    return identity
+                }
             }
         }
 
-        return outlookSelectedRowIdentity(row)
+        // Fallback for Outlook builds that do not expose AXSelectedRows.
+        // Do not apply a left-side cutoff: in non-column layout the message
+        // list can span the full width above the reading pane.
+        guard let row =
+            nearestAccessibilityRow(
+                from: hitElement
+            ),
+              isOutlookMessageSelectionCandidate(row)
+        else {
+            return nil
+        }
+
+        let rowIdentity =
+            outlookSelectedRowIdentity(row) ?? ""
+
+        let frameIdentity: String
+        if let frame =
+            accessibilityFrame(of: row) {
+            frameIdentity = [
+                Int(frame.minX.rounded()),
+                Int(frame.minY.rounded()),
+                Int(frame.width.rounded()),
+                Int(frame.height.rounded())
+            ]
+            .map(String.init)
+            .joined(separator: ",")
+        } else {
+            frameIdentity = ""
+        }
+
+        let identity = [
+            "clicked-row",
+            rowIdentity,
+            frameIdentity
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: "|")
+
+        return identity.isEmpty ? nil : identity
     }
 
 
@@ -1602,34 +1618,69 @@ final class MacCaptureCoordinator {
         let paneFrame: CGRect
 
         if let semanticPaneFrame {
+            // Works for right, bottom, fill-screen, and pop-out layouts when
+            // Outlook exposes an explicit reading/message pane.
             paneFrame = semanticPaneFrame
         } else if let structuralHeaderFrame {
-            let expandedX = max(
-                windowFrame.minX,
-                structuralHeaderFrame.minX - 36
+            // In non-column layout the message header is commonly below the
+            // message list. Anchor the capture region to the actual header
+            // location instead of the top of the Outlook window.
+            let startsLowInWindow =
+                structuralHeaderFrame.minY >
+                windowFrame.minY +
+                    (windowFrame.height * 0.24)
+
+            let isWideHeader =
+                structuralHeaderFrame.width >=
+                    (windowFrame.width * 0.52)
+
+            let useFullWidth =
+                startsLowInWindow ||
+                isWideHeader
+
+            let expandedX =
+                useFullWidth
+                ? windowFrame.minX
+                : max(
+                    windowFrame.minX,
+                    structuralHeaderFrame.minX - 36
+                )
+
+            let expandedY = max(
+                windowFrame.minY,
+                structuralHeaderFrame.minY - 72
             )
+
             paneFrame = CGRect(
                 x: expandedX,
-                y: windowFrame.minY,
-                width: max(
-                    260,
-                    windowFrame.maxX - expandedX
-                ),
-                height: windowFrame.height
+                y: expandedY,
+                width:
+                    useFullWidth
+                    ? windowFrame.width
+                    : max(
+                        260,
+                        windowFrame.maxX - expandedX
+                    ),
+                height: max(
+                    180,
+                    windowFrame.maxY - expandedY
+                )
             )
         } else {
-            paneFrame = CGRect(
-                x: windowFrame.minX +
-                    (windowFrame.width * 0.45),
-                y: windowFrame.minY,
-                width: windowFrame.width * 0.55,
-                height: windowFrame.height
-            )
+            // Last-resort fallback must be layout-neutral. The subject/sender
+            // geometry and UI-noise filters below decide which header wins.
+            paneFrame = windowFrame
         }
 
         let headerBottom =
-            paneFrame.minY +
-            (paneFrame.height * 0.48)
+            min(
+                paneFrame.maxY,
+                paneFrame.minY +
+                    max(
+                        360,
+                        paneFrame.height * 0.62
+                    )
+            )
 
         // In New Outlook the command bar (Delete / Archive / Move / Flag)
         // sits above the actual message header. When the Summary by Copilot
@@ -1773,6 +1824,15 @@ final class MacCaptureCoordinator {
                         allowSenderLikeSubject: true
                    ) {
                     var score = baseScore + 1_000 - item.depth * 4
+                    if let structuralHeaderFrame,
+                       frame.intersects(
+                            structuralHeaderFrame.insetBy(
+                                dx: -80,
+                                dy: -120
+                            )
+                       ) {
+                        score += 260
+                    }
                     score += max(
                         0,
                         180 - Int(abs(frame.minY - paneFrame.minY) / 2)
@@ -1825,6 +1885,15 @@ final class MacCaptureCoordinator {
                         score += 820
                     } else {
                         score += 420
+                    }
+                    if let structuralHeaderFrame,
+                       frame.intersects(
+                            structuralHeaderFrame.insetBy(
+                                dx: -80,
+                                dy: -120
+                            )
+                       ) {
+                        score += 220
                     }
                     senderCandidates.append((sender, score, frame))
                 } else if frame.midY <= genericHeaderLimit,
@@ -1925,8 +1994,8 @@ final class MacCaptureCoordinator {
                     sender.frame.midY -
                     candidate.frame.midY
 
-                guard verticalOffset >= 6,
-                      verticalOffset <= 240
+                guard verticalOffset >= 4,
+                      verticalOffset <= 320
                 else {
                     return false
                 }
@@ -5860,7 +5929,7 @@ final class MacCaptureCoordinator {
         var inspected = 0
         var rows: [AXUIElement] = []
 
-        while index < queue.count, inspected < 500 {
+        while index < queue.count, inspected < 1_500 {
             let element = queue[index]
             index += 1
             inspected += 1
