@@ -499,6 +499,40 @@ final class MacCaptureCoordinator {
     }
 
 
+    private func outlookSubjectFromClickedElement(
+        _ element: AXUIElement
+    ) -> String? {
+        var current: AXUIElement? = element
+        var depth = 0
+
+        while let candidate = current,
+              depth < 12 {
+            let role = attributeString(
+                candidate,
+                kAXRoleAttribute as CFString
+            )?.lowercased() ?? ""
+
+            if role.contains("row") ||
+                role.contains("cell") ||
+                role.contains("outline") ||
+                role.contains("list") ||
+                role.contains("group") {
+                if let subject =
+                    outlookSubjectFromSelectedElement(
+                        candidate,
+                        requireStrongSignal: true
+                    ) {
+                    return subject
+                }
+            }
+
+            current = parentElement(of: candidate)
+            depth += 1
+        }
+
+        return nil
+    }
+
     private func outlookUsesNewOutlookLayout(
         pid: pid_t
     ) -> Bool {
