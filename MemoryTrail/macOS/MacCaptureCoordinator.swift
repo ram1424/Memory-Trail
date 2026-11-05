@@ -902,7 +902,18 @@ final class MacCaptureCoordinator {
     private struct OutlookMessageContext {
         let subject: String
         let sender: String?
-        let isNewOutlookReadingPane: Bool = false
+        let isNewOutlookReadingPane: Bool
+
+        init(
+            subject: String,
+            sender: String?,
+            isNewOutlookReadingPane: Bool = false
+        ) {
+            self.subject = subject
+            self.sender = sender
+            self.isNewOutlookReadingPane =
+                isNewOutlookReadingPane
+        }
     }
 
     private func outlookMessageKey(
