@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.3"
-  RELEASE_BUILD: "1"
+  RELEASE_BUILD: "2"
 
 jobs:
   build-dmg:
@@ -288,14 +288,13 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Outlook capture has been rebuilt for reliability across both Classic and New Outlook.
-          - Classic Outlook uses the proven clicked-message path for accurate subject and sender capture.
-          - New Outlook reads only the real message subject and From field from the right-side message header while ignoring toolbar actions, Copilot labels, search/title-bar text, Message header containers, recipient controls, and other UI chrome.
-          - Outlook sender presence states are removed, same-subject messages are handled more reliably, more sender formats are supported, and capture responds faster with stale-pane retry protection.
-          - Today and Timeline have a clearer activity-first layout, restored activity details, improved double-click behavior, Go to Today, and better Top Apps label handling.
-          - Insights, Ask Memory Trail, Favorites, Clipboard History, and Settings have more consistent layouts; Ask Memory Trail now returns fuller day-level conversation results with clearer Supporting Activity.
-          - Local history controls now include 30-day default retention, week/month/all-history cleanup, and improved JSON export details and confirmations.
-          - Settings, update confirmation, and version/build presentation have been refined.
+          - Outlook capture is more reliable across Classic and New Outlook.
+          - New Outlook validates the selected message on every click instead of requiring a specific Accessibility row shape, preventing valid emails from being silently ignored.
+          - New Outlook uses the actual right-side Subject and From header as authoritative data and no longer requires an exact match to potentially truncated message-list text.
+          - Outlook retries unresolved or stale message headers for longer while successful captures still return immediately.
+          - Selected-row identity is retained independently of subject parsing so separate same-subject/same-sender messages are not incorrectly de-duplicated.
+          - Classic Outlook remains on its proven clicked-message capture path with a validated fallback when a row is not exposed normally.
+          - Today/Timeline, Insights, Ask Memory Trail, storage/history/export, Settings, and privacy-first local processing refinements are included in the 1.3 release.
 
 
           Privacy:

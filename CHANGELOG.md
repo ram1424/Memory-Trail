@@ -1,8 +1,16 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 1) - November 5, 2026
+## 1.3 (Build 2) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### Outlook Capture Reliability Patch
+
+- New Outlook now performs a validated selected-message check on every click instead of requiring a specific Accessibility row shape before capture starts.
+- Removed the hard exact-match dependency between message-list text and the right-pane subject; truncated or differently formatted list subjects no longer cause valid emails to be dropped.
+- Extended conditional retry coverage for messages whose reading pane or sender metadata loads slowly.
+- Retains selected-row identity independently of subject parsing to distinguish separate messages that share the same subject and sender.
+- Classic Outlook keeps the proven clicked-message path and gains a validated fallback when the clicked row does not expose a usable subject.
 
 ### Outlook Capture
 

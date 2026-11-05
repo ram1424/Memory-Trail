@@ -345,18 +345,18 @@ struct MemoryTrailApp: App {
         MemoryTrailChangelog(
             version: displayVersion,
             headline: "Memory Trail 1.3",
-            summary: "Memory Trail \(appVersion) delivers reliable Outlook capture, a clearer activity timeline, stronger local history controls, and a more polished experience while keeping your data on your Mac.",
+            summary: "Memory Trail \(appVersion) improves Outlook reliability, timeline clarity, local history controls, and overall polish while keeping your data on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
                     title: "Outlook Capture, Rebuilt",
                     symbol: "envelope.open.fill",
                     items: [
-                        "Classic Outlook is back on its proven clicked-message capture path, preserving accurate subject and sender information.",
-                        "New Outlook now reads only the actual message subject and From field from the right-side message header.",
-                        "Toolbar actions, Copilot labels, search controls, title bars, Message header containers, recipient controls, body headings, and other Outlook UI chrome are ignored.",
-                        "Sender presence states such as Available, Busy, Away, and Offline are removed from captured sender information.",
-                        "Separate messages with the same subject are no longer silently collapsed, and a wider range of sender formats is supported.",
-                        "Outlook capture is faster and retries briefly when New Outlook is still refreshing the reading pane."
+                        "Classic Outlook keeps its proven clicked-message capture path for accurate subject and sender information.",
+                        "New Outlook reads only the actual Subject and From data from the right-side message header and ignores toolbar controls, Copilot labels, structural header names, search controls, and other Outlook UI chrome.",
+                        "Every New Outlook click now performs a validated selected-message check, preventing valid emails from being missed when Outlook exposes an unexpected row role or truncated list subject.",
+                        "Outlook retries unresolved or stale message headers for longer while still returning immediately when the selected message is ready.",
+                        "Selected-row identity is retained independently of subject parsing so separate messages with the same subject and sender are not mistaken for the previously logged message.",
+                        "Sender presence states such as Available, Busy, Away, and Offline are removed from captured sender information."
                     ]
                 ),
                 MemoryTrailChangeSection(
@@ -366,7 +366,7 @@ struct MemoryTrailApp: App {
                         "Today uses a clearer activity-first layout with summary metrics, filtering, and a more prominent timeline.",
                         "The right-side activity details panel is restored, with single-click selection and double-click reopening support.",
                         "Go to Today makes it easy to return to the current day after browsing earlier activity.",
-                        "Top Apps Today now handles longer application names more cleanly."
+                        "Top Apps Today handles longer application names more cleanly."
                     ]
                 ),
                 MemoryTrailChangeSection(
@@ -376,7 +376,7 @@ struct MemoryTrailApp: App {
                         "Insights uses a more consistent dashboard layout with useful context such as Top Apps, Key Takeaways, and recent files.",
                         "Ask Memory Trail can return complete day-level conversation results instead of stopping at a small fixed set.",
                         "Supporting Activity is clearer, full-width, and shows the number of matching items.",
-                        "Favorites, Clipboard History, Settings, and Ask Memory Trail now share a more consistent visual structure."
+                        "Favorites, Clipboard History, Settings, and Ask Memory Trail share a more consistent visual structure."
                     ]
                 ),
                 MemoryTrailChangeSection(
@@ -385,8 +385,8 @@ struct MemoryTrailApp: App {
                     items: [
                         "Local activity is stored in the clearly named MemoryTrail.store database inside Application Support.",
                         "History is retained locally for 30 days by default, with controls to clear the last week, last month, or all history.",
-                        "JSON export includes a cleaner completion experience with the exported filename, item count, file size, and Show in Finder.",
-                        "History and export confirmation screens have been simplified for a cleaner Settings experience."
+                        "JSON export includes a cleaner completion experience with filename, item count, file size, and Show in Finder.",
+                        "History and export confirmation screens have been simplified."
                     ]
                 ),
                 MemoryTrailChangeSection(
@@ -395,7 +395,7 @@ struct MemoryTrailApp: App {
                     items: [
                         "Settings is reorganized into a more compact continuous card layout with privacy, exclusions, and storage controls easier to reach.",
                         "The update experience has been refined while keeping the simple up-to-date confirmation flow.",
-                        "About Memory Trail now shows the version and build number in a clearer format."
+                        "About Memory Trail shows the version and build number in a clearer format."
                     ]
                 ),
                 MemoryTrailChangeSection(
@@ -412,6 +412,94 @@ struct MemoryTrailApp: App {
         )
     }
 
+    private func showAboutPanel() {
+        let credits = NSAttributedString(
+            string: "Created By: Roman Zakharov",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+
+        NSApplication.shared.orderFrontStandardAboutPanel(options: [
+            .applicationName: "Memory Trail",
+            .applicationIcon: Self.brandIcon,
+            .applicationVersion: "Version \(Self.appVersion) • Build \(Self.appBuild)",
+            .version: "",
+            .credits: credits
+        ])
+    }
+
+    private var startupView: some View {
+        MemoryTrailSimpleSplashView(
+            icon: Self.brandIcon,
+            progress: splashProgress
+        )
+    }
+
+    @MainActor
+    private func runStartupSequence() async {
+        let startupBeganAt = Date()
+        let minimumSplashDuration: TimeInterval = 1.5
+
+        splashProgress = 0.02
+        withAnimation(.linear(duration: 1.35)) {
+            splashProgress = 1.0
+        }
+
+        // Verify the local SwiftData store is ready before capture starts.
+        _ = try? container.mainContext.fetchCount(FetchDescriptor<MemoryItem>())
+
+        MacCaptureCoordinator.shared.start(context: container.mainContext)
+
+        // Warm the same local data path used by the Today view.
+        var warmupDescriptor = FetchDescriptor<MemoryItem>()
+        warmupDescriptor.fetchLimit = 32
+        _ = try? container.mainContext.fetch(warmupDescriptor)
+
+        await Task.yield()
+
+        // Keep the simple animated splash visible for its full 1.5-second run.
+        let elapsed = Date().timeIntervalSince(startupBeganAt)
+        let remaining = max(0, minimumSplashDuration - elapsed)
+        if remaining > 0 {
+            try? await Task.sleep(
+                nanoseconds: UInt64(remaining * 1_000_000_000)
+            )
+        }
+
+        splashProgress = 1.0
+        isLaunching = false
+    }
+
+    @MainActor
+    private func launchAndMonitorUpdates() async {
+        await runStartupSequence()
+        await maximizeWindowOnLaunch()
+
+        Self.pruneExpiredHistory(in: container.mainContext)
+
+        // Check for a newer release on every normal app launch.
+        await checkForUpdates(manual: false)
+
+        // Refresh the current macOS Accessibility trust state every launch.
+        refreshAccessibilityAndPromptIfNeeded()
+
+        if hasCompletedOnboarding,
+           updatePresentation == nil,
+           !showAccessibilityPrompt {
+            await presentWhatsNewIfNeeded()
+        }
+
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 6 * 60 * 60 * 1_000_000_000)
+            guard !Task.isCancelled else { return }
+            Self.pruneExpiredHistory(in: container.mainContext)
+            await performAutomaticUpdateCheckIfNeeded()
+        }
+    }
+
+    @MainActor
     private static func pruneExpiredHistory(in context: ModelContext) {
         guard let cutoff = Calendar.current.date(
             byAdding: .day,
