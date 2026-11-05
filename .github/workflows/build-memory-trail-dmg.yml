@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.2"
-  RELEASE_BUILD: "10"
+  RELEASE_BUILD: "11"
 
 jobs:
   build-dmg:
@@ -288,10 +288,10 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Outlook now de-duplicates by per-message identity plus sender instead of subject alone, preserving separate messages in the same thread.
-          - New Outlook accepts short/name-like subjects and supports a much wider range of sender formats including service accounts, distribution lists, email-only senders, and “via” senders.
-          - Every Outlook click performs a validated selection check, eliminating missed messages caused by AX row-role differences while still suppressing unchanged selections.
-          - Memory Trail writes an Outlook activity only after both subject and sender resolve; empty subjects are preserved as “(No Subject)”.
+          - Classic Outlook is restored to the proven pre-New-Outlook clicked-row subject/sender flow and no longer runs the generic reading-pane scanner first.
+          - New Outlook is isolated behind its own right-pane parser and must match the visible reading-pane subject to the clicked row before activity is logged.
+          - Outlook accessibility chrome such as “Title bar”, “search”, search fields, and toolbar labels is permanently rejected as email subject data.
+          - Classic and New Outlook now use separate primary extraction paths so changes for one interface cannot regress the other.
 
 
           Privacy:

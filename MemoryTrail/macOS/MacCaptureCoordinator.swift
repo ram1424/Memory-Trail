@@ -248,10 +248,10 @@ final class MacCaptureCoordinator {
                 self.enableDetailedAccessibilityIfNeeded(for: app)
 
                 if bundleID.lowercased() == "com.microsoft.outlook" {
-                    self.scheduleOutlookMessageCapture(
-                        application: app,
-                        bundleID: bundleID
+                    try? await Task.sleep(
+                        nanoseconds: 90_000_000
                     )
+                    self.captureClickedContext(at: point)
                     return
                 }
 
@@ -285,15 +285,85 @@ final class MacCaptureCoordinator {
         )
 
         if lowerBundleID == "com.microsoft.outlook" {
-            if outlookClickTargetsMessageSelection(
-                at: point,
+            let clickedSubject: String?
+            let clickedSender: String?
+            let clickedIdentity: String?
+
+            if result == .success,
+               let hitElement {
+                clickedSubject =
+                    outlookSubjectFromClickedElement(
+                        hitElement
+                    )
+                clickedSender =
+                    outlookSenderFromElement(hitElement) ??
+                    outlookSelectedSender(
+                        pid: app.processIdentifier
+                    )
+
+                if let row =
+                    nearestAccessibilityRow(
+                        from: hitElement
+                    ) {
+                    clickedIdentity =
+                        outlookSelectedRowIdentity(row)
+                } else {
+                    clickedIdentity = nil
+                }
+            } else {
+                clickedSubject = nil
+                clickedSender = nil
+                clickedIdentity = nil
+            }
+
+            if outlookUsesNewOutlookLayout(
                 pid: app.processIdentifier
             ) {
+                let hasMessageRow =
+                    result == .success &&
+                    hitElement.flatMap {
+                        nearestAccessibilityRow(
+                            from: $0
+                        )
+                    }.map {
+                        isOutlookMessageSelectionCandidate(
+                            $0
+                        )
+                    } == true
+
+                guard clickedSubject != nil ||
+                        hasMessageRow
+                else {
+                    return
+                }
+
                 scheduleOutlookMessageCapture(
                     application: app,
-                    bundleID: bundleID
+                    bundleID: bundleID,
+                    expectedSubject: clickedSubject
+                )
+                return
+            }
+
+            // Restore the proven Classic Outlook flow from before the
+            // New Outlook work: capture only from the actual clicked
+            // message element, never from generic reading-pane chrome.
+            if let clickedSubject {
+                logActivity(
+                    title: clickedSubject,
+                    sourceURL: nil,
+                    applicationName:
+                        app.localizedName ??
+                        "Microsoft Outlook",
+                    bundleID: bundleID,
+                    baseDetail: clickedSender.map {
+                        "From: \($0)"
+                    },
+                    activityIdentity:
+                        clickedIdentity
                 )
             }
+
             return
         }
 
@@ -429,6 +499,104 @@ final class MacCaptureCoordinator {
     }
 
 
+    private func outlookUsesNewOutlookLayout(
+        pid: pid_t
+    ) -> Bool {
+        let appElement =
+            AXUIElementCreateApplication(pid)
+
+        var focusedWindowValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        ) == .success,
+        let focusedWindowValue,
+        CFGetTypeID(focusedWindowValue) ==
+            AXUIElementGetTypeID()
+        else {
+            return false
+        }
+
+        let window = unsafeBitCast(
+            focusedWindowValue,
+            to: AXUIElement.self
+        )
+
+        var queue: [AXUIElement] = [window]
+        var index = 0
+        var inspected = 0
+        var sawReadingPaneIdentifier = false
+        var sawNewInboxSelectionState = false
+
+        while index < queue.count,
+              inspected < 420 {
+            let element = queue[index]
+            index += 1
+            inspected += 1
+
+            let identifier =
+                attributeString(
+                    element,
+                    kAXIdentifierAttribute as CFString
+                )?.lowercased() ?? ""
+
+            if identifier.contains("readingpane") ||
+                identifier.contains("reading-pane") ||
+                identifier.contains("messagepane") ||
+                identifier.contains("message-pane") {
+                sawReadingPaneIdentifier = true
+            }
+
+            for attribute in [
+                kAXTitleAttribute as CFString,
+                kAXValueAttribute as CFString,
+                kAXDescriptionAttribute as CFString
+            ] {
+                guard let raw =
+                    attributeString(
+                        element,
+                        attribute
+                    )
+                else {
+                    continue
+                }
+
+                let lower = raw.lowercased()
+
+                if lower.contains(
+                    "summary by copilot"
+                ) ||
+                    lower.contains(
+                        "copilot summary"
+                    ) {
+                    return true
+                }
+
+                if lower.contains(
+                    "focused inbox selected"
+                ) ||
+                    lower.contains(
+                        "other inbox unselected"
+                    ) ||
+                    lower.contains(
+                        "other inbox selected"
+                    ) {
+                    sawNewInboxSelectionState = true
+                }
+            }
+
+            appendChildren(
+                of: element,
+                to: &queue,
+                limit: 70
+            )
+        }
+
+        return sawReadingPaneIdentifier &&
+            sawNewInboxSelectionState
+    }
+
     private func outlookClickTargetsMessageSelection(
         at point: CGPoint,
         pid: pid_t
@@ -498,7 +666,8 @@ final class MacCaptureCoordinator {
 
     private func scheduleOutlookMessageCapture(
         application: NSRunningApplication,
-        bundleID: String
+        bundleID: String,
+        expectedSubject: String? = nil
     ) {
         outlookClickCaptureTask?.cancel()
 
@@ -513,15 +682,12 @@ final class MacCaptureCoordinator {
             @MainActor [weak self] in
             guard let self else { return }
 
-            // Most messages resolve on the first or second pass. Additional
-            // short retries cover New Outlook's asynchronous pane refresh and
-            // sender hydration without making successful captures feel slow.
             let retryDelays: [UInt64] = [
-                100_000_000,
-                120_000_000,
-                160_000_000,
-                220_000_000,
-                300_000_000
+                110_000_000,
+                140_000_000,
+                180_000_000,
+                240_000_000,
+                320_000_000
             ]
 
             for (attempt, delay) in
@@ -540,7 +706,9 @@ final class MacCaptureCoordinator {
 
                 guard let message =
                     self.outlookSelectedMessageContext(
-                        pid: pid
+                        pid: pid,
+                        expectedNewOutlookSubject:
+                            expectedSubject
                     )
                 else {
                     continue
@@ -551,12 +719,14 @@ final class MacCaptureCoordinator {
 
                 if let previousMessageKey,
                    messageKey == previousMessageKey,
-                   attempt < retryDelays.count - 1 {
+                   attempt <
+                    retryDelays.count - 1 {
                     continue
                 }
 
                 if let previousMessageKey,
-                   messageKey == previousMessageKey {
+                   messageKey ==
+                    previousMessageKey {
                     return
                 }
 
@@ -569,7 +739,9 @@ final class MacCaptureCoordinator {
                     applicationName: appName,
                     bundleID: bundleID,
                     baseDetail:
-                        "From: \(message.sender ?? "")",
+                        message.sender.map {
+                            "From: \($0)"
+                        },
                     activityIdentity:
                         message.identity
                 )
@@ -988,9 +1160,11 @@ final class MacCaptureCoordinator {
     }
 
     private func outlookSelectedMessageContext(
-        pid: pid_t
+        pid: pid_t,
+        expectedNewOutlookSubject: String? = nil
     ) -> OutlookMessageContext? {
-        let appElement = AXUIElementCreateApplication(pid)
+        let appElement =
+            AXUIElementCreateApplication(pid)
 
         var focusedWindowValue: CFTypeRef?
         guard AXUIElementCopyAttributeValue(
@@ -1010,23 +1184,46 @@ final class MacCaptureCoordinator {
             to: AXUIElement.self
         )
 
-        let selectedObjectMessage =
-            outlookSelectedMessageFromAppleScript()
+        if outlookUsesNewOutlookLayout(pid: pid) {
+            guard let readingPaneMessage =
+                outlookReadingPaneMessage(
+                    in: window
+                )
+            else {
+                return nil
+            }
 
-        let readingPaneMessage =
-            outlookReadingPaneMessage(in: window)
+            if let expectedNewOutlookSubject {
+                let expected =
+                    normalizedOutlookIdentity(
+                        expectedNewOutlookSubject
+                    )
+                let actual =
+                    normalizedOutlookIdentity(
+                        readingPaneMessage.subject
+                    )
 
-        let selectedRowMessage =
-            outlookSelectedRowMessage(in: window)
+                guard expected == actual else {
+                    // The reading pane is still showing the
+                    // previous email; let the scheduler retry.
+                    return nil
+                }
+            }
 
-        if let readingPaneMessage,
-           readingPaneMessage.isNewOutlookReadingPane {
-            let subjectKey = normalizedOutlookIdentity(
-                readingPaneMessage.subject
-            )
+            let selectedObjectMessage =
+                outlookSelectedMessageFromAppleScript()
+            let selectedRowMessage =
+                outlookSelectedRowMessage(
+                    in: window
+                )
+            let subjectKey =
+                normalizedOutlookIdentity(
+                    readingPaneMessage.subject
+                )
 
             let matchingObject =
-                selectedObjectMessage.flatMap { message in
+                selectedObjectMessage.flatMap {
+                    message in
                     normalizedOutlookIdentity(
                         message.subject
                     ) == subjectKey
@@ -1035,7 +1232,8 @@ final class MacCaptureCoordinator {
                 }
 
             let matchingRow =
-                selectedRowMessage.flatMap { message in
+                selectedRowMessage.flatMap {
+                    message in
                     normalizedOutlookIdentity(
                         message.subject
                     ) == subjectKey
@@ -1051,14 +1249,12 @@ final class MacCaptureCoordinator {
             guard let sender,
                   !sender.isEmpty
             else {
-                // Do not write a partial Outlook activity. The click scheduler
-                // and focused-window poll will retry while Outlook finishes
-                // exposing the sender header.
                 return nil
             }
 
             return OutlookMessageContext(
-                subject: readingPaneMessage.subject,
+                subject:
+                    readingPaneMessage.subject,
                 sender: sender,
                 identity:
                     matchingObject?.identity ??
@@ -1068,56 +1264,51 @@ final class MacCaptureCoordinator {
             )
         }
 
-        if let selectedObjectMessage {
-            let subjectKey = normalizedOutlookIdentity(
-                selectedObjectMessage.subject
+        // Classic Outlook: restore the pre-New-Outlook
+        // subject/sender flow. Do not inspect the generic
+        // reading pane at all.
+        guard let subject =
+            outlookSelectedSubject(
+                pid: pid
             )
-            let matchingRow =
-                selectedRowMessage.flatMap { message in
-                    normalizedOutlookIdentity(
-                        message.subject
-                    ) == subjectKey
-                    ? message
-                    : nil
-                }
-
-            if let sender =
-                selectedObjectMessage.sender ??
-                matchingRow?.sender {
-                return OutlookMessageContext(
-                    subject: selectedObjectMessage.subject,
-                    sender: sender,
-                    identity:
-                        selectedObjectMessage.identity ??
-                        matchingRow?.identity
-                )
-            }
+        else {
+            return nil
         }
 
-        if let readingPaneMessage,
-           let sender =
-            readingPaneMessage.sender {
-            return OutlookMessageContext(
-                subject: readingPaneMessage.subject,
-                sender: sender,
-                identity: readingPaneMessage.identity,
-                isNewOutlookReadingPane:
-                    readingPaneMessage
-                        .isNewOutlookReadingPane
-            )
+        let selectedObjectMessage =
+            outlookSelectedMessageFromAppleScript()
+        let sender =
+            outlookSelectedSender(pid: pid) ??
+            selectedObjectMessage?.sender
+
+        guard let sender,
+              !sender.isEmpty
+        else {
+            return nil
         }
 
-        if let selectedRowMessage,
-           let sender =
-            selectedRowMessage.sender {
-            return OutlookMessageContext(
-                subject: selectedRowMessage.subject,
-                sender: sender,
-                identity: selectedRowMessage.identity
-            )
+        var identity =
+            selectedObjectMessage?.identity
+
+        if identity == nil,
+           let selectedRow =
+            outlookSelectedRowMessage(
+                in: window
+            ),
+           normalizedOutlookIdentity(
+                selectedRow.subject
+           ) ==
+            normalizedOutlookIdentity(
+                subject
+            ) {
+            identity = selectedRow.identity
         }
 
-        return nil
+        return OutlookMessageContext(
+            subject: subject,
+            sender: sender,
+            identity: identity
+        )
     }
 
 
@@ -1395,8 +1586,11 @@ final class MacCaptureCoordinator {
         return sender
     }
 
-    private func outlookSelectedSubjectFromAccessibility(pid: pid_t) -> String? {
-        let appElement = AXUIElementCreateApplication(pid)
+    private func outlookSelectedSubjectFromAccessibility(
+        pid: pid_t
+    ) -> String? {
+        let appElement =
+            AXUIElementCreateApplication(pid)
 
         var focusedWindowValue: CFTypeRef?
         guard AXUIElementCopyAttributeValue(
@@ -1405,984 +1599,53 @@ final class MacCaptureCoordinator {
             &focusedWindowValue
         ) == .success,
         let focusedWindowValue,
-        CFGetTypeID(focusedWindowValue) == AXUIElementGetTypeID()
+        CFGetTypeID(focusedWindowValue) ==
+            AXUIElementGetTypeID()
         else {
             return nil
         }
 
-        let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
-
-        if let message = outlookReadingPaneMessage(in: window) {
-            return message.subject
-        }
-
-        if let subject = outlookSelectedMessageSubject(in: window) {
-            return subject
-        }
-
-        if let focused = focusedAccessibilityElement(in: appElement),
-           let row = nearestAccessibilityRow(from: focused),
-           let subject = outlookSubjectFromSelectedElement(row, requireStrongSignal: false) {
-            return subject
-        }
-
-        // When a message is opened in its own window, Outlook commonly exposes
-        // the message subject as the focused window title.
-        if let windowTitle = attributeString(window, kAXTitleAttribute as CFString),
-           let subject = sanitizedOutlookSubject(windowTitle) {
-            return subject
-        }
-
-        return nil
-    }
-
-    private func outlookSubjectFromClickedElement(_ element: AXUIElement) -> String? {
-        var current: AXUIElement? = element
-        var depth = 0
-
-        while let candidate = current, depth < 12 {
-            let role = attributeString(candidate, kAXRoleAttribute as CFString)?.lowercased() ?? ""
-
-            if role.contains("row") ||
-                role.contains("cell") ||
-                role.contains("outline") ||
-                role.contains("list") ||
-                role.contains("group") {
-                if let subject = outlookSubjectFromSelectedElement(candidate, requireStrongSignal: true) {
-                    return subject
-                }
-            }
-
-            current = parentElement(of: candidate)
-            depth += 1
-        }
-
-        return nil
-    }
-
-    private func outlookReadingPaneMessage(in root: AXUIElement) -> OutlookMessageContext? {
-        guard let windowFrame = accessibilityFrame(of: root),
-              windowFrame.width > 0,
-              windowFrame.height > 0
-        else {
-            return nil
-        }
-
-        typealias ReadingPaneElement = (
-            element: AXUIElement,
-            depth: Int,
-            frame: CGRect?,
-            role: String,
-            identifier: String
+        let window = unsafeBitCast(
+            focusedWindowValue,
+            to: AXUIElement.self
         )
 
-        var queue: [(element: AXUIElement, depth: Int)] = [(root, 0)]
-        var index = 0
-        var inspected = 0
-        var elements: [ReadingPaneElement] = []
-
-        let farLeftCutoff = windowFrame.minX + (windowFrame.width * 0.42)
-
-        while index < queue.count, inspected < 1_200 {
-            let current = queue[index]
-            index += 1
-            inspected += 1
-
-            let element = current.element
-            let frame = accessibilityFrame(of: element)
-
-            // The mailbox/folder navigation tree is never the open message
-            // header. Pruning deep nodes that live entirely in the far-left
-            // column avoids hundreds of unnecessary AX attribute reads.
-            if current.depth > 2,
-               let frame,
-               frame.maxX < farLeftCutoff {
-                continue
-            }
-
-            let role = attributeString(
-                element,
-                kAXRoleAttribute as CFString
-            )?.lowercased() ?? ""
-            let identifier = attributeString(
-                element,
-                kAXIdentifierAttribute as CFString
-            )?.lowercased() ?? ""
-
-            elements.append((
-                element,
-                current.depth,
-                frame,
-                role,
-                identifier
-            ))
-
-            if current.depth < 13 {
-                appendAccessibilityChildren(
-                    of: element,
-                    depth: current.depth,
-                    to: &queue,
-                    limit: 90
-                )
-            }
-        }
-
-        let semanticPaneFrames = elements.compactMap { item -> CGRect? in
-            guard let frame = item.frame else { return nil }
-
-            let semantic =
-                item.identifier.contains("readingpane") ||
-                item.identifier.contains("reading-pane") ||
-                item.identifier.contains("messagepane") ||
-                item.identifier.contains("message-pane") ||
-                item.identifier.contains("mail-reading")
-
-            guard semantic,
-                  frame.width >= 260,
-                  frame.height >= 220,
-                  frame.midX >= windowFrame.midX
-            else {
-                return nil
-            }
-
-            return frame
-        }
-
-        let paneFrame = semanticPaneFrames.max(by: {
-            ($0.width * $0.height) < ($1.width * $1.height)
-        }) ?? CGRect(
-            x: windowFrame.minX + (windowFrame.width * 0.45),
-            y: windowFrame.minY,
-            width: windowFrame.width * 0.55,
-            height: windowFrame.height
-        )
-
-        let headerBottom = paneFrame.minY + (paneFrame.height * 0.48)
-
-        var subjectCandidates: [
-            (
-                subject: String,
-                score: Int,
-                frame: CGRect
-            )
-        ] = []
-
-        var senderCandidates: [
-            (
-                sender: String,
-                score: Int,
-                frame: CGRect
-            )
-        ] = []
-
-        var timestampCandidates: [
-            (
-                value: String,
-                score: Int,
-                frame: CGRect
-            )
-        ] = []
-
-        var sawNewOutlookSignal = false
-
-        for item in elements {
-            guard let frame = item.frame,
-                  frame.midX >= paneFrame.minX,
-                  frame.midX <= paneFrame.maxX,
-                  frame.midY >= paneFrame.minY,
-                  frame.midY <= paneFrame.maxY,
-                  frame.midY <= headerBottom
-            else {
-                continue
-            }
-
-            let semanticSubject =
-                item.identifier.contains("subject") ||
-                item.identifier.contains("message-subject") ||
-                item.identifier.contains("message_subject") ||
-                item.identifier.contains("readingpane-subject") ||
-                item.identifier.contains("reading-pane-subject") ||
-                item.role.contains("heading")
-
-            let semanticSender =
-                item.identifier.contains("sender") ||
-                item.identifier.contains("message-from") ||
-                item.identifier.contains("message_from") ||
-                item.identifier == "from" ||
-                item.identifier.hasSuffix("-from")
-
-            for (attribute, baseScore) in [
-                (kAXTitleAttribute as CFString, 150),
-                (kAXValueAttribute as CFString, 135),
-                (kAXDescriptionAttribute as CFString, 120)
-            ] {
-                guard let raw = attributeString(item.element, attribute)
-                else {
-                    continue
-                }
-
-                let lowerRaw = raw.lowercased()
-                if lowerRaw.contains("summary by copilot") ||
-                    lowerRaw.contains("copilot summary") {
-                    sawNewOutlookSignal = true
-                }
-
-                guard !isOutlookMessageListComposite(raw),
-                      !isOutlookCopilotOrSummaryText(raw)
-                else {
-                    continue
-                }
-
-                if let timestamp =
-                    outlookReadingPaneTimestamp(from: raw) {
-                    timestampCandidates.append((
-                        timestamp,
-                        baseScore + 300 - item.depth * 3,
-                        frame
-                    ))
-                }
-
-                if semanticSubject,
-                   !isOutlookNavigationChrome(raw),
-                   !isOutlookSenderOnlyValue(raw),
-                   !isOutlookMessageGroupHeader(raw),
-                   let subject = sanitizedOutlookSubject(raw) {
-                    var score = baseScore + 1_000 - item.depth * 4
-                    score += max(
-                        0,
-                        180 - Int(abs(frame.minY - paneFrame.minY) / 2)
-                    )
-                    subjectCandidates.append((subject, score, frame))
-                }
-
-                if let metadataSubject = outlookSubjectFromMetadataText(raw),
-                   !isOutlookCopilotOrSummaryText(metadataSubject) {
-                    subjectCandidates.append((
-                        metadataSubject,
-                        baseScore + 760 - item.depth * 4,
-                        frame
-                    ))
-                }
-
-                // New Outlook frequently exposes the visible subject under the
-                // Copilot card as ordinary static text with no subject-specific
-                // identifier. Accept a plausible, top-of-pane header line while
-                // still rejecting sender/recipient/action/body text.
-                let genericHeaderLimit =
-                    paneFrame.minY + (paneFrame.height * 0.34)
-
-                if !semanticSubject,
-                   frame.midY <= genericHeaderLimit,
-                   frame.width >= 70,
-                   let subject = outlookReadingPaneVisibleSubject(from: raw) {
-                    var score = baseScore + 560 - item.depth * 4
-                    score += max(
-                        0,
-                        220 - Int(abs(frame.minY - paneFrame.minY) / 2)
-                    )
-                    subjectCandidates.append((subject, score, frame))
-                }
-
-                if let sender = outlookReadingPaneSender(
-                    from: raw,
-                    allowPlainValue: semanticSender
-                ) {
-                    var score = baseScore - item.depth * 4
-                    if semanticSender {
-                        score += 820
-                    } else {
-                        score += 420
-                    }
-                    senderCandidates.append((sender, score, frame))
-                } else if frame.midY <= genericHeaderLimit,
-                          let sender = outlookReadingPaneVisibleSender(from: raw) {
-                    // The sender line immediately below the subject is often
-                    // plain AXStaticText, e.g. "Choua Vang <choua...>".
-                    senderCandidates.append((
-                        sender,
-                        baseScore + 430 - item.depth * 4,
-                        frame
-                    ))
-                }
-            }
-        }
-
-        guard let bestSubject = subjectCandidates.max(by: {
-            $0.score < $1.score
-        }) else {
-            return nil
-        }
-
-        let subjectKey =
-            normalizedOutlookIdentity(bestSubject.subject)
-
-        let bestSender = senderCandidates
-            .compactMap { sender -> (sender: String, score: Int)? in
-                guard normalizedOutlookIdentity(
-                    sender.sender
-                ) != subjectKey
-                else {
-                    return nil
-                }
-
-                let verticalDistance = abs(
-                    sender.frame.midY - bestSubject.frame.midY
-                )
-                guard verticalDistance <= 210 else {
-                    return nil
-                }
-
-                let horizontalDistance = abs(
-                    sender.frame.midX - bestSubject.frame.midX
-                )
-                guard horizontalDistance <= max(
-                    500,
-                    paneFrame.width * 0.86
-                ) else {
-                    return nil
-                }
-
-                var score = sender.score
-                score += max(
-                    0,
-                    520 - Int(verticalDistance * 2)
-                )
-                score += max(
-                    0,
-                    160 - Int(horizontalDistance / 3)
-                )
-                return (sender.sender, score)
-            }
-            .max(by: { $0.score < $1.score })?
-            .sender
-
-        let bestTimestamp = timestampCandidates
-            .compactMap {
-                candidate -> (value: String, score: Int)? in
-                let distance = abs(
-                    candidate.frame.midY -
-                    bestSubject.frame.midY
-                )
-
-                guard distance <= 260 else {
-                    return nil
-                }
-
-                return (
-                    candidate.value,
-                    candidate.score +
-                        max(0, 260 - Int(distance))
-                )
-            }
-            .max(by: { $0.score < $1.score })?
-            .value
-
-        let identityParts = [
-            subjectKey,
-            normalizedOutlookIdentity(bestSender ?? ""),
-            bestTimestamp ?? ""
-        ]
-
-        let identity = identityParts[2].isEmpty
-            ? nil
-            : "reading-pane|" +
-                identityParts.joined(separator: "|")
-
-        return OutlookMessageContext(
-            subject: bestSubject.subject,
-            sender: bestSender,
-            identity: identity,
-            isNewOutlookReadingPane: sawNewOutlookSignal
-        )
-    }
-
-    private func appendAccessibilityChildren(
-        of element: AXUIElement,
-        depth: Int,
-        to queue: inout [(element: AXUIElement, depth: Int)],
-        limit: Int
-    ) {
-        var childrenValue: CFTypeRef?
-        if AXUIElementCopyAttributeValue(
-            element,
-            kAXChildrenAttribute as CFString,
-            &childrenValue
-        ) == .success,
-        let children = childrenValue as? [AXUIElement] {
-            for child in children.prefix(limit) {
-                queue.append((child, depth + 1))
-            }
-        }
-    }
-
-    private func accessibilityFrame(of element: AXUIElement) -> CGRect? {
-        var positionValue: CFTypeRef?
-        var sizeValue: CFTypeRef?
-
-        guard AXUIElementCopyAttributeValue(
-            element,
-            kAXPositionAttribute as CFString,
-            &positionValue
-        ) == .success,
-        AXUIElementCopyAttributeValue(
-            element,
-            kAXSizeAttribute as CFString,
-            &sizeValue
-        ) == .success,
-        let positionValue,
-        let sizeValue,
-        CFGetTypeID(positionValue) == AXValueGetTypeID(),
-        CFGetTypeID(sizeValue) == AXValueGetTypeID()
-        else {
-            return nil
-        }
-
-        let positionAXValue = unsafeBitCast(
-            positionValue,
-            to: AXValue.self
-        )
-        let sizeAXValue = unsafeBitCast(
-            sizeValue,
-            to: AXValue.self
-        )
-
-        var point = CGPoint.zero
-        var size = CGSize.zero
-
-        guard AXValueGetValue(
-            positionAXValue,
-            .cgPoint,
-            &point
-        ),
-        AXValueGetValue(
-            sizeAXValue,
-            .cgSize,
-            &size
-        ) else {
-            return nil
-        }
-
-        return CGRect(origin: point, size: size)
-    }
-
-    private func outlookReadingPaneTimestamp(
-        from rawValue: String
-    ) -> String? {
-        let value = rawValue
-            .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let lower = value.lowercased()
-
-        guard !value.isEmpty,
-              value.count <= 100,
-              !lower.hasPrefix("sent:"),
-              !lower.hasPrefix("to:"),
-              !lower.hasPrefix("cc:")
-        else {
-            return nil
-        }
-
-        let patterns = [
-            #"\b(today|yesterday)\s+at\s+\d{1,2}:\d{2}\s*(am|pm)\b"#,
-            #"\b\d{1,2}/\d{1,2}/\d{2,4}(?:\s+at)?\s+\d{1,2}:\d{2}\s*(am|pm)\b"#,
-            #"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}(?:\s+at)?\s+\d{1,2}:\d{2}\s*(am|pm)\b"#
-        ]
-
-        for pattern in patterns {
-            if let range = value.range(
-                of: pattern,
-                options: [.regularExpression, .caseInsensitive]
+        if let subject =
+            outlookSelectedMessageSubject(
+                in: window
             ) {
-                return normalizedOutlookIdentity(
-                    String(value[range])
-                )
-            }
+            return subject
+        }
+
+        if let focused =
+            focusedAccessibilityElement(
+                in: appElement
+            ),
+           let row =
+            nearestAccessibilityRow(
+                from: focused
+            ),
+           let subject =
+            outlookSubjectFromSelectedElement(
+                row,
+                requireStrongSignal: false
+            ) {
+            return subject
+        }
+
+        if let windowTitle =
+            attributeString(
+                window,
+                kAXTitleAttribute as CFString
+            ),
+           let subject =
+            sanitizedOutlookSubject(
+                windowTitle
+            ) {
+            return subject
         }
 
         return nil
-    }
-
-    private func outlookReadingPaneVisibleSubject(
-        from rawValue: String
-    ) -> String? {
-        let value = rawValue
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !value.isEmpty,
-              !isOutlookCopilotOrSummaryText(value),
-              !isExplicitOutlookSenderText(value)
-        else {
-            return nil
-        }
-
-        let lower = value.lowercased()
-        let rejectedExact = Set([
-            "summarize",
-            "reply",
-            "reply all",
-            "forward",
-            "more",
-            "more actions",
-            "mark read",
-            "mark unread",
-            "learn more",
-            "general",
-            "focused",
-            "other"
-        ])
-
-        if rejectedExact.contains(lower) ||
-            lower.hasPrefix("recipients:") ||
-            lower.contains("recipients: to:") ||
-            lower.hasPrefix("to:") ||
-            lower.hasPrefix("cc:") ||
-            lower.hasPrefix("bcc:") ||
-            lower.hasPrefix("from:") ||
-            lower.hasPrefix("sent:") ||
-            lower.contains("show details") ||
-            lower.hasPrefix("today at ") ||
-            lower.hasPrefix("yesterday at ") ||
-            lower.contains("sensitivity label") {
-            return nil
-        }
-
-        return sanitizedOutlookSubject(value)
-    }
-
-    private func isExplicitOutlookSenderText(
-        _ rawValue: String
-    ) -> Bool {
-        let value = rawValue
-            .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let lower = value.lowercased()
-
-        if lower.hasPrefix("from:") ||
-            lower.contains(" via ") {
-            return true
-        }
-
-        let emailPattern =
-            #"[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}"#
-        if value.range(
-            of: emailPattern,
-            options: [.regularExpression, .caseInsensitive]
-        ) != nil {
-            return true
-        }
-
-        return value.contains("<") &&
-            value.contains(">")
-    }
-
-    private func isLikelyOutlookSenderDisplay(
-        _ rawValue: String
-    ) -> Bool {
-        let value = rawValue
-            .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let lower = value.lowercased()
-
-        guard !value.isEmpty,
-              value.count <= 200,
-              !looksLikeURL(value),
-              !looksLikeTimestampOrDate(value),
-              !isOutlookNavigationChrome(value),
-              !isOutlookMessageGroupHeader(value)
-        else {
-            return false
-        }
-
-        if lower.hasPrefix("recipients:") ||
-            lower.hasPrefix("to:") ||
-            lower.hasPrefix("cc:") ||
-            lower.hasPrefix("bcc:") ||
-            lower.hasPrefix("sent:") ||
-            lower.hasPrefix("subject:") ||
-            lower.contains("show details") ||
-            lower.contains("message preview:") ||
-            lower.contains("sensitivity label") {
-            return false
-        }
-
-        if lower.hasPrefix("re:") ||
-            lower.hasPrefix("fw:") ||
-            lower.hasPrefix("fwd:") {
-            return false
-        }
-
-        if isExplicitOutlookSenderText(value) {
-            return true
-        }
-
-        let words = value.split(whereSeparator: {
-            $0.isWhitespace
-        })
-        guard (1...24).contains(words.count) else {
-            return false
-        }
-
-        // Display names and distribution lists frequently contain letters,
-        // digits, ampersands, apostrophes, dashes, dots, and parentheses.
-        // Sentence-like/body text is intentionally rejected.
-        if value.hasSuffix(".") ||
-            value.hasSuffix("!") ||
-            value.hasSuffix("?") {
-            return false
-        }
-
-        let allowed = CharacterSet
-            .letters
-            .union(.decimalDigits)
-            .union(.whitespaces)
-            .union(CharacterSet(
-                charactersIn: "@&'’.-_()+,/"
-            ))
-
-        return value.unicodeScalars.allSatisfy {
-            allowed.contains($0)
-        }
-    }
-
-    private func outlookReadingPaneVisibleSender(
-        from rawValue: String
-    ) -> String? {
-        let value = rawValue
-            .replacingOccurrences(of: "\r\n", with: " ")
-            .replacingOccurrences(of: "\r", with: " ")
-            .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard let sender = sanitizedOutlookSender(value),
-              isLikelyReadingPaneHeaderSender(sender, rawValue: value)
-        else {
-            return nil
-        }
-
-        let lower = value.lowercased()
-        if lower == "summarize" ||
-            lower == "reply" ||
-            lower == "reply all" ||
-            lower == "forward" ||
-            lower == "learn more" ||
-            lower == "general" ||
-            lower.hasPrefix("today at ") ||
-            lower.hasPrefix("yesterday at ") {
-            return nil
-        }
-
-        if isLikelyOutlookSenderDisplay(sender) {
-            return sender
-        }
-
-        return nil
-    }
-
-    private func outlookReadingPaneSender(
-        from rawValue: String,
-        allowPlainValue: Bool = false
-    ) -> String? {
-        let normalized = rawValue
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !normalized.isEmpty else { return nil }
-
-        for line in normalized.components(separatedBy: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            let lower = trimmed.lowercased()
-
-            if lower.hasPrefix("from:") {
-                let value = String(trimmed.dropFirst("from:".count))
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                if let sender = sanitizedOutlookSender(value) {
-                    return sender
-                }
-            }
-        }
-
-        guard allowPlainValue else { return nil }
-
-        let cleaned = normalized
-            .replacingOccurrences(
-                of: #"<[^>]+>"#,
-                with: "",
-                options: .regularExpression
-            )
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        return sanitizedOutlookSender(cleaned)
-    }
-
-    private func isLikelyReadingPaneHeaderSender(
-        _ sender: String,
-        rawValue: String
-    ) -> Bool {
-        let lower = rawValue.lowercased()
-
-        if lower.contains("message preview:") ||
-            lower.hasPrefix("recipients:") ||
-            lower.contains("recipients: to:") ||
-            lower.hasPrefix("to:") ||
-            lower.hasPrefix("cc:") ||
-            lower.hasPrefix("bcc:") ||
-            lower.hasPrefix("sent:") ||
-            lower.hasPrefix("subject:") ||
-            lower.contains("show details") ||
-            lower.contains("sensitivity label") {
-            return false
-        }
-
-        if looksLikeTimestampOrDate(sender) ||
-            isOutlookMessageGroupHeader(sender) ||
-            isOutlookNavigationChrome(sender) {
-            return false
-        }
-
-        let words = sender.split(whereSeparator: { $0.isWhitespace })
-        return (1...24).contains(words.count) &&
-            sender.count <= 200 &&
-            isLikelyOutlookSenderDisplay(sender)
-    }
-
-    private func isOutlookMessageListComposite(_ rawValue: String) -> Bool {
-        let value = rawValue
-            .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let lower = value.lowercased()
-
-        if lower.contains("message preview:") {
-            return true
-        }
-
-        let timePattern = #"\b\d{1,2}:\d{2}\s?(am|pm)\b"#
-        let hasMessageListTime = lower.range(
-            of: timePattern,
-            options: [.regularExpression, .caseInsensitive]
-        ) != nil
-
-        // Message-list AX descriptions often concatenate subject, time,
-        // preview, flags, and sender into one long value.
-        return hasMessageListTime &&
-            (value.contains(",") || lower.contains("preview"))
-    }
-
-    private func isOutlookCopilotOrSummaryText(_ rawValue: String) -> Bool {
-        let value = rawValue
-            .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-
-        if value == "copilot" ||
-            value == "summary" ||
-            value == "summary by copilot" ||
-            value.hasPrefix("summary by copilot ") ||
-            value.hasPrefix("copilot summary") {
-            return true
-        }
-
-        return value.contains("generated by copilot") ||
-            value.contains("summarized by copilot")
-    }
-
-    private func outlookSubjectFromMetadataText(_ rawValue: String) -> String? {
-        let normalized = rawValue
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !normalized.isEmpty else { return nil }
-
-        // Preserve line boundaries first; this avoids accidentally swallowing
-        // From/Sent/To metadata that follows the subject.
-        for line in normalized.components(separatedBy: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            let lower = trimmed.lowercased()
-
-            guard lower.hasPrefix("subject:") else { continue }
-
-            let value = String(trimmed.dropFirst("subject:".count))
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-
-            if let subject = sanitizedOutlookSubject(value) {
-                return subject
-            }
-        }
-
-        // Some Accessibility values flatten message metadata onto one line.
-        // Capture Subject: text until the next known mail-header marker.
-        let lower = normalized.lowercased()
-        guard let subjectRange = lower.range(of: "subject:") else {
-            return nil
-        }
-
-        var subjectText = String(normalized[subjectRange.upperBound...])
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        let terminators = [
-            " from:",
-            " sent:",
-            " to:",
-            " cc:",
-            " bcc:",
-            " sensitivity label:"
-        ]
-
-        let lowerSubject = subjectText.lowercased()
-        if let end = terminators
-            .compactMap({ lowerSubject.range(of: $0)?.lowerBound })
-            .min() {
-            subjectText = String(subjectText[..<end])
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-
-        return sanitizedOutlookSubject(subjectText)
-    }
-
-    private func outlookSelectedRowMessage(
-        in root: AXUIElement
-    ) -> OutlookMessageContext? {
-        for selected in selectedAccessibilityRows(in: root) {
-            guard isOutlookMessageSelectionCandidate(selected),
-                  let subject = outlookSubjectFromSelectedElement(
-                      selected,
-                      requireStrongSignal: false
-                  )
-            else {
-                continue
-            }
-
-            let sender =
-                outlookSenderFromElement(selected) ??
-                outlookSenderCandidate(
-                    in: selected,
-                    excludingSubject: subject
-                )
-
-            return OutlookMessageContext(
-                subject: subject,
-                sender: sender,
-                identity: outlookSelectedRowIdentity(selected)
-            )
-        }
-
-        return nil
-    }
-
-    private func outlookSelectedRowIdentity(
-        _ root: AXUIElement
-    ) -> String? {
-        var queue: [AXUIElement] = [root]
-        var index = 0
-        var inspected = 0
-        var values: [String] = []
-
-        while index < queue.count, inspected < 45 {
-            let element = queue[index]
-            index += 1
-            inspected += 1
-
-            for attribute in [
-                kAXTitleAttribute as CFString,
-                kAXDescriptionAttribute as CFString,
-                kAXValueAttribute as CFString,
-                kAXIdentifierAttribute as CFString
-            ] {
-                if let raw = attributeString(element, attribute) {
-                    let normalized =
-                        normalizedOutlookIdentity(raw)
-                    if !normalized.isEmpty,
-                       !values.contains(normalized) {
-                        values.append(
-                            String(normalized.prefix(240))
-                        )
-                    }
-                }
-            }
-
-            appendChildren(
-                of: element,
-                to: &queue,
-                limit: 18
-            )
-        }
-
-        guard !values.isEmpty else { return nil }
-        return "ax-row|" +
-            values.prefix(12).joined(separator: "|")
-    }
-
-    private func outlookSenderCandidate(
-        in root: AXUIElement,
-        excludingSubject subject: String
-    ) -> String? {
-        var queue: [AXUIElement] = [root]
-        var index = 0
-        var inspected = 0
-        var candidates: [(value: String, score: Int)] = []
-        let subjectKey = normalizedOutlookIdentity(subject)
-
-        while index < queue.count, inspected < 75 {
-            let element = queue[index]
-            index += 1
-            inspected += 1
-
-            let role = attributeString(
-                element,
-                kAXRoleAttribute as CFString
-            )?.lowercased() ?? ""
-
-            for attribute in [
-                kAXTitleAttribute as CFString,
-                kAXDescriptionAttribute as CFString,
-                kAXValueAttribute as CFString
-            ] {
-                guard let raw = attributeString(element, attribute),
-                      let sender = sanitizedOutlookSender(raw)
-                else {
-                    continue
-                }
-
-                let key = normalizedOutlookIdentity(sender)
-                guard key != subjectKey,
-                      isLikelyOutlookSenderDisplay(sender)
-                else {
-                    continue
-                }
-
-                var score = 20
-                if sender.contains("@") { score += 90 }
-                if sender.contains("<") &&
-                    sender.contains(">") {
-                    score += 75
-                }
-                if sender.lowercased().contains(" via ") {
-                    score += 55
-                }
-                if role.contains("statictext") ||
-                    role.contains("text") {
-                    score += 20
-                }
-                if looksLikePersonName(sender) {
-                    score += 25
-                }
-
-                candidates.append((sender, score))
-            }
-
-            appendChildren(
-                of: element,
-                to: &queue,
-                limit: 24
-            )
-        }
-
-        return candidates.max(by: {
-            $0.score < $1.score
-        })?.value
     }
 
 
@@ -2572,6 +1835,11 @@ final class MacCaptureCoordinator {
         guard !normalized.isEmpty else { return true }
 
         let exactChrome = Set([
+            "search",
+            "search field",
+            "search box",
+            "title bar",
+            "toolbar",
             "focused inbox",
             "other inbox",
             "focused inbox selected",
@@ -2602,6 +1870,9 @@ final class MacCaptureCoordinator {
         }
 
         let chromePhrases = [
+            "search this mailbox",
+            "search current mailbox",
+            "title bar",
             "sort messages",
             "filter messages",
             "filter by",
@@ -4068,6 +3339,11 @@ final class MacCaptureCoordinator {
         guard subject.count >= 1, subject.count <= 250 else { return false }
 
         let exactGeneric = Set([
+            "search",
+            "search field",
+            "search box",
+            "title bar",
+            "toolbar",
             "inbox",
             "mail",
             "calendar",

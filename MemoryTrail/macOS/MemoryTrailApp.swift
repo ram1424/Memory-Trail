@@ -348,6 +348,16 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "Classic Outlook Restored, New Outlook Isolated",
+                    symbol: "arrow.trianglehead.2.clockwise.rotate.90",
+                    items: [
+                        "Classic Outlook capture has been restored to the proven pre-New-Outlook flow: the clicked message row supplies the subject and sender, and the generic reading-pane scanner is never consulted first.",
+                        "New Outlook now uses its own isolated right-pane path and waits until the visible reading-pane subject matches the message row that was actually clicked before logging activity.",
+                        "Outlook UI chrome including “Title bar”, “search”, search fields, and toolbar labels is permanently rejected as email subject data.",
+                        "Classic and New Outlook no longer share the same primary extraction path, preventing future fixes for one Outlook interface from regressing the other."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "Complete Outlook Message Capture",
                     symbol: "checkmark.seal.fill",
                     items: [
