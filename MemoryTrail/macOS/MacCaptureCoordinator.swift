@@ -815,6 +815,16 @@ final class MacCaptureCoordinator {
         // in the right-side reading pane. Do not combine independently selected
         // list-row values.
         if let readingPaneMessage = outlookReadingPaneMessage(in: window) {
+            if readingPaneMessage.sender == nil,
+               let selectedSubject = outlookSelectedSubjectFromAppleScript(),
+               selectedSubject.caseInsensitiveCompare(readingPaneMessage.subject) == .orderedSame,
+               let selectedSender = outlookSelectedSenderFromAppleScript() {
+                return OutlookMessageContext(
+                    subject: readingPaneMessage.subject,
+                    sender: selectedSender
+                )
+            }
+
             return readingPaneMessage
         }
 
@@ -833,17 +843,6 @@ final class MacCaptureCoordinator {
             return OutlookMessageContext(
                 subject: subject,
                 sender: outlookSenderFromElement(row)
-            )
-        }
-
-        if let windowTitle = attributeString(
-            window,
-            kAXTitleAttribute as CFString
-        ),
-        let subject = sanitizedOutlookSubject(windowTitle) {
-            return OutlookMessageContext(
-                subject: subject,
-                sender: nil
             )
         }
 
@@ -1260,7 +1259,7 @@ final class MacCaptureCoordinator {
                    !isOutlookSenderOnlyValue(raw),
                    !isOutlookMessageGroupHeader(raw),
                    let subject = sanitizedOutlookSubject(raw) {
-                    var score = baseScore + 900 - item.depth * 4
+                    var score = baseScore + 1_000 - item.depth * 4
                     score += max(
                         0,
                         180 - Int(abs(frame.minY - paneFrame.minY) / 2)
@@ -1272,9 +1271,28 @@ final class MacCaptureCoordinator {
                    !isOutlookCopilotOrSummaryText(metadataSubject) {
                     subjectCandidates.append((
                         metadataSubject,
-                        baseScore + 620 - item.depth * 4,
+                        baseScore + 760 - item.depth * 4,
                         frame
                     ))
+                }
+
+                // New Outlook frequently exposes the visible subject under the
+                // Copilot card as ordinary static text with no subject-specific
+                // identifier. Accept a plausible, top-of-pane header line while
+                // still rejecting sender/recipient/action/body text.
+                let genericHeaderLimit =
+                    paneFrame.minY + (paneFrame.height * 0.34)
+
+                if !semanticSubject,
+                   frame.midY <= genericHeaderLimit,
+                   frame.width >= 70,
+                   let subject = outlookReadingPaneVisibleSubject(from: raw) {
+                    var score = baseScore + 560 - item.depth * 4
+                    score += max(
+                        0,
+                        220 - Int(abs(frame.minY - paneFrame.minY) / 2)
+                    )
+                    subjectCandidates.append((subject, score, frame))
                 }
 
                 if let sender = outlookReadingPaneSender(
@@ -1283,61 +1301,58 @@ final class MacCaptureCoordinator {
                 ) {
                     var score = baseScore - item.depth * 4
                     if semanticSender {
-                        score += 760
+                        score += 820
                     } else {
-                        // Non-semantic values are accepted only when they carry
-                        // an explicit From: marker.
-                        score += 360
+                        score += 420
                     }
                     senderCandidates.append((sender, score, frame))
+                } else if frame.midY <= genericHeaderLimit,
+                          let sender = outlookReadingPaneVisibleSender(from: raw) {
+                    // The sender line immediately below the subject is often
+                    // plain AXStaticText, e.g. "Choua Vang <choua...>".
+                    senderCandidates.append((
+                        sender,
+                        baseScore + 430 - item.depth * 4,
+                        frame
+                    ))
                 }
             }
         }
 
-        var bestMatch: (
-            subject: String,
-            sender: String,
-            score: Int
-        )?
-
-        for subject in subjectCandidates {
-            for sender in senderCandidates {
-                let verticalDistance = abs(
-                    sender.frame.midY - subject.frame.midY
-                )
-                guard verticalDistance <= 240 else { continue }
-
-                let horizontalDistance = abs(
-                    sender.frame.midX - subject.frame.midX
-                )
-                guard horizontalDistance <= max(
-                    420,
-                    paneFrame.width * 0.72
-                ) else {
-                    continue
-                }
-
-                var score = subject.score + sender.score
-                score += max(0, 520 - Int(verticalDistance * 2))
-                score += max(0, 160 - Int(horizontalDistance / 3))
-
-                if bestMatch == nil || score > bestMatch!.score {
-                    bestMatch = (
-                        subject.subject,
-                        sender.sender,
-                        score
-                    )
-                }
-            }
-        }
-
-        guard let bestMatch else {
+        guard let bestSubject = subjectCandidates.max(by: {
+            $0.score < $1.score
+        }) else {
             return nil
         }
 
+        let bestSender = senderCandidates
+            .compactMap { sender -> (sender: String, score: Int)? in
+                let verticalDistance = abs(
+                    sender.frame.midY - bestSubject.frame.midY
+                )
+                guard verticalDistance <= 165 else { return nil }
+
+                let horizontalDistance = abs(
+                    sender.frame.midX - bestSubject.frame.midX
+                )
+                guard horizontalDistance <= max(
+                    420,
+                    paneFrame.width * 0.78
+                ) else {
+                    return nil
+                }
+
+                var score = sender.score
+                score += max(0, 460 - Int(verticalDistance * 2))
+                score += max(0, 140 - Int(horizontalDistance / 3))
+                return (sender.sender, score)
+            }
+            .max(by: { $0.score < $1.score })?
+            .sender
+
         return OutlookMessageContext(
-            subject: bestMatch.subject,
-            sender: bestMatch.sender
+            subject: bestSubject.subject,
+            sender: bestSender
         )
     }
 
@@ -1408,6 +1423,89 @@ final class MacCaptureCoordinator {
         }
 
         return CGRect(origin: point, size: size)
+    }
+
+    private func outlookReadingPaneVisibleSubject(
+        from rawValue: String
+    ) -> String? {
+        let value = rawValue
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !value.isEmpty,
+              !isOutlookCopilotOrSummaryText(value),
+              !isLikelyReadingPaneHeaderSender(value, rawValue: value)
+        else {
+            return nil
+        }
+
+        let lower = value.lowercased()
+        let rejectedExact = Set([
+            "summarize",
+            "reply",
+            "reply all",
+            "forward",
+            "more",
+            "more actions",
+            "mark read",
+            "mark unread",
+            "learn more",
+            "general",
+            "focused",
+            "other"
+        ])
+
+        if rejectedExact.contains(lower) ||
+            lower.hasPrefix("to:") ||
+            lower.hasPrefix("cc:") ||
+            lower.hasPrefix("bcc:") ||
+            lower.hasPrefix("sent:") ||
+            lower.hasPrefix("today at ") ||
+            lower.hasPrefix("yesterday at ") ||
+            lower.contains("sensitivity label") {
+            return nil
+        }
+
+        return sanitizedOutlookSubject(value)
+    }
+
+    private func outlookReadingPaneVisibleSender(
+        from rawValue: String
+    ) -> String? {
+        let value = rawValue
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let sender = sanitizedOutlookSender(value),
+              isLikelyReadingPaneHeaderSender(sender, rawValue: value)
+        else {
+            return nil
+        }
+
+        let lower = value.lowercased()
+        if lower == "summarize" ||
+            lower == "reply" ||
+            lower == "reply all" ||
+            lower == "forward" ||
+            lower == "learn more" ||
+            lower == "general" ||
+            lower.hasPrefix("today at ") ||
+            lower.hasPrefix("yesterday at ") {
+            return nil
+        }
+
+        let hasEmailShape =
+            value.contains("@") ||
+            (value.contains("<") && value.contains(">"))
+
+        if hasEmailShape || looksLikePersonName(sender) {
+            return sender
+        }
+
+        return nil
     }
 
     private func outlookReadingPaneSender(
@@ -3290,6 +3388,18 @@ final class MacCaptureCoordinator {
         ])
 
         if exactGeneric.contains(lower) { return false }
+
+        let mailboxPrefixes = [
+            "inbox •",
+            "inbox -",
+            "inbox —",
+            "mail •",
+            "microsoft outlook •"
+        ]
+        if mailboxPrefixes.contains(where: { lower.hasPrefix($0) }) {
+            return false
+        }
+
         if isOutlookNavigationChrome(subject) { return false }
         if isOutlookSenderOnlyValue(subject) { return false }
         if isOutlookMessageGroupHeader(subject) { return false }

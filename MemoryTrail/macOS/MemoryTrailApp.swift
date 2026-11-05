@@ -348,6 +348,15 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "New Outlook Visible Header Capture",
+                    symbol: "envelope.open.fill",
+                    items: [
+                        "Memory Trail now reads the visible subject line directly beneath the Summary by Copilot card in New Outlook, even when Outlook exposes it only as generic accessibility text.",
+                        "The visible sender line immediately beneath that subject is captured by position and validated as sender text, so names such as Choua Vang are retained even without a sender-specific accessibility identifier.",
+                        "Outlook window titles such as “Inbox • account” are no longer accepted as email subjects."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "New Outlook Header Lock",
                     symbol: "envelope.open.badge.clock",
                     items: [
