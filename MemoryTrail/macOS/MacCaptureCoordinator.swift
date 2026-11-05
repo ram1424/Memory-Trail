@@ -964,12 +964,11 @@ final class MacCaptureCoordinator {
                 )
                 .trimmingCharacters(in: .whitespacesAndNewlines)
 
-            lastOutlookMessageKey =
-                activityIdentity ??
-                [
-                    normalizedOutlookIdentity(title),
-                    normalizedOutlookIdentity(sender ?? "")
-                ].joined(separator: "|")
+            lastOutlookMessageKey = [
+                activityIdentity ?? "",
+                normalizedOutlookIdentity(title),
+                normalizedOutlookIdentity(sender ?? "")
+            ].joined(separator: "|")
         } else if isTeamsBundleID(lowerBundleID) {
             storedBody = ""
         } else {
@@ -1545,7 +1544,14 @@ final class MacCaptureCoordinator {
                 // identifier. Accept a plausible, top-of-pane header line while
                 // still rejecting sender/recipient/action/body text.
                 let genericHeaderLimit =
-                    paneFrame.minY + (paneFrame.height * 0.34)
+                    min(
+                        headerBottom,
+                        max(
+                            messageHeaderTop + 420,
+                            paneFrame.minY +
+                                (paneFrame.height * 0.44)
+                        )
+                    )
 
                 if !semanticSubject,
                    frame.midY <= genericHeaderLimit,
@@ -1642,6 +1648,9 @@ final class MacCaptureCoordinator {
             )
 
             guard !newOutlookCommandLabels.contains(key),
+                  !isOutlookHeaderMetadataText(
+                    candidate.subject
+                  ),
                   !isNewOutlookStructuralHeaderLabel(
                     candidate.subject
                   )
@@ -1654,8 +1663,8 @@ final class MacCaptureCoordinator {
                     sender.frame.midY -
                     candidate.frame.midY
 
-                guard verticalOffset >= -8,
-                      verticalOffset <= 170
+                guard verticalOffset >= -12,
+                      verticalOffset <= 240
                 else {
                     return false
                 }
@@ -1860,10 +1869,10 @@ final class MacCaptureCoordinator {
         let lower = value.lowercased()
 
         guard !value.isEmpty,
-              value.count <= 100,
-              !lower.hasPrefix("sent:"),
+              value.count <= 120,
               !lower.hasPrefix("to:"),
-              !lower.hasPrefix("cc:")
+              !lower.hasPrefix("cc:"),
+              !lower.hasPrefix("bcc:")
         else {
             return nil
         }
@@ -1871,7 +1880,8 @@ final class MacCaptureCoordinator {
         let patterns = [
             #"\b(today|yesterday)\s+at\s+\d{1,2}:\d{2}\s*(am|pm)\b"#,
             #"\b\d{1,2}/\d{1,2}/\d{2,4}(?:\s+at)?\s+\d{1,2}:\d{2}\s*(am|pm)\b"#,
-            #"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}(?:\s+at)?\s+\d{1,2}:\d{2}\s*(am|pm)\b"#
+            #"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}(?:\s+at)?\s+\d{1,2}:\d{2}\s*(am|pm)\b"#,
+            #"\b(mon|tue|wed|thu|fri|sat|sun)[a-z]*,?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2}(?:,?\s+\d{4})?(?:\s+at)?\s+\d{1,2}:\d{2}\s*(am|pm)\b"#
         ]
 
         for pattern in patterns {
@@ -1927,6 +1937,7 @@ final class MacCaptureCoordinator {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !value.isEmpty,
+              !isOutlookHeaderMetadataText(value),
               !isOutlookCopilotOrSummaryText(value),
               !isExplicitOutlookSenderText(value),
               !isNewOutlookStructuralHeaderLabel(value)
@@ -2145,7 +2156,8 @@ final class MacCaptureCoordinator {
     ) -> Bool {
         let lower = rawValue.lowercased()
 
-        if lower.contains("message preview:") ||
+        if isOutlookHeaderMetadataText(rawValue) ||
+            lower.contains("message preview:") ||
             lower.hasPrefix("recipients:") ||
             lower.contains("recipients: to:") ||
             lower.hasPrefix("to:") ||
@@ -2212,6 +2224,86 @@ final class MacCaptureCoordinator {
             value.contains("summarized by copilot")
     }
 
+
+    private func isOutlookHeaderMetadataText(
+        _ rawValue: String
+    ) -> Bool {
+        let value = rawValue
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+        let lower = value.lowercased()
+
+        guard !lower.isEmpty else {
+            return true
+        }
+
+        let prefixes = [
+            "sent:",
+            "sent on:",
+            "sent at:",
+            "sent date:",
+            "received:",
+            "received on:",
+            "received at:",
+            "received date:",
+            "date:",
+            "time:",
+            "to:",
+            "cc:",
+            "bcc:",
+            "from:",
+            "recipients:",
+            "reply-to:",
+            "sensitivity label:",
+            "importance:",
+            "priority:"
+        ]
+
+        if prefixes.contains(
+            where: { lower.hasPrefix($0) }
+        ) {
+            return true
+        }
+
+        if lower.hasPrefix("today at ") ||
+            lower.hasPrefix("yesterday at ") {
+            return true
+        }
+
+        let exact = Set([
+            "available",
+            "busy",
+            "away",
+            "offline",
+            "do not disturb",
+            "in a meeting",
+            "be right back",
+            "appear away",
+            "show details"
+        ])
+
+        if exact.contains(lower) {
+            return true
+        }
+
+        let sentPatterns = [
+            #"^sent\s+(on|at)\b"#,
+            #"^received\s+(on|at)\b"#,
+            #"^(today|yesterday)\s+at\s+\d{1,2}:\d{2}\s*(am|pm)\b"#,
+            #"^\w{3,9}\s+\d{1,2},?\s+\d{4}\s+at\s+\d{1,2}:\d{2}\s*(am|pm)\b"#
+        ]
+
+        return sentPatterns.contains {
+            lower.range(
+                of: $0,
+                options: .regularExpression
+            ) != nil
+        }
+    }
 
     private func outlookSubjectFromMetadataText(_ rawValue: String) -> String? {
         let normalized = rawValue
@@ -2548,7 +2640,32 @@ final class MacCaptureCoordinator {
         }
 
         if outlookUsesNewOutlookLayout(pid: pid) {
-            return resolvedReadingPaneMessage()
+            if let readingPane =
+                resolvedReadingPaneMessage() {
+                return readingPane
+            }
+
+            if let selectedObjectMessage,
+               let sender =
+                selectedObjectMessage.sender,
+               !sender.isEmpty,
+               !isOutlookHeaderMetadataText(
+                    selectedObjectMessage.subject
+               ) {
+                return selectedObjectMessage
+            }
+
+            if let selectedRowMessage,
+               let sender =
+                selectedRowMessage.sender,
+               !sender.isEmpty,
+               !isOutlookHeaderMetadataText(
+                    selectedRowMessage.subject
+               ) {
+                return selectedRowMessage
+            }
+
+            return nil
         }
 
         if let subject =
@@ -2961,6 +3078,7 @@ final class MacCaptureCoordinator {
                 (kAXValueAttribute as CFString, 35)
             ] {
                 guard let raw = attributeString(element, attribute) else { continue }
+                guard !isOutlookHeaderMetadataText(raw) else { continue }
                 guard !isOutlookNavigationChrome(raw) else { continue }
                 guard !isOutlookSenderOnlyValue(raw) else { continue }
                 guard !isOutlookMessageGroupHeader(raw) else { continue }
@@ -3010,7 +3128,8 @@ final class MacCaptureCoordinator {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         let initialLower = value.lowercased()
-        if isOutlookNavigationChrome(value) ||
+        if isOutlookHeaderMetadataText(value) ||
+            isOutlookNavigationChrome(value) ||
             isOutlookSenderOnlyValue(value) ||
             isOutlookMessageGroupHeader(value) ||
             isOutlookMessageListComposite(value) {
@@ -4628,6 +4747,7 @@ final class MacCaptureCoordinator {
         let lower = subject.lowercased()
 
         guard subject.count >= 1, subject.count <= 250 else { return false }
+        guard !isOutlookHeaderMetadataText(subject) else { return false }
 
         let exactGeneric = Set([
             "search",
