@@ -1,0 +1,32 @@
+name: Validate Memory Trail App Store
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "Memory Trail.xcodeproj/**"
+      - "MemoryTrail/AppStore/**"
+      - "MemoryTrail/Shared/**"
+      - ".github/workflows/build-memory-trail-app-store.yml"
+
+jobs:
+  validate-app-store:
+    runs-on: macos-15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build sandboxed App Store target
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project "Memory Trail.xcodeproj" \
+            -scheme "Memory Trail App Store" \
+            -configuration Release \
+            -destination "platform=macOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
