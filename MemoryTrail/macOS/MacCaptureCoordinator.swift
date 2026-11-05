@@ -1667,9 +1667,12 @@ final class MacCaptureCoordinator {
                 )
             )
         } else {
-            // Last-resort fallback must be layout-neutral. The subject/sender
-            // geometry and UI-noise filters below decide which header wins.
-            paneFrame = windowFrame
+            // Do not scan the whole Outlook window. In non-column layouts that
+            // mixes navigation/account chrome, message-list rows, and the open
+            // message into one candidate pool (for example "All Accounts").
+            // The caller will fall back to the selected Outlook object/row,
+            // which is safer than inventing a Subject/From pair.
+            return nil
         }
 
         let headerBottom =
@@ -2696,6 +2699,8 @@ final class MacCaptureCoordinator {
             "in a meeting",
             "be right back",
             "appear away",
+            "presence unknown",
+            "unknown presence",
             "show details",
             "external",
             "external sender",
@@ -3013,6 +3018,16 @@ final class MacCaptureCoordinator {
                 return nil
             }
 
+            guard !isOutlookNavigationChrome(
+                readingPaneMessage.subject
+            ),
+            !isOutlookHeaderMetadataText(
+                readingPaneMessage.subject
+            )
+            else {
+                return nil
+            }
+
             let hasNewSelectionHint =
                 selectionIdentityHint != nil &&
                 selectionIdentityHint !=
@@ -3113,6 +3128,9 @@ final class MacCaptureCoordinator {
                !sender.isEmpty,
                !isOutlookHeaderMetadataText(
                     selectedObjectMessage.subject
+               ),
+               !isOutlookNavigationChrome(
+                    selectedObjectMessage.subject
                ) {
                 return OutlookMessageContext(
                     subject:
@@ -3131,6 +3149,9 @@ final class MacCaptureCoordinator {
                 selectedRowMessage.sender,
                !sender.isEmpty,
                !isOutlookHeaderMetadataText(
+                    selectedRowMessage.subject
+               ),
+               !isOutlookNavigationChrome(
                     selectedRowMessage.subject
                ) {
                 return OutlookMessageContext(
@@ -3476,7 +3497,9 @@ final class MacCaptureCoordinator {
             ", do not disturb",
             ", in a meeting",
             ", be right back",
-            ", appear away"
+            ", appear away",
+            ", presence unknown",
+            ", unknown presence"
         ]
 
         let senderLower = sender.lowercased()
@@ -3793,6 +3816,10 @@ final class MacCaptureCoordinator {
             "message header collapsed",
             "message body",
             "message actions",
+            "all accounts",
+            "all mailboxes",
+            "all folders",
+            "account list",
             "focused inbox",
             "other inbox",
             "focused inbox selected",
