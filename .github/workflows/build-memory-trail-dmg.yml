@@ -24,8 +24,8 @@ concurrency:
 
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
-  RELEASE_VERSION: "1.3"
-  RELEASE_BUILD: "12"
+  RELEASE_VERSION: "1.4"
+  RELEASE_BUILD: "1"
 
 jobs:
   build-dmg:
@@ -288,10 +288,12 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Reorganized the in-app What’s New experience into a cleaner release-style structure that is easier to scan.
-          - Outlook improvements are consolidated into one focused section covering Classic/New Outlook reliability, layout support, Subject/From capture, calendar invites, and inline sender display.
-          - Today & Timeline, Ask Memory Trail, Insights/Favorites, Storage/History/Export, Settings/Updates, and Privacy now each have their own concise section.
-          - Removed repetitive implementation-level wording from What’s New while retaining the important user-facing improvements from Memory Trail 1.3.
+          - Memory Trail 1.4 promotes the polished 1.3 feature set into a new major point release with a cleaner, release-style What’s New experience.
+          - Outlook capture includes the latest Classic and New Outlook reliability improvements, support for column and non-column layouts, calendar invitations, sender-aware timeline entries, and stronger protection against Outlook UI chrome being logged as email data.
+          - Today & Timeline include the restored details experience, Go to Today, clearer activity presentation, and improved app-name handling.
+          - Ask Memory Trail returns uncapped matching Supporting Activity, includes Back to Top navigation, clearer quick-start icons, and expanded activity Close controls.
+          - Insights, Favorites, Clipboard History, Storage/History/Export, Settings, update handling, and privacy-first local processing refinements are included.
+          - Version 1.4 remains local-first: no cloud timeline sync, external data connectors, advertising SDKs, or AI timeline summarization.
 
 
           Privacy:

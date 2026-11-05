@@ -344,7 +344,7 @@ struct MemoryTrailApp: App {
     private static var currentChangelog: MemoryTrailChangelog {
         MemoryTrailChangelog(
             version: displayVersion,
-            headline: "What’s New in Memory Trail 1.3",
+            headline: "What’s New in Memory Trail 1.4",
             summary: "Version \(appVersion) focuses on more reliable Outlook capture, a clearer timeline, more useful search results, and a cleaner overall experience — while keeping your activity private and local.",
             sections: [
                 MemoryTrailChangeSection(

@@ -1,5 +1,58 @@
 # Memory Trail Changelog
 
+## 1.4 (Build 1) - November 5, 2026
+
+Memory Trail 1.4 is a polished release focused on reliable Outlook capture, clearer activity history, more useful Ask Memory Trail results, and a cleaner overall experience.
+
+### Outlook Capture & Reliability
+
+- Separate capture paths for Classic Outlook and New Outlook.
+- Improved New Outlook reliability across column, bottom reading-pane, full-width, Search, Sent, custom-folder, and open-message layouts.
+- Subject and sender capture is anchored to the actual message header, with Outlook navigation, account, toolbar, recipient, Copilot, and presence metadata excluded.
+- Better handling for repeated messages, same-subject emails, truncated list subjects, slower-loading headers, external senders, service accounts, and email-address-style subjects.
+- Calendar and meeting invitations recognize organizer-style sender fields.
+- Outlook timeline entries display sender context inline as `Subject  From: Sender`.
+
+### Today & Timeline
+
+- Clearer activity-first Today layout with summary metrics and filters.
+- Restored activity details with single-click selection, double-click reopening, and a visible Close control.
+- Added Go to Today for easier navigation back to the current day.
+- Improved Top Apps Today label handling.
+
+### Ask Memory Trail
+
+- Removed arbitrary Supporting Activity result-count limits.
+- Fuller day-level conversation and email history can be returned when it matches the query.
+- Added a floating Back to Top control for long results.
+- Quick-start prompts use distinct icons for email, conversations, websites, files, projects, and time-based activity.
+- Supporting Activity remains full-width and shows the number of matching items.
+
+### Insights, Favorites & Consistency
+
+- Cleaner Insights dashboard with Top Apps, Key Takeaways, activity patterns, and recent files.
+- Clearer Favorites context and empty state.
+- More consistent visual structure across Insights, Favorites, Clipboard History, Ask Memory Trail, and Settings.
+
+### Storage, History & Export
+
+- Local activity is stored in `MemoryTrail.store` inside Application Support.
+- Default local history retention remains 30 days.
+- Added controls to clear the last week, last month, or all history.
+- JSON export includes filename, item count, file size, and Show in Finder.
+- Simplified history and export confirmations.
+
+### Settings, Updates & Privacy
+
+- Cleaner Settings layout with privacy, exclusions, and storage controls easier to reach.
+- Refined update confirmation and version/build presentation.
+- Activity continues to be sourced, processed, and stored locally on the Mac.
+- No cloud timeline sync, external data connectors, advertising SDKs, or AI timeline summarization.
+- Passwords and Wallet remain excluded by default.
+- Source code remains available for review and verification.
+
+---
+
 ## 1.3 (Build 12) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
