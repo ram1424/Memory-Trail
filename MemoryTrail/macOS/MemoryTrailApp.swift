@@ -344,372 +344,74 @@ struct MemoryTrailApp: App {
     private static var currentChangelog: MemoryTrailChangelog {
         MemoryTrailChangelog(
             version: displayVersion,
-            headline: "More Control Over Your Trail",
-            summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
+            headline: "Memory Trail 1.3",
+            summary: "Memory Trail \(appVersion) delivers reliable Outlook capture, a clearer activity timeline, stronger local history controls, and a more polished experience while keeping your data on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
-                    title: "New Outlook Subject + From Only",
+                    title: "Outlook Capture, Rebuilt",
                     symbol: "envelope.open.fill",
                     items: [
-                        "New Outlook now rejects structural accessibility labels such as “Message header”, “Message body”, and header-container names instead of treating them as email subjects.",
-                        "The subject is selected from real header text immediately above the confirmed sender line, matching the visible Subject/From layout in New Outlook.",
-                        "Generic heading roles no longer receive subject priority unless Outlook explicitly identifies the element as a subject field.",
-                        "Presence states such as Available, Busy, Away, and Offline are removed from the captured From value.",
-                        "Classic Outlook remains unchanged."
+                        "Classic Outlook is back on its proven clicked-message capture path, preserving accurate subject and sender information.",
+                        "New Outlook now reads only the actual message subject and From field from the right-side message header.",
+                        "Toolbar actions, Copilot labels, search controls, title bars, Message header containers, recipient controls, body headings, and other Outlook UI chrome are ignored.",
+                        "Sender presence states such as Available, Busy, Away, and Offline are removed from captured sender information.",
+                        "Separate messages with the same subject are no longer silently collapsed, and a wider range of sender formats is supported.",
+                        "Outlook capture is faster and retries briefly when New Outlook is still refreshing the reading pane."
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "New Outlook Message Header Lock",
-                    symbol: "rectangle.bottomhalf.inset.filled",
+                    title: "Today & Timeline",
+                    symbol: "clock.arrow.circlepath",
                     items: [
-                        "New Outlook now excludes command-bar controls and their child accessibility text, preventing Delete, Archive, Move, Flag, and similar actions from being mistaken for message data.",
-                        "When Summary by Copilot is visible, Memory Trail treats the area below that card as the start of the actual email header and ignores everything above it.",
-                        "Sender matching is now directional: the sender must be positioned with or below the selected subject, so toolbar actions above the message cannot appear in the From field.",
-                        "Classic Outlook remains on the restored pre-New-Outlook capture path and is unchanged in this build."
+                        "Today uses a clearer activity-first layout with summary metrics, filtering, and a more prominent timeline.",
+                        "The right-side activity details panel is restored, with single-click selection and double-click reopening support.",
+                        "Go to Today makes it easy to return to the current day after browsing earlier activity.",
+                        "Top Apps Today now handles longer application names more cleanly."
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "Classic Outlook Restored, New Outlook Isolated",
-                    symbol: "arrow.trianglehead.2.clockwise.rotate.90",
+                    title: "Insights, Ask Memory Trail & Favorites",
+                    symbol: "sparkles.rectangle.stack.fill",
                     items: [
-                        "Classic Outlook capture has been restored to the proven pre-New-Outlook flow: the clicked message row supplies the subject and sender, and the generic reading-pane scanner is never consulted first.",
-                        "New Outlook now uses its own isolated right-pane path and waits until the visible reading-pane subject matches the message row that was actually clicked before logging activity.",
-                        "Outlook UI chrome including “Title bar”, “search”, search fields, and toolbar labels is permanently rejected as email subject data.",
-                        "Classic and New Outlook no longer share the same primary extraction path, preventing future fixes for one Outlook interface from regressing the other."
+                        "Insights uses a more consistent dashboard layout with useful context such as Top Apps, Key Takeaways, and recent files.",
+                        "Ask Memory Trail can return complete day-level conversation results instead of stopping at a small fixed set.",
+                        "Supporting Activity is clearer, full-width, and shows the number of matching items.",
+                        "Favorites, Clipboard History, Settings, and Ask Memory Trail now share a more consistent visual structure."
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "Complete Outlook Message Capture",
-                    symbol: "checkmark.seal.fill",
-                    items: [
-                        "Outlook messages are now tracked with a per-message identity instead of subject alone, so separate emails in the same thread are no longer silently de-duplicated.",
-                        "New Outlook no longer rejects short or name-like subjects just because they resemble a sender display name.",
-                        "Sender capture now supports service accounts, distribution lists, external senders, long display names, email-only senders, and “via” sender formats.",
-                        "Every Outlook click triggers a validated selection check, while recipient/detail clicks still produce no duplicate activity because the selected message identity has not changed.",
-                        "Messages are written only after both a real subject and sender have been resolved; empty subjects are preserved as “(No Subject)”."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Outlook Capture Consistency",
-                    symbol: "envelope.badge.fill",
-                    items: [
-                        "Classic Outlook now uses Outlook’s selected message object as the authoritative source for subject and sender, preventing recipient fields or neighboring message text from being recorded.",
-                        "New Outlook continues to use the visible right-side message header, but stale reading-pane results are retried briefly before anything is written to the timeline.",
-                        "Only real message-list row clicks trigger immediate Outlook capture; recipient chips, To/CC details, Copilot controls, and reading-pane clicks no longer create extra timeline entries.",
-                        "Recipient strings such as “Recipients: To: … Show Details” are explicitly rejected, and Outlook duplicate signatures are normalized to prevent visually identical duplicate entries."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Faster Outlook Capture",
-                    symbol: "bolt.fill",
-                    items: [
-                        "Outlook activity now refreshes directly from click events instead of waiting for message-row hit-testing.",
-                        "The Outlook capture path performs one settled accessibility scan instead of two full scans, dramatically reducing the delay before a selected email appears in Memory Trail.",
-                        "The Outlook fallback poll now runs roughly once per second, and duplicate suppression is shorter so rapid message changes appear promptly in both Classic and New Outlook."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "New Outlook Visible Header Capture",
-                    symbol: "envelope.open.fill",
-                    items: [
-                        "Memory Trail now reads the visible subject line directly beneath the Summary by Copilot card in New Outlook, even when Outlook exposes it only as generic accessibility text.",
-                        "The visible sender line immediately beneath that subject is captured by position and validated as sender text, so names such as Choua Vang are retained even without a sender-specific accessibility identifier.",
-                        "Outlook window titles such as “Inbox • account” are no longer accepted as email subjects."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "New Outlook Header Lock",
-                    symbol: "envelope.open.badge.clock",
-                    items: [
-                        "Outlook row clicks now wait for the right-side reading pane to finish switching before Memory Trail records the message.",
-                        "Rapid clicks cancel the older pending capture, preventing a previous email from being logged against the newly selected row.",
-                        "Subject and sender must now form a matched pair in the same reading-pane header region; Copilot summary labels and body headings are excluded."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "New Outlook Right-Pane Matching",
-                    symbol: "rectangle.rightthird.inset.filled",
-                    items: [
-                        "New Outlook now pairs subject and sender from the same right-side reading pane instead of resolving them independently.",
-                        "Reading-pane candidates are prioritized by their actual screen position in the right half of the Outlook window.",
-                        "Message-list composite strings containing timestamps or “Message preview:” are permanently rejected as subjects."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "New Outlook Reading Pane Capture",
-                    symbol: "envelope.open.fill",
-                    items: [
-                        "New Outlook now prioritizes the authoritative subject shown in the reading pane before inspecting the selected message-list row.",
-                        "Memory Trail can parse explicit Subject: metadata exposed by New Outlook and semantic subject/header accessibility elements.",
-                        "Selected-row and Classic Outlook fallback paths remain available when the reading pane does not expose a subject."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Timeline Details Restored",
-                    symbol: "sidebar.right",
-                    items: [
-                        "The Today right-side activity details panel is restored without reverting the current Today dashboard.",
-                        "Single-click selection updates the details panel again.",
-                        "Double-clicking a timeline item selects it and reopens the details panel if it was hidden."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "New Outlook, Refined Again",
-                    symbol: "envelope.badge.fill",
-                    items: [
-                        "New Outlook no longer treats sender-only email addresses as message subjects.",
-                        "Date-group headers such as “Today, Expanded” and “Yesterday, Collapsed” are rejected as Outlook UI chrome.",
-                        "Selected Outlook rows are filtered before subject extraction so only plausible message containers are inspected."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "New Outlook, Correctly Remembered",
-                    symbol: "envelope.open.fill",
-                    items: [
-                        "New Outlook no longer mistakes the Focused/Other inbox selector for an email subject.",
-                        "Memory Trail now rejects Outlook navigation controls and prioritizes real selected message rows and reading-pane subject candidates.",
-                        "Classic Outlook capture and its existing fallback paths remain intact."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Top Apps, Easier to Read",
-                    symbol: "square.grid.3x2.fill",
-                    items: [
-                        "Top Apps Today now gives app names up to two centered lines instead of truncating them after one line.",
-                        "Longer names can tighten and scale slightly so Microsoft Teams, Microsoft Outlook, Microsoft Excel, and similar names fit cleanly."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "About Build Label",
-                    symbol: "info.circle.fill",
-                    items: [
-                        "About Memory Trail now displays Version 1.2 • Build 2 instead of showing the build as a bare number in parentheses."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Ask Memory Trail, Expanded",
-                    symbol: "bubble.left.and.bubble.right.fill",
-                    items: [
-                        "Broad conversation questions such as “What conversations did I have today?” now return the complete matching conversation history for the requested day instead of stopping at 12 items.",
-                        "Supporting Activity now always appears directly below the answer at full width, matching the rest of Ask Memory Trail.",
-                        "Supporting Activity now shows the number of returned items for clearer result context."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Classic Update Screen Restored",
-                    symbol: "checkmark.circle.fill",
-                    items: [
-                        "Restored the original simple Check for Updates success screen used before the illustrated redesign.",
-                        "The green checkmark, version/build pill, Keep Exploring button, and clean light background are back.",
-                        "Removed the illustrated mountains, laptop, trail, and full-bleed artwork from the up-to-date state."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Export Success Icon Restored",
-                    symbol: "doc.badge.checkmark.fill",
-                    items: [
-                        "The JSON export success sheet now uses a reliable document icon with a separate green check badge.",
-                        "The compact Clear Cache-style export confirmation remains unchanged otherwise."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Cleaner Storage Actions",
-                    symbol: "checkmark.circle.fill",
-                    items: [
-                        "Clear History confirmations now use the same compact, simple visual treatment as Clear Cache.",
-                        "JSON export completion now uses a smaller success sheet with filename, item count, file size, Show in Finder, and Done.",
-                        "Large decorative export and history illustrations have been removed for a cleaner Settings experience."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Freshest Trail, Refined",
-                    symbol: "text.below.photo.fill",
-                    items: [
-                        "Fixed clipping around the Memory Trail header on the up-to-date screen.",
-                        "Moved all update-confirmation copy onto a dedicated high-contrast lower panel.",
-                        "Repositioned the path, trees, and lower artwork so decorative elements no longer cross or blend into text."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Freshest Trail, Reimagined",
-                    symbol: "checkmark.seal.fill",
-                    items: [
-                        "The up-to-date screen now uses a full illustrated Memory Trail landscape with mountains, trees, sunrise, and a winding path.",
-                        "A laptop and success badge make the current-release state feel more celebratory while keeping the real version and build visible.",
-                        "Keep Exploring remains the one-click way back into the app."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Settings, Repacked",
-                    symbol: "rectangle.grid.1x2.fill",
-                    items: [
-                        "Settings now flows in a continuous card stack with no dead column space.",
-                        "Excluded Apps, Storage & History, and Privacy are positioned higher for quicker access.",
-                        "Updates and Help now live at the bottom of the page."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Exported with Style",
-                    symbol: "square.and.arrow.up.fill",
-                    items: [
-                        "JSON exports now finish with a polished Memory Trail success screen.",
-                        "The export receipt shows the real filename, item count, file size, and a Show in Finder shortcut.",
-                        "Your trail. Your data. Your file."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Cleanup with a Smile",
-                    symbol: "sparkles",
-                    items: [
-                        "History cleanup now uses playful, visual confirmation sheets for the last week, last month, and full-history reset.",
-                        "The Today activity-feed clear action uses the same friendly full-reset experience."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Storage & History",
+                    title: "Storage, History & Export",
                     symbol: "internaldrive.fill",
                     items: [
-                        "Activity now uses a clearly named local MemoryTrail.store inside Memory Trail’s Application Support folder.",
-                        "Export your locally stored activity history as a readable JSON file from Settings.",
-                        "History is retained locally for 30 days by default, with controls to clear the last week, last month, or all history."
+                        "Local activity is stored in the clearly named MemoryTrail.store database inside Application Support.",
+                        "History is retained locally for 30 days by default, with controls to clear the last week, last month, or all history.",
+                        "JSON export includes a cleaner completion experience with the exported filename, item count, file size, and Show in Finder.",
+                        "History and export confirmation screens have been simplified for a cleaner Settings experience."
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "Jump Back to Today",
-                    symbol: "calendar.badge.clock",
+                    title: "Settings & Updates",
+                    symbol: "gearshape.2.fill",
                     items: [
-                        "When browsing earlier dates, a Go to Today control returns you to the present day in one click.",
-                        "Date navigation remains available for retracing earlier activity."
+                        "Settings is reorganized into a more compact continuous card layout with privacy, exclusions, and storage controls easier to reach.",
+                        "The update experience has been refined while keeping the simple up-to-date confirmation flow.",
+                        "About Memory Trail now shows the version and build number in a clearer format."
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "Today, Reorganized",
-                    symbol: "calendar",
-                    items: [
-                        "Today now opens with a full-width at-a-glance summary for activities, apps used, active time, files and documents, and clipboard items.",
-                        "The timeline is now the most prominent part of the page, with clearer hierarchy and category-colored activity markers.",
-                        "Date navigation and activity filtering are consolidated into the redesigned Today experience."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Useful Context Beside the Timeline",
-                    symbol: "rectangle.split.2x1.fill",
-                    items: [
-                        "Top Apps Today highlights the apps that received the most observed activity.",
-                        "Key Takeaways surfaces peak focus, top work type, and app-switching context.",
-                        "Recent Files & Documents keeps recently observed work easy to reopen."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "A Consistent Experience",
-                    symbol: "rectangle.3.group.fill",
-                    items: [
-                        "Insights now uses a balanced dashboard grid with consistent card sizes and spacing.",
-                        "Ask Memory Trail, Clipboard History, Settings, and Favorites now share the same structured headers, cards, spacing, and filter-inspired color system.",
-                        "Favorites now makes starring activity feel intentional, with clearer saved-item context and a more welcoming empty state."
-                    ]
-                ),
-                MemoryTrailChangeSection(
-                    title: "Privacy Remains Local",
+                    title: "Privacy First",
                     symbol: "lock.shield.fill",
                     items: [
-                        "The redesigned views continue to use only locally captured Memory Trail history.",
-                        "No external data connectors, cloud timeline processing, or AI scraping were added.",
-                        "Passwords and Wallet remain excluded by default, with existing capture and exclusion controls preserved."
+                        "Captured activity continues to be sourced, processed, and stored locally on the Mac.",
+                        "No cloud timeline sync, external data connectors, advertising SDKs, or AI timeline summarization were added.",
+                        "Passwords and Wallet remain excluded by default, and app exclusion and capture controls remain available.",
+                        "The source code remains available for review and verification."
                     ]
                 )
             ]
         )
     }
 
-    private func showAboutPanel() {
-        let credits = NSAttributedString(
-            string: "Created By: Roman Zakharov",
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 12, weight: .medium),
-                .foregroundColor: NSColor.secondaryLabelColor
-            ]
-        )
-
-        NSApplication.shared.orderFrontStandardAboutPanel(options: [
-            .applicationName: "Memory Trail",
-            .applicationIcon: Self.brandIcon,
-            .applicationVersion: "Version \(Self.appVersion) • Build \(Self.appBuild)",
-            .version: "",
-            .credits: credits
-        ])
-    }
-
-    private var startupView: some View {
-        MemoryTrailSimpleSplashView(
-            icon: Self.brandIcon,
-            progress: splashProgress
-        )
-    }
-
-    @MainActor
-    private func runStartupSequence() async {
-        let startupBeganAt = Date()
-        let minimumSplashDuration: TimeInterval = 1.5
-
-        splashProgress = 0.02
-        withAnimation(.linear(duration: 1.35)) {
-            splashProgress = 1.0
-        }
-
-        // Verify the local SwiftData store is ready before capture starts.
-        _ = try? container.mainContext.fetchCount(FetchDescriptor<MemoryItem>())
-
-        MacCaptureCoordinator.shared.start(context: container.mainContext)
-
-        // Warm the same local data path used by the Today view.
-        var warmupDescriptor = FetchDescriptor<MemoryItem>()
-        warmupDescriptor.fetchLimit = 32
-        _ = try? container.mainContext.fetch(warmupDescriptor)
-
-        await Task.yield()
-
-        // Keep the simple animated splash visible for its full 1.5-second run.
-        let elapsed = Date().timeIntervalSince(startupBeganAt)
-        let remaining = max(0, minimumSplashDuration - elapsed)
-        if remaining > 0 {
-            try? await Task.sleep(
-                nanoseconds: UInt64(remaining * 1_000_000_000)
-            )
-        }
-
-        splashProgress = 1.0
-        isLaunching = false
-    }
-
-    @MainActor
-    private func launchAndMonitorUpdates() async {
-        await runStartupSequence()
-        await maximizeWindowOnLaunch()
-
-        Self.pruneExpiredHistory(in: container.mainContext)
-
-        // Check for a newer release on every normal app launch.
-        await checkForUpdates(manual: false)
-
-        // Refresh the current macOS Accessibility trust state every launch.
-        refreshAccessibilityAndPromptIfNeeded()
-
-        if hasCompletedOnboarding,
-           updatePresentation == nil,
-           !showAccessibilityPrompt {
-            await presentWhatsNewIfNeeded()
-        }
-
-        while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 6 * 60 * 60 * 1_000_000_000)
-            guard !Task.isCancelled else { return }
-            Self.pruneExpiredHistory(in: container.mainContext)
-            await performAutomaticUpdateCheckIfNeeded()
-        }
-    }
-
-    @MainActor
     private static func pruneExpiredHistory(in context: ModelContext) {
         guard let cutoff = Calendar.current.date(
             byAdding: .day,
