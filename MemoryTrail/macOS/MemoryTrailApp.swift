@@ -348,6 +348,17 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "Complete Outlook Message Capture",
+                    symbol: "checkmark.seal.fill",
+                    items: [
+                        "Outlook messages are now tracked with a per-message identity instead of subject alone, so separate emails in the same thread are no longer silently de-duplicated.",
+                        "New Outlook no longer rejects short or name-like subjects just because they resemble a sender display name.",
+                        "Sender capture now supports service accounts, distribution lists, external senders, long display names, email-only senders, and “via” sender formats.",
+                        "Every Outlook click triggers a validated selection check, while recipient/detail clicks still produce no duplicate activity because the selected message identity has not changed.",
+                        "Messages are written only after both a real subject and sender have been resolved; empty subjects are preserved as “(No Subject)”."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "Outlook Capture Consistency",
                     symbol: "envelope.badge.fill",
                     items: [
