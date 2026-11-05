@@ -365,6 +365,10 @@ struct MemoryTrailApp: App {
                         "Calendar/meeting invitation emails now recognize Organizer, Meeting Organizer, Organized by, and Invited by as From-equivalent sender fields.",
                         "Invite response controls such as Accept, Tentative, Decline, and Propose New Time are excluded from subject capture.",
                         "Timeline rows now display Outlook activity as Subject  From: Sender for faster scanning.",
+                        "New Outlook detection is now persistent for the Outlook process once confirmed, preventing Search, Sent, custom folders, and full-width views from falling back to the Classic parser.",
+                        "Clicked message-row identity is carried into asynchronous capture so separate messages with identical Subject and From values can still be distinguished.",
+                        "Reading-pane, selected-object, and selected-row identities are merged instead of allowing one stale identity source to override the others.",
+                        "The Outlook-specific 150 ms logging throttle has been removed; signature and selection-state checks now handle duplicate suppression without discarding legitimate captures.",
                         "Sender presence states such as Available, Busy, Away, and Offline are removed from captured sender information."
                     ]
                 ),

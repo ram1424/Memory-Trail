@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.3"
-  RELEASE_BUILD: "8"
+  RELEASE_BUILD: "9"
 
 jobs:
   build-dmg:
@@ -288,11 +288,15 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Outlook calendar and meeting invitation emails now recognize Organizer, Meeting Organizer, Organized by, Organised by, and Invited by as valid From-equivalent sender fields.
-          - Meeting response controls such as Accept, Tentative, Decline, Propose New Time, and response options are excluded from subject candidates.
-          - Organizer parsing is shared by New Outlook reading-pane capture and Classic/general Outlook element capture.
-          - Timeline rows now show Outlook activity inline as Subject  From: Sender while preserving the stored subject and sender fields separately.
-          - Existing Memory Trail 1.3 Outlook reliability, Ask Memory Trail, Timeline, Insights, storage/history/export, Settings, and privacy-first refinements remain included.
+          - Fixed a New Outlook state-detection bug that could classify the same New Outlook process as Classic Outlook in Search, Sent, custom folders, full-width messages, or layouts where Focused Inbox/Copilot markers were absent.
+          - Once New Outlook is positively identified for the running Outlook process, that mode is retained for the lifetime of the process instead of being re-guessed on every email.
+          - New Outlook detection now also recognizes web-content and structural Message header signals and scans a larger Accessibility region.
+          - Clicked message-row identity is carried into asynchronous capture, allowing separate emails with identical Subject and From values to be logged independently.
+          - Reading-pane, selected-object, and selected-row identities are merged so a stale identity source cannot suppress a visibly different email.
+          - Subject matching tolerates truncated message-list subjects while keeping the visible Subject/From header authoritative.
+          - Removed the Outlook-specific 150 ms log throttle; duplicate suppression now relies on message signatures and selection identity instead of elapsed time.
+          - Polling remains active as a fallback for keyboard navigation and selection changes that do not generate a clean mouse-row event.
+          - Existing Memory Trail 1.3 calendar-invite, timeline sender, Ask Memory Trail, Insights, storage/history/export, Settings, and privacy-first refinements remain included.
 
 
           Privacy:

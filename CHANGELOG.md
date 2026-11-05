@@ -1,8 +1,21 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 8) - November 5, 2026
+## 1.3 (Build 9) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### New Outlook Selection-State Reliability
+
+- Fixed an architectural bug where New Outlook was re-detected from transient UI labels on every capture. The same New Outlook process could therefore be treated as New in Inbox but Classic in Search, Sent, custom folders, or full-width/open-message layouts.
+- Once New Outlook is positively identified for the running Outlook process, Memory Trail now keeps that mode for the lifetime of the process.
+- Broadened New Outlook detection to recognize web-content roles, reading/message pane identifiers, and structural Message header signals, with a larger Accessibility scan budget.
+- Carries the clicked message-row identity into the asynchronous reading-pane capture without making row detection a prerequisite for capture.
+- Distinct emails with identical Subject and From values can now be logged independently when the clicked row proves the selection changed.
+- Merges reading-pane, selected-object, and selected-row identities rather than allowing one stale identity source to override the others.
+- Subject comparison now treats truncated list-row subjects as compatible with the full visible reading-pane subject.
+- Removed the Outlook-specific 150 ms logging throttle. Outlook duplicate suppression now uses content signatures plus selection identity, avoiding timing-based loss.
+- The 1.25-second Outlook poll remains as a fallback for keyboard navigation and other selection changes that do not produce a clean mouse event.
+- Confirmed that the timeline noise filter only hides known Outlook chrome such as Inbox/Calendar/URLs; ordinary valid email subjects are not removed after storage.
 
 ### Outlook Calendar Invites & Timeline Sender
 
