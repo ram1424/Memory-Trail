@@ -314,35 +314,13 @@ final class MacCaptureCoordinator {
             if outlookUsesNewOutlookLayout(
                 pid: app.processIdentifier
             ) {
-                let hasMessageRow =
-                    result == .success &&
-                    hitElement.flatMap {
-                        nearestAccessibilityRow(
-                            from: $0
-                        )
-                    }.map {
-                        isOutlookMessageSelectionCandidate(
-                            $0
-                        )
-                    } == true
-
-                guard clickedSubject != nil ||
-                        hasMessageRow
-                else {
-                    return
-                }
-
                 scheduleOutlookMessageCapture(
                     application: app,
-                    bundleID: bundleID,
-                    expectedSubject: clickedSubject
+                    bundleID: bundleID
                 )
                 return
             }
 
-            // Restore the proven Classic Outlook flow from before the
-            // New Outlook work: capture only from the actual clicked
-            // message element, never from generic reading-pane chrome.
             if let clickedSubject {
                 logActivity(
                     title: clickedSubject,
@@ -357,8 +335,13 @@ final class MacCaptureCoordinator {
                     activityIdentity:
                         clickedIdentity
                 )
+                return
             }
 
+            scheduleOutlookMessageCapture(
+                application: app,
+                bundleID: bundleID
+            )
             return
         }
 
@@ -712,11 +695,13 @@ final class MacCaptureCoordinator {
             guard let self else { return }
 
             let retryDelays: [UInt64] = [
-                110_000_000,
-                140_000_000,
-                180_000_000,
-                240_000_000,
-                320_000_000
+                90_000_000,
+                120_000_000,
+                160_000_000,
+                220_000_000,
+                300_000_000,
+                450_000_000,
+                650_000_000
             ]
 
             for (attempt, delay) in
@@ -2214,6 +2199,25 @@ final class MacCaptureCoordinator {
     }
 
 
+    private func outlookSelectedRowIdentityFromSelection(
+        in root: AXUIElement
+    ) -> String? {
+        for selected in selectedAccessibilityRows(in: root) {
+            guard isOutlookMessageSelectionCandidate(
+                selected
+            ) else {
+                continue
+            }
+
+            if let identity =
+                outlookSelectedRowIdentity(selected) {
+                return identity
+            }
+        }
+
+        return nil
+    }
+
     private func outlookSelectedRowMessage(
         in root: AXUIElement
     ) -> OutlookMessageContext? {
@@ -2386,7 +2390,17 @@ final class MacCaptureCoordinator {
             to: AXUIElement.self
         )
 
-        if outlookUsesNewOutlookLayout(pid: pid) {
+        let selectedObjectMessage =
+            outlookSelectedMessageFromAppleScript()
+        let selectedRowMessage =
+            outlookSelectedRowMessage(in: window)
+        let selectedRowIdentity =
+            outlookSelectedRowIdentityFromSelection(
+                in: window
+            )
+
+        func resolvedReadingPaneMessage()
+            -> OutlookMessageContext? {
             guard let readingPaneMessage =
                 outlookReadingPaneMessage(
                     in: window
@@ -2405,19 +2419,16 @@ final class MacCaptureCoordinator {
                         readingPaneMessage.subject
                     )
 
-                guard expected == actual else {
-                    // The reading pane is still showing the
-                    // previous email; let the scheduler retry.
+                if expected != actual,
+                   let previousMessageKey =
+                    lastOutlookMessageKey,
+                   outlookMessageKey(
+                        readingPaneMessage
+                   ) == previousMessageKey {
                     return nil
                 }
             }
 
-            let selectedObjectMessage =
-                outlookSelectedMessageFromAppleScript()
-            let selectedRowMessage =
-                outlookSelectedRowMessage(
-                    in: window
-                )
             let subjectKey =
                 normalizedOutlookIdentity(
                     readingPaneMessage.subject
@@ -2461,58 +2472,38 @@ final class MacCaptureCoordinator {
                 identity:
                     matchingObject?.identity ??
                     matchingRow?.identity ??
+                    selectedRowIdentity ??
                     readingPaneMessage.identity,
                 isNewOutlookReadingPane: true
             )
         }
 
-        // Classic Outlook: restore the pre-New-Outlook
-        // subject/sender flow. Do not inspect the generic
-        // reading pane at all.
-        guard let subject =
-            outlookSelectedSubject(
-                pid: pid
-            )
-        else {
-            return nil
+        if outlookUsesNewOutlookLayout(pid: pid) {
+            return resolvedReadingPaneMessage()
         }
 
-        let selectedObjectMessage =
-            outlookSelectedMessageFromAppleScript()
-        let sender =
-            outlookSelectedSender(pid: pid) ??
-            selectedObjectMessage?.sender
+        if let subject =
+            outlookSelectedSubject(pid: pid) {
+            let sender =
+                outlookSelectedSender(pid: pid) ??
+                selectedObjectMessage?.sender ??
+                selectedRowMessage?.sender
 
-        guard let sender,
-              !sender.isEmpty
-        else {
-            return nil
+            if let sender,
+               !sender.isEmpty {
+                return OutlookMessageContext(
+                    subject: subject,
+                    sender: sender,
+                    identity:
+                        selectedObjectMessage?.identity ??
+                        selectedRowIdentity ??
+                        selectedRowMessage?.identity
+                )
+            }
         }
 
-        var identity =
-            selectedObjectMessage?.identity
-
-        if identity == nil,
-           let selectedRow =
-            outlookSelectedRowMessage(
-                in: window
-            ),
-           normalizedOutlookIdentity(
-                selectedRow.subject
-           ) ==
-            normalizedOutlookIdentity(
-                subject
-            ) {
-            identity = selectedRow.identity
-        }
-
-        return OutlookMessageContext(
-            subject: subject,
-            sender: sender,
-            identity: identity
-        )
+        return resolvedReadingPaneMessage()
     }
-
 
     private func outlookSelectedSubject(pid: pid_t) -> String? {
         if let subject = outlookSelectedSubjectFromAccessibility(pid: pid) {
