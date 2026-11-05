@@ -301,15 +301,10 @@ final class MacCaptureCoordinator {
                         pid: app.processIdentifier
                     )
 
-                if let row =
-                    nearestAccessibilityRow(
-                        from: hitElement
-                    ) {
-                    clickedIdentity =
-                        outlookSelectedRowIdentity(row)
-                } else {
-                    clickedIdentity = nil
-                }
+                // Classic Outlook's proven click path does not need
+                // a separate row identity. Subject + sender come directly
+                // from the clicked message element.
+                clickedIdentity = nil
             } else {
                 clickedSubject = nil
                 clickedSender = nil
