@@ -1130,12 +1130,8 @@ final class MacCaptureCoordinator {
     private func outlookMessageKey(
         _ message: OutlookMessageContext
     ) -> String {
-        if let identity = message.identity,
-           !identity.isEmpty {
-            return identity
-        }
-
-        return [
+        [
+            message.identity ?? "",
             normalizedOutlookIdentity(message.subject),
             normalizedOutlookIdentity(message.sender ?? "")
         ].joined(separator: "|")
@@ -1240,24 +1236,13 @@ final class MacCaptureCoordinator {
         var inspected = 0
         var elements: [ReadingPaneElement] = []
 
-        let farLeftCutoff = windowFrame.minX + (windowFrame.width * 0.42)
-
-        while index < queue.count, inspected < 1_200 {
+        while index < queue.count, inspected < 1_500 {
             let current = queue[index]
             index += 1
             inspected += 1
 
             let element = current.element
             let frame = accessibilityFrame(of: element)
-
-            // The mailbox/folder navigation tree is never the open message
-            // header. Pruning deep nodes that live entirely in the far-left
-            // column avoids hundreds of unnecessary AX attribute reads.
-            if current.depth > 2,
-               let frame,
-               frame.maxX < farLeftCutoff {
-                continue
-            }
 
             let role = attributeString(
                 element,
@@ -1298,8 +1283,7 @@ final class MacCaptureCoordinator {
 
             guard semantic,
                   frame.width >= 260,
-                  frame.height >= 220,
-                  frame.midX >= windowFrame.midX
+                  frame.height >= 180
             else {
                 return nil
             }
@@ -1307,16 +1291,101 @@ final class MacCaptureCoordinator {
             return frame
         }
 
-        let paneFrame = semanticPaneFrames.max(by: {
+        let semanticPaneFrame = semanticPaneFrames.max(by: {
             ($0.width * $0.height) < ($1.width * $1.height)
-        }) ?? CGRect(
-            x: windowFrame.minX + (windowFrame.width * 0.45),
-            y: windowFrame.minY,
-            width: windowFrame.width * 0.55,
-            height: windowFrame.height
-        )
+        })
 
-        let headerBottom = paneFrame.minY + (paneFrame.height * 0.48)
+        var structuralHeaderFrames: [CGRect] = []
+
+        for item in elements {
+            guard let frame = item.frame else {
+                continue
+            }
+
+            let identifierSignal =
+                item.identifier.contains("messageheader") ||
+                item.identifier.contains("message-header") ||
+                item.identifier.contains("mail-header")
+
+            var labelSignal = identifierSignal
+
+            if !labelSignal {
+                for attribute in [
+                    kAXTitleAttribute as CFString,
+                    kAXValueAttribute as CFString,
+                    kAXDescriptionAttribute as CFString
+                ] {
+                    if let raw = attributeString(
+                        item.element,
+                        attribute
+                    ),
+                    isNewOutlookStructuralHeaderLabel(raw) {
+                        labelSignal = true
+                        break
+                    }
+                }
+            }
+
+            guard labelSignal else {
+                continue
+            }
+
+            if frame.width >= 80,
+               frame.height >= 20 {
+                structuralHeaderFrames.append(frame)
+            }
+
+            if let parent = parentElement(
+                of: item.element
+            ),
+            let parentFrame = accessibilityFrame(
+                of: parent
+            ),
+            parentFrame.width >= 260,
+            parentFrame.height >= 80 {
+                structuralHeaderFrames.append(
+                    parentFrame
+                )
+            }
+        }
+
+        let structuralHeaderFrame =
+            structuralHeaderFrames.max(by: {
+                ($0.width * $0.height) <
+                    ($1.width * $1.height)
+            })
+
+        let paneFrame: CGRect
+
+        if let semanticPaneFrame {
+            paneFrame = semanticPaneFrame
+        } else if let structuralHeaderFrame {
+            let expandedX = max(
+                windowFrame.minX,
+                structuralHeaderFrame.minX - 36
+            )
+            paneFrame = CGRect(
+                x: expandedX,
+                y: windowFrame.minY,
+                width: max(
+                    260,
+                    windowFrame.maxX - expandedX
+                ),
+                height: windowFrame.height
+            )
+        } else {
+            paneFrame = CGRect(
+                x: windowFrame.minX +
+                    (windowFrame.width * 0.45),
+                y: windowFrame.minY,
+                width: windowFrame.width * 0.55,
+                height: windowFrame.height
+            )
+        }
+
+        let headerBottom =
+            paneFrame.minY +
+            (paneFrame.height * 0.48)
 
         // In New Outlook the command bar (Delete / Archive / Move / Flag)
         // sits above the actual message header. When the Summary by Copilot
@@ -2472,8 +2541,8 @@ final class MacCaptureCoordinator {
                 identity:
                     matchingObject?.identity ??
                     matchingRow?.identity ??
-                    selectedRowIdentity ??
-                    readingPaneMessage.identity,
+                    readingPaneMessage.identity ??
+                    selectedRowIdentity,
                 isNewOutlookReadingPane: true
             )
         }
