@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.2"
-  RELEASE_BUILD: "5"
+  RELEASE_BUILD: "6"
 
 jobs:
   build-dmg:
@@ -288,9 +288,9 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - New Outlook now pairs subject and sender from the same right-side reading pane.
-          - Reading-pane values are prioritized by their actual position in the right half of the Outlook window.
-          - Composite message-list text containing timestamps or Message preview is rejected as a subject.
+          - New Outlook waits for the right-side reading pane to finish switching before recording a clicked email.
+          - Rapid clicks cancel stale pending captures so a previous email cannot be logged against the newly selected row.
+          - Subject and sender must be a matched pair from the same reading-pane header; Copilot summaries and body headings are rejected.
 
 
           Privacy:

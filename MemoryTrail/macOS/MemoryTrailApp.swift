@@ -348,6 +348,15 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "New Outlook Header Lock",
+                    symbol: "envelope.open.badge.clock",
+                    items: [
+                        "Outlook row clicks now wait for the right-side reading pane to finish switching before Memory Trail records the message.",
+                        "Rapid clicks cancel the older pending capture, preventing a previous email from being logged against the newly selected row.",
+                        "Subject and sender must now form a matched pair in the same reading-pane header region; Copilot summary labels and body headings are excluded."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "New Outlook Right-Pane Matching",
                     symbol: "rectangle.rightthird.inset.filled",
                     items: [
