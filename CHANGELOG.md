@@ -1,8 +1,16 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 2) - November 5, 2026
+## 1.3 (Build 3) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### New Outlook Full-Width Header Fix
+
+- Added support for New Outlook messages whose open-message header spans most or all of the Outlook window instead of living in the traditional right-side reading pane.
+- Removed premature left-side Accessibility pruning before the message-pane layout is known.
+- New Outlook now detects semantic reading/message panes anywhere in the focused Outlook window and can use the structural Message header container to establish the correct scan region.
+- Message de-duplication now combines identity with the visible subject and sender so a stale/constant row identity cannot suppress a different email.
+- Reading-pane identity derived from subject/sender/timestamp is preferred over an unverified generic selected-row identity.
 
 ### Outlook Capture Reliability Patch
 

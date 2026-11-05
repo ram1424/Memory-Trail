@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.3"
-  RELEASE_BUILD: "2"
+  RELEASE_BUILD: "3"
 
 jobs:
   build-dmg:
@@ -289,12 +289,13 @@ jobs:
 
           Highlights:
           - Outlook capture is more reliable across Classic and New Outlook.
-          - New Outlook validates the selected message on every click instead of requiring a specific Accessibility row shape, preventing valid emails from being silently ignored.
-          - New Outlook uses the actual right-side Subject and From header as authoritative data and no longer requires an exact match to potentially truncated message-list text.
-          - Outlook retries unresolved or stale message headers for longer while successful captures still return immediately.
-          - Selected-row identity is retained independently of subject parsing so separate same-subject/same-sender messages are not incorrectly de-duplicated.
-          - Classic Outlook remains on its proven clicked-message capture path with a validated fallback when a row is not exposed normally.
-          - Today/Timeline, Insights, Ask Memory Trail, storage/history/export, Settings, and privacy-first local processing refinements are included in the 1.3 release.
+          - New Outlook validates the selected message on every click instead of requiring a specific Accessibility row shape.
+          - New Outlook supports both split-pane/right-side reading panes and full-width/open-message layouts, so messages are not dropped when the Subject and From header is positioned outside the traditional right portion of the window.
+          - The actual visible Subject and From header remains authoritative; toolbar controls, Copilot labels, structural header names, recipient controls, and other UI chrome remain excluded.
+          - Message identity now includes visible subject/sender context, preventing a stale or constant row identity from suppressing a visibly different email.
+          - The New Outlook reading-pane timestamp identity is preferred over an unverified generic selected-row identity.
+          - Classic Outlook remains on its proven clicked-message capture path.
+          - Today/Timeline, Insights, Ask Memory Trail, storage/history/export, Settings, and privacy-first local processing refinements remain included in 1.3.
 
 
           Privacy:
