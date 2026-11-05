@@ -1,8 +1,16 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 6) - November 5, 2026
+## 1.3 (Build 7) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### New Outlook False-Filter Fix
+
+- Removed the content-shape rule that incorrectly rejected legitimate subjects simply because they looked like email addresses.
+- Explicit Subject fields, AppleScript-selected subjects, and trusted visible New Outlook subject positions can now preserve email-address-shaped subjects.
+- Outlook badges such as External, External Sender, Guest, Internal, and similar security labels are treated as UI metadata rather than subject/sender candidates.
+- Subject selection now requires the subject to be positioned above the confirmed sender line, reducing the need for risky text-content filtering.
+- Sender parsing now tolerates angle-bracket and ellipsis characters that New Outlook may expose in sender display strings.
 
 ### Ask Memory Trail Quick-Start Icons
 

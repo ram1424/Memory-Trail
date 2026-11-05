@@ -1518,9 +1518,11 @@ final class MacCaptureCoordinator {
                 if semanticSubject,
                    !isNewOutlookStructuralHeaderLabel(raw),
                    !isOutlookNavigationChrome(raw),
-                   !isOutlookSenderOnlyValue(raw),
                    !isOutlookMessageGroupHeader(raw),
-                   let subject = sanitizedOutlookSubject(raw) {
+                   let subject = sanitizedOutlookSubject(
+                        raw,
+                        allowSenderLikeSubject: true
+                   ) {
                     var score = baseScore + 1_000 - item.depth * 4
                     score += max(
                         0,
@@ -1663,7 +1665,7 @@ final class MacCaptureCoordinator {
                     sender.frame.midY -
                     candidate.frame.midY
 
-                guard verticalOffset >= -12,
+                guard verticalOffset >= 6,
                       verticalOffset <= 240
                 else {
                     return false
@@ -1939,7 +1941,6 @@ final class MacCaptureCoordinator {
         guard !value.isEmpty,
               !isOutlookHeaderMetadataText(value),
               !isOutlookCopilotOrSummaryText(value),
-              !isExplicitOutlookSenderText(value),
               !isNewOutlookStructuralHeaderLabel(value)
         else {
             return nil
@@ -1976,7 +1977,10 @@ final class MacCaptureCoordinator {
             return nil
         }
 
-        return sanitizedOutlookSubject(value)
+        return sanitizedOutlookSubject(
+            value,
+            allowSenderLikeSubject: true
+        )
     }
 
 
@@ -2017,6 +2021,7 @@ final class MacCaptureCoordinator {
 
         guard !value.isEmpty,
               value.count <= 200,
+              !isOutlookHeaderMetadataText(value),
               !looksLikeURL(value),
               !looksLikeTimestampOrDate(value),
               !isOutlookNavigationChrome(value),
@@ -2068,7 +2073,7 @@ final class MacCaptureCoordinator {
             .union(.decimalDigits)
             .union(.whitespaces)
             .union(CharacterSet(
-                charactersIn: "@&'’.-_()+,/"
+                charactersIn: "@&'’.-_()+,/<>…"
             ))
 
         return value.unicodeScalars.allSatisfy {
@@ -2136,7 +2141,11 @@ final class MacCaptureCoordinator {
             }
         }
 
-        guard allowPlainValue else { return nil }
+        guard allowPlainValue,
+              !isOutlookHeaderMetadataText(normalized)
+        else {
+            return nil
+        }
 
         let cleaned = normalized
             .replacingOccurrences(
@@ -2283,7 +2292,13 @@ final class MacCaptureCoordinator {
             "in a meeting",
             "be right back",
             "appear away",
-            "show details"
+            "show details",
+            "external",
+            "external sender",
+            "guest",
+            "internal",
+            "outside your organization",
+            "unverified sender"
         ])
 
         if exact.contains(lower) {
@@ -2324,7 +2339,10 @@ final class MacCaptureCoordinator {
             let value = String(trimmed.dropFirst("subject:".count))
                 .trimmingCharacters(in: .whitespacesAndNewlines)
 
-            if let subject = sanitizedOutlookSubject(value) {
+            if let subject = sanitizedOutlookSubject(
+                    value,
+                    allowSenderLikeSubject: true
+                ) {
                 return subject
             }
         }
@@ -2356,7 +2374,10 @@ final class MacCaptureCoordinator {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        return sanitizedOutlookSubject(subjectText)
+        return sanitizedOutlookSubject(
+            subjectText,
+            allowSenderLikeSubject: true
+        )
     }
 
 
@@ -2767,7 +2788,10 @@ final class MacCaptureCoordinator {
             .components(separatedBy: senderDelimiter)
 
         guard let subjectPart = messageParts.first,
-              let subject = sanitizedOutlookSubject(subjectPart)
+              let subject = sanitizedOutlookSubject(
+                subjectPart,
+                allowSenderLikeSubject: true
+              )
         else {
             return nil
         }
@@ -3122,7 +3146,10 @@ final class MacCaptureCoordinator {
         return eligible.max(by: { $0.score < $1.score })?.subject
     }
 
-    private func sanitizedOutlookSubject(_ rawValue: String) -> String? {
+    private func sanitizedOutlookSubject(
+        _ rawValue: String,
+        allowSenderLikeSubject: Bool = false
+    ) -> String? {
         var value = rawValue
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -3130,7 +3157,8 @@ final class MacCaptureCoordinator {
         let initialLower = value.lowercased()
         if isOutlookHeaderMetadataText(value) ||
             isOutlookNavigationChrome(value) ||
-            isOutlookSenderOnlyValue(value) ||
+            (!allowSenderLikeSubject &&
+                isOutlookSenderOnlyValue(value)) ||
             isOutlookMessageGroupHeader(value) ||
             isOutlookMessageListComposite(value) {
             return nil

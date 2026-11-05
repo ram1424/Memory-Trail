@@ -359,6 +359,9 @@ struct MemoryTrailApp: App {
                         "New Outlook now supports both split-pane and full-width/open-message layouts, so subjects and senders positioned outside the traditional right-side reading pane are still captured.",
                         "Sent/received timestamps, recipient lines, presence/status text, and other header metadata can no longer be mistaken for the email subject.",
                         "When the visible New Outlook header cannot expose a usable subject, Memory Trail falls back to the selected Outlook message object or selected row instead of silently dropping the email.",
+                        "Legitimate subjects that look like email addresses are now preserved instead of being misclassified as sender text.",
+                        "External/Guest/security badges are treated as Outlook UI metadata and can no longer replace the real sender or subject.",
+                        "Sender/subject selection relies more heavily on their physical position in the message header rather than the text format.",
                         "Sender presence states such as Available, Busy, Away, and Offline are removed from captured sender information."
                     ]
                 ),
