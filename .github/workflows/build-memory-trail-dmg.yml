@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.2"
-  RELEASE_BUILD: "8"
+  RELEASE_BUILD: "9"
 
 jobs:
   build-dmg:
@@ -288,9 +288,10 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Outlook capture is now event-driven on clicks and performs one settled accessibility scan instead of two full scans.
-          - Outlook fallback polling now runs roughly once per second instead of waiting up to nine seconds.
-          - Reading-pane scanning prunes irrelevant navigation subtrees while preserving the Build 7 subject/sender capture logic for both Classic and New Outlook.
+          - Classic Outlook now uses the selected Outlook message object as the authoritative subject/sender source instead of scraping the reading pane.
+          - New Outlook retains the working visible-header parser but briefly retries stale reading-pane results after a message-row click.
+          - Only real message-list row clicks trigger immediate capture; recipient/detail controls are ignored and recipient strings are explicitly rejected.
+          - Outlook duplicate signatures are normalized to prevent visually identical duplicate timeline entries.
 
 
           Privacy:

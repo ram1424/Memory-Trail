@@ -15,6 +15,7 @@ final class MacCaptureCoordinator {
     @ObservationIgnored private var windowTimer: Timer?
     @ObservationIgnored private var mouseMonitor: Any?
     @ObservationIgnored private var outlookClickCaptureTask: Task<Void, Never>?
+    @ObservationIgnored private var lastOutlookMessageKey: String?
     @ObservationIgnored private var lastClipboardChangeCount = NSPasteboard.general.changeCount
     @ObservationIgnored private var lastWindowSignature = ""
     @ObservationIgnored private var lastWindowLoggedAt = Date.distantPast
@@ -109,6 +110,7 @@ final class MacCaptureCoordinator {
         teamsGroupExpansionCache.removeAll(keepingCapacity: true)
         outlookClickCaptureTask?.cancel()
         outlookClickCaptureTask = nil
+        lastOutlookMessageKey = nil
         lastClipboardChangeCount = NSPasteboard.general.changeCount
         didRequestAccessibilityThisLaunch = false
         enhancedAccessibilityPIDs.removeAll(keepingCapacity: true)
@@ -246,10 +248,15 @@ final class MacCaptureCoordinator {
                 self.enableDetailedAccessibilityIfNeeded(for: app)
 
                 if bundleID.lowercased() == "com.microsoft.outlook" {
-                    self.scheduleOutlookMessageCapture(
-                        application: app,
-                        bundleID: bundleID
-                    )
+                    if self.outlookClickTargetsMessageSelection(
+                        at: point,
+                        pid: app.processIdentifier
+                    ) {
+                        self.scheduleOutlookMessageCapture(
+                            application: app,
+                            bundleID: bundleID
+                        )
+                    }
                     return
                 }
 
@@ -283,13 +290,15 @@ final class MacCaptureCoordinator {
         )
 
         if lowerBundleID == "com.microsoft.outlook" {
-            // Any Outlook click can change the selected/open message. Scheduling
-            // directly is faster and more reliable than waiting for AX hit-testing
-            // to classify the clicked message row.
-            scheduleOutlookMessageCapture(
-                application: app,
-                bundleID: bundleID
-            )
+            if outlookClickTargetsMessageSelection(
+                at: point,
+                pid: app.processIdentifier
+            ) {
+                scheduleOutlookMessageCapture(
+                    application: app,
+                    bundleID: bundleID
+                )
+            }
             return
         }
 
@@ -425,6 +434,73 @@ final class MacCaptureCoordinator {
     }
 
 
+    private func outlookClickTargetsMessageSelection(
+        at point: CGPoint,
+        pid: pid_t
+    ) -> Bool {
+        var hitElement: AXUIElement?
+        let systemWide = AXUIElementCreateSystemWide()
+
+        guard AXUIElementCopyElementAtPosition(
+            systemWide,
+            Float(point.x),
+            Float(point.y),
+            &hitElement
+        ) == .success,
+        let hitElement,
+        let row = nearestAccessibilityRow(from: hitElement)
+        else {
+            return false
+        }
+
+        let role = attributeString(
+            row,
+            kAXRoleAttribute as CFString
+        )?.lowercased() ?? ""
+
+        // Only an actual message-list row/cell can trigger immediate capture.
+        // Recipient chips, To/CC fields, reading-pane text, Copilot controls,
+        // and toolbar buttons are intentionally excluded here.
+        guard role.contains("row") ||
+                role.contains("cell") ||
+                role.contains("outline") ||
+                role.contains("list")
+        else {
+            return false
+        }
+
+        guard isOutlookMessageSelectionCandidate(row) else {
+            return false
+        }
+
+        let appElement = AXUIElementCreateApplication(pid)
+        var focusedWindowValue: CFTypeRef?
+        if AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        ) == .success,
+        let focusedWindowValue,
+        CFGetTypeID(focusedWindowValue) == AXUIElementGetTypeID(),
+        let rowFrame = accessibilityFrame(of: row) {
+            let window = unsafeBitCast(
+                focusedWindowValue,
+                to: AXUIElement.self
+            )
+
+            if let windowFrame = accessibilityFrame(of: window) {
+                let messageListCutoff =
+                    windowFrame.minX + (windowFrame.width * 0.69)
+
+                if rowFrame.midX > messageListCutoff {
+                    return false
+                }
+            }
+        }
+
+        return true
+    }
+
     private func scheduleOutlookMessageCapture(
         application: NSRunningApplication,
         bundleID: String
@@ -433,34 +509,64 @@ final class MacCaptureCoordinator {
 
         let pid = application.processIdentifier
         let appName = application.localizedName ?? "Microsoft Outlook"
+        let previousMessageKey = lastOutlookMessageKey
 
         outlookClickCaptureTask = Task { @MainActor [weak self] in
             guard let self else { return }
 
-            // The previous implementation performed two complete Outlook AX-tree
-            // scans after long settle delays. On large mailboxes that could make
-            // the visible result lag by several seconds. One short settle period
-            // is enough for both Classic and New Outlook, while rapid clicks still
-            // cancel the older pending capture.
-            try? await Task.sleep(nanoseconds: 240_000_000)
+            // New Outlook can expose the previous reading-pane header briefly
+            // after a row click. Try quickly, then retry only while the result is
+            // unchanged from the last confirmed message. Classic Outlook usually
+            // succeeds on the first pass through its selected-message object.
+            let retryDelays: [UInt64] = [
+                140_000_000,
+                130_000_000,
+                170_000_000
+            ]
 
-            guard !Task.isCancelled,
-                  NSWorkspace.shared.frontmostApplication?.processIdentifier == pid,
-                  let message = self.outlookSelectedMessageContext(pid: pid)
-            else {
+            for (attempt, delay) in retryDelays.enumerated() {
+                try? await Task.sleep(nanoseconds: delay)
+
+                guard !Task.isCancelled,
+                      NSWorkspace.shared.frontmostApplication?.processIdentifier == pid
+                else {
+                    return
+                }
+
+                guard let message = self.outlookSelectedMessageContext(pid: pid)
+                else {
+                    continue
+                }
+
+                let messageKey = self.outlookMessageKey(message)
+
+                if let previousMessageKey,
+                   messageKey == previousMessageKey,
+                   attempt < retryDelays.count - 1 {
+                    continue
+                }
+
+                // If all retries still resolve to the previously logged message,
+                // the reading pane never confirmed a new selection. Do not create
+                // another stale/duplicate timeline entry.
+                if let previousMessageKey,
+                   messageKey == previousMessageKey {
+                    return
+                }
+
+                self.lastExpensiveWindowPollAt = Date()
+                self.logActivity(
+                    title: message.subject,
+                    sourceURL: nil,
+                    applicationName: appName,
+                    bundleID: bundleID,
+                    baseDetail: message.sender.map { "From: \($0)" }
+                )
                 return
             }
-
-            self.lastExpensiveWindowPollAt = Date()
-            self.logActivity(
-                title: message.subject,
-                sourceURL: nil,
-                applicationName: appName,
-                bundleID: bundleID,
-                baseDetail: message.sender.map { "From: \($0)" }
-            )
         }
     }
+
 
     private func pollFocusedWindow(forceExpensiveApps: Bool = false) {
         let prefs = RecallPreferences.shared
@@ -615,9 +721,14 @@ final class MacCaptureCoordinator {
         bundleID: String,
         baseDetail: String? = nil
     ) {
+        let normalizedTitleSignature =
+            bundleID.lowercased() == "com.microsoft.outlook"
+            ? normalizedOutlookIdentity(title)
+            : title.lowercased()
+
         let signature = [
             bundleID.lowercased(),
-            title.lowercased(),
+            normalizedTitleSignature,
             sourceURL?.lowercased() ?? ""
         ].joined(separator: "|")
 
@@ -638,6 +749,19 @@ final class MacCaptureCoordinator {
 
         if lowerBundleID == "com.microsoft.outlook" {
             storedBody = baseDetail ?? ""
+
+            let sender = baseDetail?
+                .replacingOccurrences(
+                    of: "From:",
+                    with: "",
+                    options: [.caseInsensitive, .anchored]
+                )
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            lastOutlookMessageKey = [
+                normalizedOutlookIdentity(title),
+                normalizedOutlookIdentity(sender ?? "")
+            ].joined(separator: "|")
         } else if isTeamsBundleID(lowerBundleID) {
             storedBody = ""
         } else {
@@ -778,6 +902,30 @@ final class MacCaptureCoordinator {
     private struct OutlookMessageContext {
         let subject: String
         let sender: String?
+        let isNewOutlookReadingPane: Bool = false
+    }
+
+    private func outlookMessageKey(
+        _ message: OutlookMessageContext
+    ) -> String {
+        [
+            normalizedOutlookIdentity(message.subject),
+            normalizedOutlookIdentity(message.sender ?? "")
+        ].joined(separator: "|")
+    }
+
+    private func normalizedOutlookIdentity(_ value: String) -> String {
+        value
+            .precomposedStringWithCanonicalMapping
+            .replacingOccurrences(
+                of: #"[\s\u{00A0}]+"#,
+                with: " ",
+                options: .regularExpression
+            )
+            .replacingOccurrences(of: "–", with: "-")
+            .replacingOccurrences(of: "—", with: "-")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
     }
 
     private func captureOutlookSelectedSubject(application: NSRunningApplication) {
@@ -812,52 +960,57 @@ final class MacCaptureCoordinator {
             return nil
         }
 
-        let window = unsafeBitCast(focusedWindowValue, to: AXUIElement.self)
+        let window = unsafeBitCast(
+            focusedWindowValue,
+            to: AXUIElement.self
+        )
 
-        // New Outlook: subject and sender must come from the same open message
-        // in the right-side reading pane. Do not combine independently selected
-        // list-row values.
-        if let readingPaneMessage = outlookReadingPaneMessage(in: window) {
-            if readingPaneMessage.sender == nil,
-               let selectedSubject = outlookSelectedSubjectFromAppleScript(),
-               selectedSubject.caseInsensitiveCompare(readingPaneMessage.subject) == .orderedSame,
-               let selectedSender = outlookSelectedSenderFromAppleScript() {
+        // Classic Outlook exposes the selected mail item directly through its
+        // AppleScript object model. That is more authoritative than scraping the
+        // reading pane and prevents recipient labels or neighboring messages from
+        // being mistaken for the subject.
+        let selectedObjectMessage =
+            outlookSelectedMessageFromAppleScript()
+
+        // New Outlook does not consistently expose selected objects, so retain
+        // the visible right-side header parser that correctly reads the subject
+        // beneath Summary by Copilot.
+        let readingPaneMessage =
+            outlookReadingPaneMessage(in: window)
+
+        if let readingPaneMessage,
+           readingPaneMessage.isNewOutlookReadingPane {
+            if let selectedObjectMessage,
+               normalizedOutlookIdentity(selectedObjectMessage.subject) ==
+                normalizedOutlookIdentity(readingPaneMessage.subject) {
                 return OutlookMessageContext(
                     subject: readingPaneMessage.subject,
-                    sender: selectedSender
+                    sender: readingPaneMessage.sender ??
+                        selectedObjectMessage.sender,
+                    isNewOutlookReadingPane: true
                 )
             }
 
             return readingPaneMessage
         }
 
-        // Preserve Classic Outlook as a fallback, but keep subject and sender
-        // bound to the same selected row. Never resolve them independently.
+        if let selectedObjectMessage {
+            return selectedObjectMessage
+        }
+
+        if let readingPaneMessage {
+            return readingPaneMessage
+        }
+
+        // Accessibility-row fallback is intentionally narrow and is used only
+        // when Outlook scripting and the visible reading pane are unavailable.
         if let selectedMessage = outlookSelectedRowMessage(in: window) {
             return selectedMessage
         }
 
-        if let focused = focusedAccessibilityElement(in: appElement),
-           let row = nearestAccessibilityRow(from: focused),
-           let subject = outlookSubjectFromSelectedElement(
-               row,
-               requireStrongSignal: false
-           ) {
-            return OutlookMessageContext(
-                subject: subject,
-                sender: outlookSenderFromElement(row)
-            )
-        }
-
-        if let subject = outlookSelectedSubjectFromAppleScript() {
-            return OutlookMessageContext(
-                subject: subject,
-                sender: outlookSelectedSenderFromAppleScript()
-            )
-        }
-
         return nil
     }
+
 
     private func outlookSelectedSubject(pid: pid_t) -> String? {
         if let subject = outlookSelectedSubjectFromAccessibility(pid: pid) {
@@ -869,30 +1022,79 @@ final class MacCaptureCoordinator {
         return outlookSelectedSubjectFromAppleScript()
     }
 
-    private func outlookSelectedSubjectFromAppleScript() -> String? {
+    private func outlookSelectedMessageFromAppleScript()
+        -> OutlookMessageContext? {
+        let delimiter = "<<<MEMORY_TRAIL_SENDER>>>"
         let source = """
         tell application "Microsoft Outlook"
             try
                 set selectedItems to selected objects
                 if (count of selectedItems) is greater than 0 then
                     set theItem to item 1 of selectedItems
+                    set subjectValue to ""
+                    set senderValue to ""
+
                     try
-                        return subject of theItem as text
+                        set subjectValue to subject of theItem as text
                     end try
+
+                    try
+                        set senderObject to sender of theItem
+                        try
+                            set senderValue to name of senderObject as text
+                        on error
+                            set senderValue to senderObject as text
+                        end try
+                    end try
+
+                    if subjectValue is not "" then
+                        return subjectValue & "<<<MEMORY_TRAIL_SENDER>>>" & senderValue
+                    end if
                 end if
             end try
         end tell
         return ""
         """
 
-        guard let script = NSAppleScript(source: source) else { return nil }
+        guard let script = NSAppleScript(source: source) else {
+            return nil
+        }
 
         var error: NSDictionary?
         let result = script.executeAndReturnError(&error)
-        guard error == nil else { return nil }
+        guard error == nil,
+              let raw = result.stringValue,
+              !raw.isEmpty
+        else {
+            return nil
+        }
 
-        return sanitizedOutlookSubject(result.stringValue ?? "")
+        let parts = raw.components(separatedBy: delimiter)
+        guard let subjectPart = parts.first,
+              let subject = sanitizedOutlookSubject(subjectPart)
+        else {
+            return nil
+        }
+
+        let sender: String?
+        if parts.count > 1 {
+            sender = sanitizedOutlookSender(
+                parts.dropFirst().joined(separator: delimiter)
+            )
+        } else {
+            sender = nil
+        }
+
+        return OutlookMessageContext(
+            subject: subject,
+            sender: sender
+        )
     }
+
+    private func outlookSelectedSubjectFromAppleScript() -> String? {
+        outlookSelectedMessageFromAppleScript()?.subject
+    }
+
 
     private func outlookSelectedSender(pid: pid_t) -> String? {
         let appElement = AXUIElementCreateApplication(pid)
@@ -928,33 +1130,9 @@ final class MacCaptureCoordinator {
     }
 
     private func outlookSelectedSenderFromAppleScript() -> String? {
-        let source = """
-        tell application "Microsoft Outlook"
-            try
-                set selectedItems to selected objects
-                if (count of selectedItems) is greater than 0 then
-                    set theItem to item 1 of selectedItems
-                    try
-                        set senderValue to sender of theItem
-                        try
-                            return name of senderValue as text
-                        end try
-                        return senderValue as text
-                    end try
-                end if
-            end try
-        end tell
-        return ""
-        """
-
-        guard let script = NSAppleScript(source: source) else { return nil }
-
-        var error: NSDictionary?
-        let result = script.executeAndReturnError(&error)
-        guard error == nil else { return nil }
-
-        return sanitizedOutlookSender(result.stringValue ?? "")
+        outlookSelectedMessageFromAppleScript()?.sender
     }
+
 
     private func outlookSenderFromElement(_ root: AXUIElement) -> String? {
         var current: AXUIElement? = root
@@ -1231,6 +1409,7 @@ final class MacCaptureCoordinator {
                 frame: CGRect
             )
         ] = []
+        var sawNewOutlookSignal = false
 
         for item in elements {
             guard let frame = item.frame,
@@ -1263,8 +1442,18 @@ final class MacCaptureCoordinator {
                 (kAXValueAttribute as CFString, 135),
                 (kAXDescriptionAttribute as CFString, 120)
             ] {
-                guard let raw = attributeString(item.element, attribute),
-                      !isOutlookMessageListComposite(raw),
+                guard let raw = attributeString(item.element, attribute)
+                else {
+                    continue
+                }
+
+                let lowerRaw = raw.lowercased()
+                if lowerRaw.contains("summary by copilot") ||
+                    lowerRaw.contains("copilot summary") {
+                    sawNewOutlookSignal = true
+                }
+
+                guard !isOutlookMessageListComposite(raw),
                       !isOutlookCopilotOrSummaryText(raw)
                 else {
                     continue
@@ -1368,7 +1557,8 @@ final class MacCaptureCoordinator {
 
         return OutlookMessageContext(
             subject: bestSubject.subject,
-            sender: bestSender
+            sender: bestSender,
+            isNewOutlookReadingPane: sawNewOutlookSignal
         )
     }
 
@@ -1473,10 +1663,14 @@ final class MacCaptureCoordinator {
         ])
 
         if rejectedExact.contains(lower) ||
+            lower.hasPrefix("recipients:") ||
+            lower.contains("recipients: to:") ||
             lower.hasPrefix("to:") ||
             lower.hasPrefix("cc:") ||
             lower.hasPrefix("bcc:") ||
+            lower.hasPrefix("from:") ||
             lower.hasPrefix("sent:") ||
+            lower.contains("show details") ||
             lower.hasPrefix("today at ") ||
             lower.hasPrefix("yesterday at ") ||
             lower.contains("sensitivity label") {
@@ -1568,11 +1762,14 @@ final class MacCaptureCoordinator {
         let lower = rawValue.lowercased()
 
         if lower.contains("message preview:") ||
+            lower.hasPrefix("recipients:") ||
+            lower.contains("recipients: to:") ||
             lower.hasPrefix("to:") ||
             lower.hasPrefix("cc:") ||
             lower.hasPrefix("bcc:") ||
             lower.hasPrefix("sent:") ||
             lower.hasPrefix("subject:") ||
+            lower.contains("show details") ||
             lower.contains("sensitivity label") {
             return false
         }
@@ -3413,6 +3610,17 @@ final class MacCaptureCoordinator {
             "microsoft outlook •"
         ]
         if mailboxPrefixes.contains(where: { lower.hasPrefix($0) }) {
+            return false
+        }
+
+        if lower.hasPrefix("recipients:") ||
+            lower.contains("recipients: to:") ||
+            lower.hasPrefix("to:") ||
+            lower.hasPrefix("cc:") ||
+            lower.hasPrefix("bcc:") ||
+            lower.hasPrefix("from:") ||
+            lower.hasPrefix("sent:") ||
+            lower.contains("show details") {
             return false
         }
 

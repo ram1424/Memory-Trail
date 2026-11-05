@@ -348,6 +348,16 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "Outlook Capture Consistency",
+                    symbol: "envelope.badge.fill",
+                    items: [
+                        "Classic Outlook now uses Outlook’s selected message object as the authoritative source for subject and sender, preventing recipient fields or neighboring message text from being recorded.",
+                        "New Outlook continues to use the visible right-side message header, but stale reading-pane results are retried briefly before anything is written to the timeline.",
+                        "Only real message-list row clicks trigger immediate Outlook capture; recipient chips, To/CC details, Copilot controls, and reading-pane clicks no longer create extra timeline entries.",
+                        "Recipient strings such as “Recipients: To: … Show Details” are explicitly rejected, and Outlook duplicate signatures are normalized to prevent visually identical duplicate entries."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "Faster Outlook Capture",
                     symbol: "bolt.fill",
                     items: [
