@@ -379,6 +379,7 @@ struct MemoryTrailApp: App {
                         "Insights uses a more consistent dashboard layout with useful context such as Top Apps, Key Takeaways, and recent files.",
                         "Ask Memory Trail no longer imposes arbitrary result-count limits on Supporting Activity; all activity matching the interpreted query can be returned.",
                         "A floating Back to Top control makes long Supporting Activity result sets easier to navigate.",
+                        "Quick-start prompts now use distinct, relevant icons for email, conversations, websites, files, projects, time-based activity, and more.",
                         "Expanded activity details now include a clearly visible Close button directly in the activity header.",
                         "Supporting Activity remains full-width and shows the complete number of matching items.",
                         "Favorites, Clipboard History, Settings, and Ask Memory Trail share a more consistent visual structure."

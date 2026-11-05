@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.3"
-  RELEASE_BUILD: "5"
+  RELEASE_BUILD: "6"
 
 jobs:
   build-dmg:
@@ -288,11 +288,9 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Ask Memory Trail Supporting Activity no longer has arbitrary 8/12-item result caps; all activity matching the interpreted query can be returned.
-          - Outlook email searches now return the complete set of matching captured emails instead of truncating Supporting Activity at 12 results.
-          - Before/after activity searches retain their intended time window but no longer truncate the matching activity list.
-          - Ask Memory Trail now includes a floating Back to Top control for navigating long Supporting Activity result sets.
-          - Expanded activity details include a clearly visible Close button in the header, while retaining the existing toolbar close action.
+          - Ask Memory Trail quick-start prompts now use prompt-specific SF Symbols instead of reusing broad category icons.
+          - Email prompts use an envelope, conversation prompts use paired chat bubbles, websites use a globe, files use a document, projects use a folder, and time-based prompts use calendar/clock symbols.
+          - Supporting Activity remains uncapped for matching local activity, with the floating Back to Top control and visible expanded-activity Close button introduced in Build 5.
           - Memory Trail 1.3 Outlook reliability fixes, Today/Timeline, Insights, storage/history/export, Settings, and privacy-first local processing remain included.
 
 

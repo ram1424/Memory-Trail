@@ -1,8 +1,14 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 5) - November 5, 2026
+## 1.3 (Build 6) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### Ask Memory Trail Quick-Start Icons
+
+- Replaced category-reused quick-start icons with prompt-specific SF Symbols.
+- Email uses an envelope while conversations use paired chat bubbles, making those two prompts visually distinct.
+- Websites, files, projects, weekly activity, recent activity, and earlier/today prompts now use icons that match their actual intent.
 
 ### Ask Memory Trail Navigation & Supporting Activity
 

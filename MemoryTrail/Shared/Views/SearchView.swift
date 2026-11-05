@@ -336,8 +336,44 @@ struct SearchView: View {
     }
 
     private func promptSymbol(for example: String) -> String {
-        let category = promptCategory(for: example)
-        return category.symbol
+        let text = example.lowercased()
+
+        if text.contains("email") {
+            return "envelope.fill"
+        }
+
+        if text.contains("conversation") ||
+            text.contains("chat") {
+            return "bubble.left.and.bubble.right.fill"
+        }
+
+        if text.contains("website") ||
+            text.contains("web") {
+            return "globe"
+        }
+
+        if text.contains("file") {
+            return "doc.text.fill"
+        }
+
+        if text.contains("project") {
+            return "folder.fill"
+        }
+
+        if text.contains("week") {
+            return "calendar"
+        }
+
+        if text.contains("recent") {
+            return "clock.fill"
+        }
+
+        if text.contains("earlier") ||
+            text.contains("today") {
+            return "clock.arrow.circlepath"
+        }
+
+        return "sparkles"
     }
 
     private func answerCard(_ answer: MemoryTrailAnswer) -> some View {
