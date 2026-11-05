@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.2"
-  RELEASE_BUILD: "12"
+  RELEASE_BUILD: "13"
 
 jobs:
   build-dmg:
@@ -288,10 +288,10 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - New Outlook now excludes command-bar controls and their accessibility descendants so actions such as Move, Flag, Delete, and Archive cannot be captured as message data.
-          - When Summary by Copilot is visible, only the message-header region below that card is eligible for subject and sender capture.
-          - New Outlook sender matching is directional and cannot pair toolbar text above the subject with the From field.
-          - Classic Outlook remains on the restored pre-New-Outlook capture path and is unchanged in this build.
+          - New Outlook now rejects structural accessibility labels such as “Message header” and “Message body” instead of treating them as email subjects.
+          - Subject selection is anchored to the real From/sender line and prefers header text immediately above that sender, matching New Outlook’s visible message layout.
+          - Generic heading/container roles no longer receive subject priority unless Outlook explicitly identifies the element as a subject.
+          - New Outlook presence states such as Available, Busy, Away, and Offline are stripped from the captured From value; Classic Outlook is unchanged.
 
 
           Privacy:

@@ -1422,8 +1422,7 @@ final class MacCaptureCoordinator {
                 item.identifier.contains("message-subject") ||
                 item.identifier.contains("message_subject") ||
                 item.identifier.contains("readingpane-subject") ||
-                item.identifier.contains("reading-pane-subject") ||
-                item.role.contains("heading")
+                item.identifier.contains("reading-pane-subject")
 
             let semanticSender =
                 item.identifier.contains("sender") ||
@@ -1464,6 +1463,7 @@ final class MacCaptureCoordinator {
                 }
 
                 if semanticSubject,
+                   !isNewOutlookStructuralHeaderLabel(raw),
                    !isOutlookNavigationChrome(raw),
                    !isOutlookSenderOnlyValue(raw),
                    !isOutlookMessageGroupHeader(raw),
@@ -1477,7 +1477,8 @@ final class MacCaptureCoordinator {
                 }
 
                 if let metadataSubject = outlookSubjectFromMetadataText(raw),
-                   !isOutlookCopilotOrSummaryText(metadataSubject) {
+                   !isOutlookCopilotOrSummaryText(metadataSubject),
+                   !isNewOutlookStructuralHeaderLabel(metadataSubject) {
                     subjectCandidates.append((
                         metadataSubject,
                         baseScore + 760 - item.depth * 4,
@@ -1528,12 +1529,6 @@ final class MacCaptureCoordinator {
             }
         }
 
-        guard let bestSubject = subjectCandidates.max(by: {
-            $0.score < $1.score
-        }) else {
-            return nil
-        }
-
         let newOutlookCommandLabels = Set([
             "delete",
             "archive",
@@ -1551,68 +1546,141 @@ final class MacCaptureCoordinator {
             "print"
         ])
 
-        guard !newOutlookCommandLabels.contains(
-            normalizedOutlookIdentity(
-                bestSubject.subject
+        let bestSenderCandidate = senderCandidates
+            .filter {
+                let key = normalizedOutlookIdentity(
+                    $0.sender
+                )
+                return !newOutlookCommandLabels.contains(
+                    key
+                )
+            }
+            .max(by: {
+                let leftScore =
+                    $0.score +
+                    max(
+                        0,
+                        260 - Int(
+                            abs(
+                                $0.frame.midY -
+                                messageHeaderTop
+                            )
+                        )
+                    )
+                let rightScore =
+                    $1.score +
+                    max(
+                        0,
+                        260 - Int(
+                            abs(
+                                $1.frame.midY -
+                                messageHeaderTop
+                            )
+                        )
+                    )
+                return leftScore < rightScore
+            })
+
+        let eligibleSubjects = subjectCandidates.filter {
+            candidate in
+            let key = normalizedOutlookIdentity(
+                candidate.subject
             )
-        ) else {
+
+            guard !newOutlookCommandLabels.contains(key),
+                  !isNewOutlookStructuralHeaderLabel(
+                    candidate.subject
+                  )
+            else {
+                return false
+            }
+
+            if let sender = bestSenderCandidate {
+                let verticalOffset =
+                    sender.frame.midY -
+                    candidate.frame.midY
+
+                guard verticalOffset >= -8,
+                      verticalOffset <= 170
+                else {
+                    return false
+                }
+
+                let horizontalDistance = abs(
+                    sender.frame.midX -
+                    candidate.frame.midX
+                )
+
+                guard horizontalDistance <= max(
+                    520,
+                    paneFrame.width * 0.88
+                ) else {
+                    return false
+                }
+            }
+
+            return true
+        }
+
+        guard let bestSubject =
+            eligibleSubjects.max(by: {
+                left,
+                right in
+
+                func anchoredScore(
+                    _ candidate: (
+                        subject: String,
+                        score: Int,
+                        frame: CGRect
+                    )
+                ) -> Int {
+                    var score = candidate.score
+
+                    if let sender =
+                        bestSenderCandidate {
+                        let verticalOffset =
+                            sender.frame.midY -
+                            candidate.frame.midY
+                        score += max(
+                            0,
+                            600 -
+                            Int(
+                                abs(
+                                    verticalOffset - 48
+                                ) * 4
+                            )
+                        )
+                    }
+
+                    return score
+                }
+
+                return anchoredScore(left) <
+                    anchoredScore(right)
+            })
+        else {
             return nil
         }
 
         let subjectKey =
-            normalizedOutlookIdentity(bestSubject.subject)
+            normalizedOutlookIdentity(
+                bestSubject.subject
+            )
 
-        let bestSender = senderCandidates
-            .compactMap { sender -> (sender: String, score: Int)? in
+        let bestSender = bestSenderCandidate
+            .flatMap { candidate -> String? in
                 let senderKey =
                     normalizedOutlookIdentity(
-                        sender.sender
+                        candidate.sender
                     )
 
-                guard senderKey != subjectKey,
-                      !newOutlookCommandLabels.contains(
-                        senderKey
-                      )
+                guard senderKey != subjectKey
                 else {
                     return nil
                 }
 
-                let verticalOffset =
-                    sender.frame.midY -
-                    bestSubject.frame.midY
-
-                guard verticalOffset >= -12,
-                      verticalOffset <= 210
-                else {
-                    return nil
-                }
-
-                let verticalDistance =
-                    abs(verticalOffset)
-
-                let horizontalDistance = abs(
-                    sender.frame.midX - bestSubject.frame.midX
-                )
-                guard horizontalDistance <= max(
-                    500,
-                    paneFrame.width * 0.86
-                ) else {
-                    return nil
-                }
-
-                var score = sender.score
-                score += max(
-                    0,
-                    520 - Int(verticalDistance * 2)
-                )
-                score += max(
-                    0,
-                    160 - Int(horizontalDistance / 3)
-                )
-                return (sender.sender, score)
+                return candidate.sender
             }
-            .max(by: { $0.score < $1.score })?
-            .sender
 
         let bestTimestamp = timestampCandidates
             .compactMap {
@@ -1767,6 +1835,35 @@ final class MacCaptureCoordinator {
     }
 
 
+    private func isNewOutlookStructuralHeaderLabel(
+        _ rawValue: String
+    ) -> Bool {
+        let value = rawValue
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            .lowercased()
+
+        let exact = Set([
+            "message header",
+            "message header expanded",
+            "message header collapsed",
+            "message body",
+            "message actions",
+            "header",
+            "email header",
+            "mail header"
+        ])
+
+        if exact.contains(value) {
+            return true
+        }
+
+        return value.hasPrefix("message header,") ||
+            value.hasPrefix("message header ")
+    }
+
     private func outlookReadingPaneVisibleSubject(
         from rawValue: String
     ) -> String? {
@@ -1777,7 +1874,8 @@ final class MacCaptureCoordinator {
 
         guard !value.isEmpty,
               !isOutlookCopilotOrSummaryText(value),
-              !isExplicitOutlookSenderText(value)
+              !isExplicitOutlookSenderText(value),
+              !isNewOutlookStructuralHeaderLabel(value)
         else {
             return nil
         }
@@ -2654,6 +2752,30 @@ final class MacCaptureCoordinator {
             )
         }
 
+        let presenceSuffixes = [
+            ", available",
+            ", busy",
+            ", away",
+            ", offline",
+            ", do not disturb",
+            ", in a meeting",
+            ", be right back",
+            ", appear away"
+        ]
+
+        let senderLower = sender.lowercased()
+        if let suffix = presenceSuffixes.first(
+            where: {
+                senderLower.hasSuffix($0)
+            }
+        ) {
+            sender = String(
+                sender.dropLast(suffix.count)
+            ).trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+        }
+
         guard sender.count >= 1,
               sender.count <= 200
         else {
@@ -2944,6 +3066,11 @@ final class MacCaptureCoordinator {
             "search box",
             "title bar",
             "toolbar",
+            "message header",
+            "message header expanded",
+            "message header collapsed",
+            "message body",
+            "message actions",
             "focused inbox",
             "other inbox",
             "focused inbox selected",
@@ -4448,6 +4575,11 @@ final class MacCaptureCoordinator {
             "search box",
             "title bar",
             "toolbar",
+            "message header",
+            "message header expanded",
+            "message header collapsed",
+            "message body",
+            "message actions",
             "inbox",
             "mail",
             "calendar",

@@ -348,6 +348,17 @@ struct MemoryTrailApp: App {
             summary: "Memory Trail \(appVersion) makes local history easier to manage, export, retain, and navigate while keeping everything on your Mac.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "New Outlook Subject + From Only",
+                    symbol: "envelope.open.fill",
+                    items: [
+                        "New Outlook now rejects structural accessibility labels such as “Message header”, “Message body”, and header-container names instead of treating them as email subjects.",
+                        "The subject is selected from real header text immediately above the confirmed sender line, matching the visible Subject/From layout in New Outlook.",
+                        "Generic heading roles no longer receive subject priority unless Outlook explicitly identifies the element as a subject field.",
+                        "Presence states such as Available, Busy, Away, and Offline are removed from the captured From value.",
+                        "Classic Outlook remains unchanged."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "New Outlook Message Header Lock",
                     symbol: "rectangle.bottomhalf.inset.filled",
                     items: [
