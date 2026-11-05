@@ -1045,7 +1045,7 @@ private struct BrightTimelineRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 7) {
-                    Text(item.displayTitle)
+                    Text(timelineDisplayTitle)
                         .font(.system(size: 14.5, weight: .semibold))
                         .lineLimit(1)
 
@@ -1165,6 +1165,47 @@ private struct BrightTimelineRow: View {
         case .system: "gearshape.fill"
         default: item.sourceKind.symbol
         }
+    }
+
+    private var timelineDisplayTitle: String {
+        guard isOutlookTimelineItem,
+              let sender = outlookTimelineSender,
+              !sender.isEmpty
+        else {
+            return item.displayTitle
+        }
+
+        return "\(item.displayTitle)  From: \(sender)"
+    }
+
+    private var isOutlookTimelineItem: Bool {
+        item.sourceBundleID
+            .lowercased() ==
+            "com.microsoft.outlook" ||
+        item.sourceApp
+            .lowercased()
+            .contains("outlook")
+    }
+
+    private var outlookTimelineSender: String? {
+        let trimmed = item.body
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        guard trimmed.lowercased()
+            .hasPrefix("from:")
+        else {
+            return nil
+        }
+
+        let value = String(
+            trimmed.dropFirst("from:".count)
+        ).trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        return value.isEmpty ? nil : value
     }
 
     private var activityLabel: String {

@@ -1481,6 +1481,10 @@ final class MacCaptureCoordinator {
                 item.identifier.contains("sender") ||
                 item.identifier.contains("message-from") ||
                 item.identifier.contains("message_from") ||
+                item.identifier.contains("organizer") ||
+                item.identifier.contains("organiser") ||
+                item.identifier.contains("invited-by") ||
+                item.identifier.contains("invited_by") ||
                 item.identifier == "from" ||
                 item.identifier.hasSuffix("-from")
 
@@ -1605,7 +1609,18 @@ final class MacCaptureCoordinator {
             "categorize",
             "snooze",
             "pin",
-            "print"
+            "print",
+            "accept",
+            "accepted",
+            "tentative",
+            "decline",
+            "declined",
+            "propose new time",
+            "response options",
+            "respond",
+            "send response",
+            "do not send a response",
+            "no response required"
         ])
 
         let bestSenderCandidate = senderCandidates
@@ -2117,6 +2132,82 @@ final class MacCaptureCoordinator {
     }
 
 
+    private func outlookSenderFromLabeledHeader(
+        _ rawValue: String
+    ) -> String? {
+        let normalized = rawValue
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        let prefixes = [
+            "from:",
+            "organizer:",
+            "meeting organizer:",
+            "organized by:",
+            "organised by:",
+            "invited by:"
+        ]
+
+        for line in normalized.components(
+            separatedBy: "\n"
+        ) {
+            let trimmed = line.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            let lower = trimmed.lowercased()
+
+            guard let prefix = prefixes.first(
+                where: { lower.hasPrefix($0) }
+            ) else {
+                continue
+            }
+
+            var value = String(
+                trimmed.dropFirst(prefix.count)
+            ).trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+            let terminators = [
+                " sent:",
+                " sent on:",
+                " sent at:",
+                " to:",
+                " cc:",
+                " bcc:",
+                " date:",
+                " time:",
+                " subject:",
+                " response:"
+            ]
+
+            let lowerValue = value.lowercased()
+            if let end = terminators
+                .compactMap({
+                    lowerValue.range(
+                        of: $0
+                    )?.lowerBound
+                })
+                .min() {
+                value = String(
+                    value[..<end]
+                ).trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+            }
+
+            if let sender =
+                sanitizedOutlookSender(value) {
+                return sender
+            }
+        }
+
+        return nil
+    }
+
     private func outlookReadingPaneSender(
         from rawValue: String,
         allowPlainValue: Bool = false
@@ -2128,17 +2219,11 @@ final class MacCaptureCoordinator {
 
         guard !normalized.isEmpty else { return nil }
 
-        for line in normalized.components(separatedBy: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            let lower = trimmed.lowercased()
-
-            if lower.hasPrefix("from:") {
-                let value = String(trimmed.dropFirst("from:".count))
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                if let sender = sanitizedOutlookSender(value) {
-                    return sender
-                }
-            }
+        if let labeledSender =
+            outlookSenderFromLabeledHeader(
+                normalized
+            ) {
+            return labeledSender
         }
 
         guard allowPlainValue,
@@ -2267,6 +2352,11 @@ final class MacCaptureCoordinator {
             "from:",
             "recipients:",
             "reply-to:",
+            "organizer:",
+            "meeting organizer:",
+            "organized by:",
+            "organised by:",
+            "invited by:",
             "sensitivity label:",
             "importance:",
             "priority:"
@@ -2298,7 +2388,23 @@ final class MacCaptureCoordinator {
             "guest",
             "internal",
             "outside your organization",
-            "unverified sender"
+            "unverified sender",
+            "organizer",
+            "meeting organizer",
+            "organized by",
+            "organised by",
+            "invited by",
+            "accept",
+            "accepted",
+            "tentative",
+            "decline",
+            "declined",
+            "propose new time",
+            "response options",
+            "respond",
+            "send response",
+            "do not send a response",
+            "no response required"
         ])
 
         if exact.contains(lower) {
@@ -2911,6 +3017,13 @@ final class MacCaptureCoordinator {
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
+        if let labeledSender =
+            outlookSenderFromLabeledHeader(
+                normalized
+            ) {
+            return labeledSender
+        }
+
         let lower = normalized.lowercased()
         let markers = [", sent by ", "; sent by ", " sent by "]
 
@@ -2945,9 +3058,22 @@ final class MacCaptureCoordinator {
             .replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if sender.lowercased().hasPrefix("from:") {
+        let senderPrefixes = [
+            "from:",
+            "organizer:",
+            "meeting organizer:",
+            "organized by:",
+            "organised by:",
+            "invited by:"
+        ]
+
+        if let prefix = senderPrefixes.first(
+            where: {
+                sender.lowercased().hasPrefix($0)
+            }
+        ) {
             sender = String(
-                sender.dropFirst("from:".count)
+                sender.dropFirst(prefix.count)
             ).trimmingCharacters(
                 in: .whitespacesAndNewlines
             )

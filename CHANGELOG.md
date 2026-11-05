@@ -1,8 +1,16 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 7) - November 5, 2026
+## 1.3 (Build 8) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### Outlook Calendar Invites & Timeline Sender
+
+- Calendar and meeting invitation emails now recognize **Organizer**, **Meeting Organizer**, **Organized by**, **Organised by**, and **Invited by** as valid sender fields equivalent to From.
+- The invite sender logic is shared between New Outlook reading-pane capture and Classic/general Outlook Accessibility capture.
+- Meeting response controls such as Accept, Tentative, Decline, Propose New Time, response options, and response-state labels are excluded from subject candidates.
+- Outlook timeline rows now show the sender inline with the subject in the form `Subject  From: Sender`.
+- The underlying stored subject and sender remain separate, so details/search behavior is preserved.
 
 ### New Outlook False-Filter Fix
 

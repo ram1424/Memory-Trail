@@ -362,6 +362,9 @@ struct MemoryTrailApp: App {
                         "Legitimate subjects that look like email addresses are now preserved instead of being misclassified as sender text.",
                         "External/Guest/security badges are treated as Outlook UI metadata and can no longer replace the real sender or subject.",
                         "Sender/subject selection relies more heavily on their physical position in the message header rather than the text format.",
+                        "Calendar/meeting invitation emails now recognize Organizer, Meeting Organizer, Organized by, and Invited by as From-equivalent sender fields.",
+                        "Invite response controls such as Accept, Tentative, Decline, and Propose New Time are excluded from subject capture.",
+                        "Timeline rows now display Outlook activity as Subject  From: Sender for faster scanning.",
                         "Sender presence states such as Available, Busy, Away, and Offline are removed from captured sender information."
                     ]
                 ),

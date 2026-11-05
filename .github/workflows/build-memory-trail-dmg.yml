@@ -25,7 +25,7 @@ concurrency:
 env:
   # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
   RELEASE_VERSION: "1.3"
-  RELEASE_BUILD: "7"
+  RELEASE_BUILD: "8"
 
 jobs:
   build-dmg:
@@ -288,11 +288,10 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Fixed false-positive Outlook filters that could cause legitimate New Outlook emails to be ignored before they were logged.
-          - Email-address-shaped subjects are now allowed when they come from the trusted subject position or an explicit Subject field.
-          - External, Guest, Internal, and similar Outlook badges are classified as UI metadata and cannot become the captured subject or sender.
-          - New Outlook subject selection now requires the subject to sit above the confirmed sender line, relying on header geometry instead of rejecting content just because it resembles an email address.
-          - Sender parsing now tolerates Outlook display strings containing angle brackets and visual ellipsis characters.
+          - Outlook calendar and meeting invitation emails now recognize Organizer, Meeting Organizer, Organized by, Organised by, and Invited by as valid From-equivalent sender fields.
+          - Meeting response controls such as Accept, Tentative, Decline, Propose New Time, and response options are excluded from subject candidates.
+          - Organizer parsing is shared by New Outlook reading-pane capture and Classic/general Outlook element capture.
+          - Timeline rows now show Outlook activity inline as Subject  From: Sender while preserving the stored subject and sender fields separately.
           - Existing Memory Trail 1.3 Outlook reliability, Ask Memory Trail, Timeline, Insights, storage/history/export, Settings, and privacy-first refinements remain included.
 
 
