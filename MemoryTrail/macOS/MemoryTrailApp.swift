@@ -357,6 +357,8 @@ struct MemoryTrailApp: App {
                         "Outlook retries unresolved or stale message headers for longer while still returning immediately when the selected message is ready.",
                         "Selected-row identity is retained independently of subject parsing so separate messages with the same subject and sender are not mistaken for the previously logged message.",
                         "New Outlook now supports both split-pane and full-width/open-message layouts, so subjects and senders positioned outside the traditional right-side reading pane are still captured.",
+                        "Sent/received timestamps, recipient lines, presence/status text, and other header metadata can no longer be mistaken for the email subject.",
+                        "When the visible New Outlook header cannot expose a usable subject, Memory Trail falls back to the selected Outlook message object or selected row instead of silently dropping the email.",
                         "Sender presence states such as Available, Busy, Away, and Offline are removed from captured sender information."
                     ]
                 ),

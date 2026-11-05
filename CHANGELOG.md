@@ -1,8 +1,17 @@
 # Memory Trail Changelog
 
-## 1.3 (Build 3) - November 5, 2026
+## 1.3 (Build 4) - November 5, 2026
 
 Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+
+### New Outlook Subject Reliability Fix
+
+- Added one centralized Outlook header-metadata classifier used by all subject extraction paths.
+- Strings such as `Sent on: Today at 9:27 AM`, Sent/Received timestamps, recipient lines, date/time labels, presence states, and other header metadata can no longer become the captured subject.
+- Expanded the valid subject/header region while keeping sender-relative geometry as the primary structure check, improving capture of wrapped and lower-positioned subjects.
+- New Outlook now retains timestamps found inside Sent/Received metadata for message identity instead of discarding them.
+- If the visible message header does not yield a complete valid Subject/From pair, Memory Trail falls back to the selected Outlook message object and then the selected row instead of ignoring the email.
+- Fixed an internal de-duplication inconsistency so the stored last-message key now uses the same identity + subject + sender format as the capture scheduler.
 
 ### New Outlook Full-Width Header Fix
 
