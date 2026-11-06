@@ -10,6 +10,10 @@ on:
       - "MemoryTrail/Shared/**"
       - ".github/workflows/build-memory-trail-app-store.yml"
 
+permissions:
+  contents: read
+  statuses: write
+
 jobs:
   validate-app-store:
     runs-on: macos-15
@@ -21,12 +25,38 @@ jobs:
         run: xcodebuild -version
 
       - name: Build sandboxed App Store target
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          set -o pipefail
+          set -uo pipefail
+          set +e
           xcodebuild \
             -project "Memory Trails.xcodeproj" \
             -scheme "Memory Trails App Store" \
             -configuration Release \
             -destination "platform=macOS" \
             CODE_SIGNING_ALLOWED=NO \
-            build
+            build 2>&1 | tee "$PWD/xcodebuild-app-store.log"
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$BUILD_STATUS" -ne 0 ]; then
+            ERROR_LINE="$(grep -m1 -E 'error:' "$PWD/xcodebuild-app-store.log" | sed 's/^[[:space:]]*//' | cut -c1-135 || true)"
+            if [ -z "$ERROR_LINE" ]; then
+              ERROR_LINE="App Store Xcode build failed; inspect the workflow run."
+            fi
+            gh api \
+              --method POST \
+              "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+              -f state=failure \
+              -f context=memory-trails-app-store-diagnostics \
+              -f description="$ERROR_LINE" >/dev/null
+            exit "$BUILD_STATUS"
+          fi
+
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state=success \
+            -f context=memory-trails-app-store-diagnostics \
+            -f description="Memory Trails App Store target compiled successfully." >/dev/null
