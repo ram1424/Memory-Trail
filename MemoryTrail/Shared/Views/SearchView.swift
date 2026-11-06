@@ -147,11 +147,13 @@ struct SearchView: View {
 
 #if APP_STORE_EDITION
                 Text("Find the moments you remember — by time, app, copied text, note, or project.")
-#else
-                Text("Find the moments you remember — by time, app, page, email, chat, file, or project.")
-#endif
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+#else
+                Text("Find the moments you remember — by time, app, page, email, chat, file, or project.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+#endif
             }
 
             Spacer(minLength: 16)
