@@ -414,7 +414,7 @@ struct MemoryTrailApp: App {
                     title: "Storage, History & Export",
                     symbol: "internaldrive.fill",
                     items: [
-                        "Local activity is stored in the clearly named MemoryTrail.store database inside Application Support.",
+                        "Local activity is stored in the clearly named MemoryTrails.store database inside Application Support.",
                         "History is retained locally for 30 days by default, with controls to clear the last week, last month, or all history.",
                         "JSON export includes filename, item count, file size, and Show in Finder.",
                         "History and export confirmations have been simplified."
