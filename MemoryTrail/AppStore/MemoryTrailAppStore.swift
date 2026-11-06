@@ -24,7 +24,7 @@ enum MemoryTrailStorage {
 
     private static var previousNamedStoreURL: URL {
         applicationSupportDirectory
-            .appendingPathComponent("Memory Trail", isDirectory: true)
+            .appendingPathComponent("Memory Trails", isDirectory: true)
             .appendingPathComponent("MemoryTrail.store")
     }
 
