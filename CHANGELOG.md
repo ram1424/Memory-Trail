@@ -36,7 +36,7 @@ Memory Trails 1.4 is a polished release focused on reliable Outlook capture, cle
 
 ### Storage, History & Export
 
-- Local activity is stored in `MemoryTrail.store` inside Application Support.
+- Local activity is stored in `MemoryTrails.store` inside Application Support.
 - Default local history retention remains 30 days.
 - Added controls to clear the last week, last month, or all history.
 - JSON export includes filename, item count, file size, and Show in Finder.
@@ -184,7 +184,7 @@ Memory Trails 1.3 focuses on reliable Outlook activity capture, a clearer timeli
 
 ### Storage, History & Export
 
-- Local activity uses the clearly named `MemoryTrail.store` database in Memory Trails’ Application Support folder.
+- Local activity uses the clearly named `MemoryTrails.store` database in Memory Trails’ Application Support folder.
 - Default local history retention is 30 days.
 - Added controls to clear the last week, last month, or all history.
 - JSON export remains local and now provides a cleaner completion view with filename, item count, file size, and Show in Finder.

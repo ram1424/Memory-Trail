@@ -21,12 +21,16 @@ enum MemoryTrailStorage {
     }
 
     static var storeURL: URL {
+        directoryURL.appendingPathComponent("MemoryTrails.store")
+    }
+
+    private static var renamedDirectoryLegacyStoreURL: URL {
         directoryURL.appendingPathComponent("MemoryTrail.store")
     }
 
     private static var previousNamedStoreURL: URL {
         applicationSupportDirectory
-            .appendingPathComponent("Memory Trails", isDirectory: true)
+            .appendingPathComponent("Memory Trail", isDirectory: true)
             .appendingPathComponent("MemoryTrail.store")
     }
 
@@ -46,7 +50,9 @@ enum MemoryTrailStorage {
         }
 
         let migrationSource: URL?
-        if fileManager.fileExists(atPath: previousNamedStoreURL.path) {
+        if fileManager.fileExists(atPath: renamedDirectoryLegacyStoreURL.path) {
+            migrationSource = renamedDirectoryLegacyStoreURL
+        } else if fileManager.fileExists(atPath: previousNamedStoreURL.path) {
             migrationSource = previousNamedStoreURL
         } else if fileManager.fileExists(atPath: legacyStoreURL.path) {
             migrationSource = legacyStoreURL

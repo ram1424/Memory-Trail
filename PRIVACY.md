@@ -82,7 +82,7 @@ Captured activity is stored locally on the device running Memory Trails.
 
 On Windows, local data is stored within the user's Windows profile and local application-data locations.
 
-On macOS, captured activity is stored in a clearly named local SwiftData store at `~/Library/Application Support/Memory Trails/MemoryTrail.store` (or the corresponding app-container Application Support path when macOS sandboxing applies).
+On macOS, captured activity is stored in a clearly named local SwiftData store at `~/Library/Application Support/Memory Trails/MemoryTrails.store` (or the corresponding app-container Application Support path when macOS sandboxing applies).
 
 Memory Trails does not provide cloud synchronization for the captured timeline.
 
