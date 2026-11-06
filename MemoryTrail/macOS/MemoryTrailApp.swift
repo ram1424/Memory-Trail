@@ -369,6 +369,15 @@ struct MemoryTrailApp: App {
             summary: "Version \(appVersion) focuses on more reliable Outlook capture, a clearer timeline, more useful search results, and a cleaner overall experience — while keeping your activity private and local.",
             sections: [
                 MemoryTrailChangeSection(
+                    title: "Memory Trails",
+                    symbol: "signpost.right.and.left.fill",
+                    items: [
+                        "The app has been renamed from Memory Trail to Memory Trails across the interface, About panel, What’s New, installer, DMG, and Mac App Store target.",
+                        "The Xcode project, schemes, built app products, and release packaging now use the Memory Trails name.",
+                        "Existing local history is migrated automatically from the previous Memory Trail storage location and database name."
+                    ]
+                ),
+                MemoryTrailChangeSection(
                     title: "Outlook Capture & Reliability",
                     symbol: "envelope.open.fill",
                     items: [

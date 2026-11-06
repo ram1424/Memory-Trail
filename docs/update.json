@@ -1,15 +1,24 @@
 {
-  "version": "1.2",
-  "build": 5,
-  "publishedAt": "2026-11-04",
-  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.2/MemoryTrail-1.2.dmg",
+  "version": "1.4",
+  "build": 2,
+  "publishedAt": "2026-11-06",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.4/MemoryTrails-1.4.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "New Outlook now pairs subject and sender from the same right-side reading pane.",
-    "Reading-pane values are prioritized by their actual position in the right half of the Outlook window.",
-    "Composite message-list text containing timestamps or Message preview is rejected as a subject."
+    "Memory Trail has been renamed to Memory Trails across the macOS app and release packaging.",
+    "Existing local history migrates automatically to the new Memory Trails storage location.",
+    "Memory Trails 1.4 retains the latest Outlook capture, timeline, Insights, Ask Memory Trails, Favorites, and privacy improvements."
   ],
   "changelog": [
+    {
+      "title": "Memory Trails",
+      "symbol": "signpost.right.and.left.fill",
+      "items": [
+        "Renamed the macOS app, Xcode products, About panel, updater, DMG, and App Store target to Memory Trails.",
+        "Uses Memory Trails.app and MemoryTrails-1.4.dmg for the current release.",
+        "Migrates existing local history to Application Support/Memory Trails/MemoryTrails.store."
+      ]
+    },
     {
       "title": "New Outlook Right-Pane Matching",
       "symbol": "rectangle.rightthird.inset.filled",
