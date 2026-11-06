@@ -76,7 +76,14 @@ for path in root.rglob("*"):
     except UnicodeDecodeError:
         continue
 
-    updated = text
+    # Preserve the one intentional legacy storage path used to migrate
+    # existing Memory Trail history into the renamed Memory Trails folder.
+    legacy_storage_token = "__MEMORY_TRAIL_LEGACY_STORAGE_PATH__"
+    updated = text.replace(
+        'appendingPathComponent("Memory Trail", isDirectory: true)',
+        legacy_storage_token,
+    )
+
     for old, new in replacements:
         updated = updated.replace(old, new)
 
@@ -84,6 +91,11 @@ for path in root.rglob("*"):
     updated = re.sub(r"Memory Trail(?!s)", "Memory Trails", updated)
     updated = re.sub(r"MEMORY TRAIL(?!S)", "MEMORY TRAILS", updated)
     updated = re.sub(r"memory trail(?!s)", "memory trails", updated)
+
+    updated = updated.replace(
+        legacy_storage_token,
+        'appendingPathComponent("Memory Trail", isDirectory: true)',
+    )
 
     if updated != text:
         path.write_text(updated, encoding="utf-8")
