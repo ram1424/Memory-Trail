@@ -93,7 +93,7 @@ struct OnboardingView: View {
     private var pageTitle: String {
         switch page {
         case 1: "Today"
-        case 2: "Ask Memory Trail"
+        case 2: "Ask Memory Trails"
         case 3: "Capture & Files"
         case 4: "Privacy & Controls"
         case 5: "Accessibility"
@@ -111,7 +111,7 @@ struct OnboardingView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
                     .shadow(color: .black.opacity(0.35), radius: 18, y: 8)
 
-                Text("Welcome to\nMemory Trail")
+                Text("Welcome to\nMemory Trails")
                     .font(.system(size: 34, weight: .bold))
                     .foregroundStyle(primaryText)
                     .multilineTextAlignment(.center)
@@ -132,14 +132,14 @@ struct OnboardingView: View {
                 )
                 benefitRow(
                     icon: "sparkles",
-                    title: "Ask Memory Trail",
+                    title: "Ask Memory Trails",
                     text: "Search your local history by time, app, filename, subject, page, or what happened before or after.",
                     tint: .purple
                 )
                 benefitRow(
                     icon: "lock.shield.fill",
                     title: "Privacy-first by design",
-                    text: "Memory Trail runs locally. Captured activity is sourced and stored on this Mac and is not sent to an external service.",
+                    text: "Memory Trails runs locally. Captured activity is sourced and stored on this Mac and is not sent to an external service.",
                     tint: .green
                 )
             }
@@ -169,7 +169,7 @@ struct OnboardingView: View {
                 sampleTimelineRow(
                     time: "10:42 AM",
                     app: "Safari",
-                    detail: "Memory Trail · Releases",
+                    detail: "Memory Trails · Releases",
                     icon: "safari"
                 )
                 Divider()
@@ -208,7 +208,7 @@ struct OnboardingView: View {
     private var askPage: some View {
         VStack(spacing: 18) {
             pageHeading(
-                title: "Ask Memory Trail",
+                title: "Ask Memory Trails",
                 subtitle: "Use natural-language local search to find captured activity without scrolling through your entire day."
             )
 
@@ -224,7 +224,7 @@ struct OnboardingView: View {
                 compactFeature(icon: "clock", title: "Time-aware", text: "Today, yesterday, and specific times.")
                 compactFeature(icon: "app.badge", title: "App-aware", text: "Safari, Outlook, Teams, Finder, Office, and more.")
                 compactFeature(icon: "arrow.left.arrow.right", title: "Before & After", text: "Trace what happened around another activity.")
-                compactFeature(icon: "lock.fill", title: "Local", text: "Queries use your local Memory Trail history.")
+                compactFeature(icon: "lock.fill", title: "Local", text: "Queries use your local Memory Trails history.")
             }
             .frame(maxWidth: 700)
         }
@@ -235,7 +235,7 @@ struct OnboardingView: View {
         VStack(spacing: 14) {
             pageHeading(
                 title: "Remember the Useful Details",
-                subtitle: "Memory Trail captures the meaningful thing you were viewing—not just the app name. Here are examples of what's captured from each app."
+                subtitle: "Memory Trails captures the meaningful thing you were viewing—not just the app name. Here are examples of what's captured from each app."
             )
 
             LazyVGrid(
@@ -423,7 +423,7 @@ struct OnboardingView: View {
                         .font(.system(size: 30, weight: .bold))
                         .foregroundStyle(primaryText)
 
-                    Text("Memory Trail is a private, locally run app. Your activity is captured, processed, and stored on this Mac. No data is uploaded or sent outside your computer.")
+                    Text("Memory Trails is a private, locally run app. Your activity is captured, processed, and stored on this Mac. No data is uploaded or sent outside your computer.")
                         .font(.subheadline)
                         .foregroundStyle(secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -433,7 +433,7 @@ struct OnboardingView: View {
                     icon: "macbook",
                     tint: .blue,
                     title: "Local-only architecture",
-                    text: "Captured activity is sourced locally, processed locally, and stored locally on this Mac. Memory Trail does not use cloud sync or external data connectors for your captured history."
+                    text: "Captured activity is sourced locally, processed locally, and stored locally on this Mac. Memory Trails does not use cloud sync or external data connectors for your captured history."
                 )
 
                 tutorialPrivacyCard(
@@ -447,7 +447,7 @@ struct OnboardingView: View {
                     icon: "hand.raised.fill",
                     tint: .orange,
                     title: "Exclude Apps",
-                    text: "Choose apps and services Memory Trail should ignore."
+                    text: "Choose apps and services Memory Trails should ignore."
                 )
 
                 tutorialPrivacyCard(
@@ -474,8 +474,8 @@ struct OnboardingView: View {
                 tutorialPrivacyCard(
                     icon: "accessibility",
                     tint: .blue,
-                    title: "If Memory Trail is missing from Accessibility",
-                    text: "1. Open System Settings → Privacy & Security → Accessibility.\n2. Click +, choose Applications → Memory Trail, then click Open.\n3. Turn Memory Trail on and relaunch it if macOS asks."
+                    title: "If Memory Trails is missing from Accessibility",
+                    text: "1. Open System Settings → Privacy & Security → Accessibility.\n2. Click +, choose Applications → Memory Trails, then click Open.\n3. Turn Memory Trails on and relaunch it if macOS asks."
                 )
                 .padding(.vertical, 2)
 
@@ -497,7 +497,7 @@ struct OnboardingView: View {
                 .foregroundStyle(primaryText)
                 .multilineTextAlignment(.center)
 
-            Text("Accessibility access lets Memory Trail capture useful context such as Safari page titles, Outlook subjects, Mail subjects, Teams conversations, OneNote pages, and supported file information.")
+            Text("Accessibility access lets Memory Trails capture useful context such as Safari page titles, Outlook subjects, Mail subjects, Teams conversations, OneNote pages, and supported file information.")
                 .font(.title3)
                 .foregroundStyle(secondaryText)
                 .multilineTextAlignment(.center)
@@ -511,7 +511,7 @@ struct OnboardingView: View {
                         .frame(width: 56, height: 56)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Memory Trail")
+                        Text("Memory Trails")
                             .font(.headline)
                             .foregroundStyle(primaryText)
                         Text(captureCoordinator.hasAccessibilityPermission
@@ -555,14 +555,14 @@ struct OnboardingView: View {
 
                 if !captureCoordinator.hasAccessibilityPermission {
                     VStack(alignment: .leading, spacing: 7) {
-                        Label("If Memory Trail does not appear automatically", systemImage: "plus.app.fill")
+                        Label("If Memory Trails does not appear automatically", systemImage: "plus.app.fill")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(primaryText)
 
                         manualAccessibilityStep(1, "Open System Settings → Privacy & Security → Accessibility.")
                         manualAccessibilityStep(2, "Click the + button below the app list and authenticate if prompted.")
-                        manualAccessibilityStep(3, "Choose Memory Trail from Applications, then click Open.")
-                        manualAccessibilityStep(4, "Turn Memory Trail on. Relaunch the app if macOS asks you to.")
+                        manualAccessibilityStep(3, "Choose Memory Trails from Applications, then click Open.")
+                        manualAccessibilityStep(4, "Turn Memory Trails on. Relaunch the app if macOS asks you to.")
                     }
                     .padding(12)
                     .background(MemoryTrailPalette.surface.opacity(0.92), in: RoundedRectangle(cornerRadius: 13))
@@ -576,7 +576,7 @@ struct OnboardingView: View {
 
             HStack(spacing: 12) {
                 statusBadge(icon: "clock.arrow.circlepath", text: "Today")
-                statusBadge(icon: "sparkles", text: "Ask Memory Trail")
+                statusBadge(icon: "sparkles", text: "Ask Memory Trails")
                 statusBadge(icon: "folder.fill", text: "Files")
                 statusBadge(icon: "doc.on.clipboard.fill", text: "Clipboard")
                 statusBadge(icon: "star.fill", text: "Favorites")
@@ -622,7 +622,7 @@ struct OnboardingView: View {
                 }
             } label: {
                 HStack {
-                    Text(page == pageCount - 1 ? "Start Using Memory Trail" : "Continue")
+                    Text(page == pageCount - 1 ? "Start Using Memory Trails" : "Continue")
                     Image(systemName: page == pageCount - 1 ? "checkmark" : "arrow.right")
                 }
             }

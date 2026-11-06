@@ -1,11 +1,11 @@
-name: Validate Memory Trail App Store
+name: Validate Memory Trails App Store
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - "Memory Trail.xcodeproj/**"
+      - "Memory Trails.xcodeproj/**"
       - "MemoryTrail/AppStore/**"
       - "MemoryTrail/Shared/**"
       - ".github/workflows/build-memory-trail-app-store.yml"
@@ -24,8 +24,8 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild \
-            -project "Memory Trail.xcodeproj" \
-            -scheme "Memory Trail App Store" \
+            -project "Memory Trails.xcodeproj" \
+            -scheme "Memory Trails App Store" \
             -configuration Release \
             -destination "platform=macOS" \
             CODE_SIGNING_ALLOWED=NO \

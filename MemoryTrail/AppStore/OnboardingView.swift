@@ -10,7 +10,7 @@ struct OnboardingView: View {
 
         VStack(spacing: 0) {
             HStack {
-                Label("Memory Trail", systemImage: "clock.arrow.circlepath")
+                Label("Memory Trails", systemImage: "clock.arrow.circlepath")
                     .font(.headline)
                 Spacer()
                 Text("Mac App Store Edition")
@@ -99,7 +99,7 @@ struct OnboardingView: View {
             )
             row(
                 "magnifyingglass",
-                "Ask Memory Trail",
+                "Ask Memory Trails",
                 "Search locally stored activity by time, application, copied text, notes, and projects."
             )
             row(
@@ -132,7 +132,7 @@ struct OnboardingView: View {
             )
 
             Text(
-                "Clipboard Capture is OFF by default. If you enable it, copied text is stored only in your local Memory Trail history."
+                "Clipboard Capture is OFF by default. If you enable it, copied text is stored only in your local Memory Trails history."
             )
             .font(.footnote)
             .foregroundStyle(.secondary)
@@ -148,13 +148,13 @@ struct OnboardingView: View {
     private var featuresPage: some View {
         pageView(
             icon: "sparkles.rectangle.stack",
-            title: "Your Memory Trail tools",
+            title: "Your Memory Trails tools",
             subtitle:
                 "The core organization and recall experience remains available."
         ) {
             row("clock.fill", "Today", "Review captured activity chronologically.")
             row("chart.xyaxis.line", "Insights", "See top apps and local activity patterns.")
-            row("sparkles", "Ask Memory Trail", "Search local history without sending it to a cloud search service.")
+            row("sparkles", "Ask Memory Trails", "Search local history without sending it to a cloud search service.")
             row("star.fill", "Favorites & manual memories", "Save important moments and add notes.")
         }
     }
@@ -169,12 +169,12 @@ struct OnboardingView: View {
             row(
                 "shippingbox.fill",
                 "Sandboxed",
-                "Memory Trail can access its own container and files you explicitly choose through standard macOS dialogs."
+                "Memory Trails can access its own container and files you explicitly choose through standard macOS dialogs."
             )
             row(
                 "internaldrive.fill",
                 "Stored locally",
-                "Your captured timeline stays on this Mac. There is no Memory Trail cloud timeline."
+                "Your captured timeline stays on this Mac. There is no Memory Trails cloud timeline."
             )
             row(
                 "arrow.triangle.2.circlepath",

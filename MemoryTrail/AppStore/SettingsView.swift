@@ -169,7 +169,7 @@ struct SettingsView: View {
                     privacyRow(
                         "icloud.slash.fill",
                         "No cloud timeline",
-                        "Memory Trail does not upload or synchronize your captured history."
+                        "Memory Trails does not upload or synchronize your captured history."
                     )
 
                     Button("View Privacy Policy") {
@@ -229,7 +229,7 @@ struct SettingsView: View {
             customExclusions = preferences.customExcludedBundleIDs
         }
         .confirmationDialog(
-            "Clear Memory Trail History?",
+            "Clear Memory Trails History?",
             isPresented: Binding(
                 get: { pendingClear != nil },
                 set: { if !$0 { pendingClear = nil } }
@@ -368,7 +368,7 @@ struct SettingsView: View {
             let data = try encoder.encode(payload)
 
             let panel = NSSavePanel()
-            panel.title = "Export Memory Trail Activity"
+            panel.title = "Export Memory Trails Activity"
             panel.prompt = "Export"
             panel.allowedContentTypes = [.json]
             panel.nameFieldStringValue =
@@ -414,7 +414,7 @@ private enum AppStoreClearRange {
         case .month:
             "This permanently deletes local activity from the last 30 days."
         case .all:
-            "This permanently deletes all locally stored Memory Trail activity."
+            "This permanently deletes all locally stored Memory Trails activity."
         }
     }
 }

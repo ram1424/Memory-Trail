@@ -15,18 +15,48 @@ enum MemoryTrailStorage {
 
     static var directoryURL: URL {
         applicationSupportDirectory
-            .appendingPathComponent("Memory Trail", isDirectory: true)
+            .appendingPathComponent("Memory Trails", isDirectory: true)
     }
 
     static var storeURL: URL {
         directoryURL.appendingPathComponent("MemoryTrail.store")
     }
 
+    private static var previousNamedStoreURL: URL {
+        applicationSupportDirectory
+            .appendingPathComponent("Memory Trail", isDirectory: true)
+            .appendingPathComponent("MemoryTrail.store")
+    }
+
     static func preparePersistentStore() throws {
-        try FileManager.default.createDirectory(
+        let fileManager = FileManager.default
+        try fileManager.createDirectory(
             at: directoryURL,
             withIntermediateDirectories: true
         )
+
+        guard !fileManager.fileExists(atPath: storeURL.path),
+              fileManager.fileExists(atPath: previousNamedStoreURL.path)
+        else {
+            return
+        }
+
+        for suffix in ["", "-shm", "-wal"] {
+            let source = URL(
+                fileURLWithPath: previousNamedStoreURL.path + suffix
+            )
+            let destination = URL(
+                fileURLWithPath: storeURL.path + suffix
+            )
+
+            guard fileManager.fileExists(atPath: source.path),
+                  !fileManager.fileExists(atPath: destination.path)
+            else {
+                continue
+            }
+
+            try fileManager.moveItem(at: source, to: destination)
+        }
     }
 }
 
@@ -66,7 +96,7 @@ struct MemoryTrailAppStore: App {
                 configurations: configuration
             )
         } catch {
-            fatalError("Unable to initialize Memory Trail database: \(error)")
+            fatalError("Unable to initialize Memory Trails database: \(error)")
         }
 
         NSApplication.shared.applicationIconImage =
@@ -100,13 +130,13 @@ struct MemoryTrailAppStore: App {
         .defaultSize(width: 1440, height: 900)
         .commands {
             CommandGroup(replacing: .appInfo) {
-                Button("About Memory Trail") {
+                Button("About Memory Trails") {
                     showAboutPanel()
                 }
 
                 Divider()
 
-                Button("What’s New in Memory Trail…") {
+                Button("What’s New in Memory Trails…") {
                     showWhatsNew = true
                 }
             }
@@ -126,7 +156,7 @@ struct MemoryTrailAppStore: App {
             Text("App Store Edition • Local Only")
                 .foregroundStyle(.secondary)
 
-            Button("Quit Memory Trail") {
+            Button("Quit Memory Trails") {
                 NSApplication.shared.terminate(nil)
             }
         } label: {
@@ -164,7 +194,7 @@ struct MemoryTrailAppStore: App {
             try container.mainContext.save()
         } catch {
             NSLog(
-                "Memory Trail retention cleanup failed: %@",
+                "Memory Trails retention cleanup failed: %@",
                 error.localizedDescription
             )
         }
@@ -180,7 +210,7 @@ struct MemoryTrailAppStore: App {
         )
 
         NSApplication.shared.orderFrontStandardAboutPanel(options: [
-            .applicationName: "Memory Trail",
+            .applicationName: "Memory Trails",
             .applicationIcon: NSWorkspace.shared.icon(
                 forFile: Bundle.main.bundlePath
             ),
@@ -204,7 +234,7 @@ private struct AppStoreWhatsNewView: View {
                     .foregroundStyle(.blue)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Memory Trail \(version)")
+                    Text("Memory Trails \(version)")
                         .font(.title2.bold())
                     Text("Mac App Store Edition")
                         .foregroundStyle(.secondary)
@@ -229,9 +259,9 @@ private struct AppStoreWhatsNewView: View {
 
             section(
                 icon: "sparkles.rectangle.stack",
-                title: "Core Memory Trail tools",
+                title: "Core Memory Trails tools",
                 text:
-                    "Today, Insights, Ask Memory Trail, Favorites, manual memories, local retention, and JSON export remain available."
+                    "Today, Insights, Ask Memory Trails, Favorites, manual memories, local retention, and JSON export remain available."
             )
 
             section(

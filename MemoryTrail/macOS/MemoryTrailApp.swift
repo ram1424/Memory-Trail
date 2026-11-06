@@ -17,11 +17,17 @@ enum MemoryTrailStorage {
 
     static var directoryURL: URL {
         applicationSupportDirectory
-            .appendingPathComponent("Memory Trail", isDirectory: true)
+            .appendingPathComponent("Memory Trails", isDirectory: true)
     }
 
     static var storeURL: URL {
         directoryURL.appendingPathComponent("MemoryTrail.store")
+    }
+
+    private static var previousNamedStoreURL: URL {
+        applicationSupportDirectory
+            .appendingPathComponent("Memory Trail", isDirectory: true)
+            .appendingPathComponent("MemoryTrail.store")
     }
 
     private static var legacyStoreURL: URL {
@@ -35,14 +41,23 @@ enum MemoryTrailStorage {
             withIntermediateDirectories: true
         )
 
-        guard !fileManager.fileExists(atPath: storeURL.path),
-              fileManager.fileExists(atPath: legacyStoreURL.path)
-        else {
+        guard !fileManager.fileExists(atPath: storeURL.path) else {
             return
         }
 
+        let migrationSource: URL?
+        if fileManager.fileExists(atPath: previousNamedStoreURL.path) {
+            migrationSource = previousNamedStoreURL
+        } else if fileManager.fileExists(atPath: legacyStoreURL.path) {
+            migrationSource = legacyStoreURL
+        } else {
+            migrationSource = nil
+        }
+
+        guard let migrationSource else { return }
+
         for suffix in ["", "-shm", "-wal"] {
-            let source = URL(fileURLWithPath: legacyStoreURL.path + suffix)
+            let source = URL(fileURLWithPath: migrationSource.path + suffix)
             let destination = URL(fileURLWithPath: storeURL.path + suffix)
 
             guard fileManager.fileExists(atPath: source.path),
@@ -172,7 +187,7 @@ struct MemoryTrailApp: App {
                 )
             }
         } catch {
-            fatalError("Unable to initialize Memory Trail database: \(error)")
+            fatalError("Unable to initialize Memory Trails database: \(error)")
         }
 
         NSApplication.shared.applicationIconImage = Self.brandIcon
@@ -289,7 +304,7 @@ struct MemoryTrailApp: App {
         .defaultSize(width: 1440, height: 900)
         .commands {
             CommandGroup(replacing: .appInfo) {
-                Button("About Memory Trail") {
+                Button("About Memory Trails") {
                     showAboutPanel()
                 }
 
@@ -302,7 +317,7 @@ struct MemoryTrailApp: App {
                 }
                 .disabled(isCheckingForUpdates)
 
-                Button("What’s New in Memory Trail…") {
+                Button("What’s New in Memory Trails…") {
                     updatePresentation = .whatsNew(Self.currentChangelog)
                 }
             }
@@ -315,7 +330,7 @@ struct MemoryTrailApp: App {
             Divider()
             Text("Your activity stays on this Mac")
                 .foregroundStyle(.secondary)
-            Button("Quit Memory Trail") {
+            Button("Quit Memory Trails") {
                 NSApplication.shared.terminate(nil)
             }
         } label: {
@@ -344,7 +359,7 @@ struct MemoryTrailApp: App {
     private static var currentChangelog: MemoryTrailChangelog {
         MemoryTrailChangelog(
             version: displayVersion,
-            headline: "What’s New in Memory Trail 1.4",
+            headline: "What’s New in Memory Trails 1.4",
             summary: "Version \(appVersion) focuses on more reliable Outlook capture, a clearer timeline, more useful search results, and a cleaner overall experience — while keeping your activity private and local.",
             sections: [
                 MemoryTrailChangeSection(
@@ -370,7 +385,7 @@ struct MemoryTrailApp: App {
                     ]
                 ),
                 MemoryTrailChangeSection(
-                    title: "Ask Memory Trail",
+                    title: "Ask Memory Trails",
                     symbol: "sparkles.rectangle.stack.fill",
                     items: [
                         "Supporting Activity no longer has arbitrary result-count limits; all matching local activity can be returned.",
@@ -386,7 +401,7 @@ struct MemoryTrailApp: App {
                     items: [
                         "Insights uses a cleaner dashboard layout with Top Apps, Key Takeaways, activity patterns, and recent files.",
                         "Favorites has clearer saved-item context and a more useful empty state.",
-                        "Insights, Favorites, Clipboard History, Ask Memory Trail, and Settings now share a more consistent visual structure."
+                        "Insights, Favorites, Clipboard History, Ask Memory Trails, and Settings now share a more consistent visual structure."
                     ]
                 ),
                 MemoryTrailChangeSection(
@@ -405,7 +420,7 @@ struct MemoryTrailApp: App {
                     items: [
                         "Settings is reorganized into a cleaner continuous layout with privacy, exclusions, and storage controls easier to reach.",
                         "The update experience has been refined while keeping a simple up-to-date confirmation flow.",
-                        "About Memory Trail now presents the version and build number more clearly."
+                        "About Memory Trails now presents the version and build number more clearly."
                     ]
                 ),
                 MemoryTrailChangeSection(
@@ -432,7 +447,7 @@ struct MemoryTrailApp: App {
         )
 
         NSApplication.shared.orderFrontStandardAboutPanel(options: [
-            .applicationName: "Memory Trail",
+            .applicationName: "Memory Trails",
             .applicationIcon: Self.brandIcon,
             .applicationVersion: "Version \(Self.appVersion) • Build \(Self.appBuild)",
             .version: "",
@@ -531,7 +546,7 @@ struct MemoryTrailApp: App {
 
             try context.save()
         } catch {
-            NSLog("Memory Trail retention cleanup failed: %@", error.localizedDescription)
+            NSLog("Memory Trails retention cleanup failed: %@", error.localizedDescription)
         }
     }
 
@@ -562,7 +577,7 @@ struct MemoryTrailApp: App {
 
         // Wait until SwiftUI/AppKit has presented the main app window, then
         // expand it to the screen's visible work area every time the app launches.
-        // This keeps Memory Trail as a normal macOS window and does not enter
+        // This keeps Memory Trails as a normal macOS window and does not enter
         // native full-screen mode or create a separate full-screen Space.
         for _ in 0..<20 {
             if let window = NSApplication.shared.keyWindow
@@ -656,7 +671,7 @@ struct MemoryTrailApp: App {
         } catch {
             guard manual else { return }
             updatePresentation = .unavailable(
-                "Memory Trail couldn’t reach the update service. Check your connection and try again, or open Releases to download the latest version manually."
+                "Memory Trails couldn’t reach the update service. Check your connection and try again, or open Releases to download the latest version manually."
             )
         }
     }
@@ -672,7 +687,7 @@ struct MemoryTrailApp: App {
             } catch {
                 isInstallingUpdate = false
                 updatePresentation = .unavailable(
-                    "The update could not be installed automatically. Your current copy of Memory Trail is unchanged. You can open Releases and install the update manually."
+                    "The update could not be installed automatically. Your current copy of Memory Trails is unchanged. You can open Releases and install the update manually."
                 )
             }
         }
@@ -825,7 +840,7 @@ private struct MemoryTrailSimpleSplashView: View {
                         Spacer()
                             .frame(height: min(64, max(38, size.height * 0.065)))
 
-                        Text("Loading Memory Trail…")
+                        Text("Loading Memory Trails…")
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
                             .foregroundStyle(Color(red: 0.29, green: 0.36, blue: 0.47))
                             .padding(.bottom, 18)
@@ -1189,10 +1204,10 @@ private enum MemoryTrailBackgroundUpdater {
             case .invalidDownloadURL: return "The update download URL is invalid."
             case .badDownloadResponse: return "The update download failed."
             case .mountFailed: return "The downloaded update could not be opened."
-            case .appNotFound: return "Memory Trail.app was not found in the downloaded update."
-            case .installLocationNotWritable: return "Memory Trail cannot update itself from its current location."
+            case .appNotFound: return "Memory Trails.app was not found in the downloaded update."
+            case .installLocationNotWritable: return "Memory Trails cannot update itself from its current location."
             case .signatureVerificationFailed: return "The downloaded app failed code-signature verification."
-            case .versionMismatch: return "The downloaded app does not match the expected Memory Trail release."
+            case .versionMismatch: return "The downloaded app does not match the expected Memory Trails release."
             case .helperLaunchFailed: return "The update helper could not be started."
             }
         }
@@ -1287,7 +1302,7 @@ private enum MemoryTrailBackgroundUpdater {
             throw UpdateError.appNotFound
         }
 
-        let stagedAppURL = stagingRoot.appendingPathComponent("Memory Trail.app")
+        let stagedAppURL = stagingRoot.appendingPathComponent("Memory Trails.app")
         try fileManager.copyItem(at: appURL, to: stagedAppURL)
 
         guard let stagedBundle = Bundle(url: stagedAppURL),
@@ -1496,7 +1511,7 @@ private struct MemoryTrailUpdateSheet: View {
         VStack(spacing: 0) {
             sheetHeader(
                 eyebrow: "WHAT’S NEW • VERSION \(changelog.version)",
-                title: "What’s New in Memory Trail",
+                title: "What’s New in Memory Trails",
                 subtitle: changelog.headline
             )
 
@@ -1537,7 +1552,7 @@ private struct MemoryTrailUpdateSheet: View {
         VStack(spacing: 0) {
             sheetHeader(
                 eyebrow: "A FRESHER TRAIL IS READY",
-                title: "Memory Trail \(manifest.displayVersion)",
+                title: "Memory Trails \(manifest.displayVersion)",
                 subtitle: "A new version is ready. Update now, take a day, or skip this release."
             )
 
@@ -1642,7 +1657,7 @@ private struct MemoryTrailUpdateSheet: View {
                 .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundStyle(primaryText)
 
-            Text("No detours. No downloads. Memory Trail is already running the latest release.")
+            Text("No detours. No downloads. Memory Trails is already running the latest release.")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(secondaryText)
                 .multilineTextAlignment(.center)
@@ -1868,7 +1883,7 @@ private struct MemoryTrailAccessibilityPrompt: View {
                         .foregroundStyle(.blue)
                 }
 
-                Text("Give Memory Trail the full picture")
+                Text("Give Memory Trails the full picture")
                     .font(.system(size: 27, weight: .bold, design: .rounded))
                     .multilineTextAlignment(.center)
 
@@ -1891,7 +1906,7 @@ private struct MemoryTrailAccessibilityPrompt: View {
                     .keyboardShortcut(.defaultAction)
                 }
 
-                Text("Memory Trail only reads supported local app/window context. Your captured history remains on this Mac.")
+                Text("Memory Trails only reads supported local app/window context. Your captured history remains on this Mac.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

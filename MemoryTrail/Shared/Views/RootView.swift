@@ -130,7 +130,7 @@ struct MemoryTrailSidebar: View {
 
                     VStack(spacing: 5) {
                         sidebarButton(.today, title: "Today", symbol: "house.fill")
-                        sidebarButton(.search, title: "Ask Memory Trail", symbol: "magnifyingglass")
+                        sidebarButton(.search, title: "Ask Memory Trails", symbol: "magnifyingglass")
                         sidebarButton(.favorites, title: "Favorites", symbol: "star.fill")
                         sidebarButton(.clipboard, title: "Clipboard History", symbol: "doc.on.clipboard.fill")
                         sidebarButton(.insights, title: "Insights", symbol: "chart.bar.fill")
@@ -212,7 +212,7 @@ struct MemoryTrailSidebar: View {
                 .frame(width: 64, height: 64)
                 .shadow(color: Color.accentColor.opacity(0.18), radius: 14, y: 6)
 
-            Text("Memory Trail")
+            Text("Memory Trails")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
         }
         .frame(maxWidth: .infinity)
