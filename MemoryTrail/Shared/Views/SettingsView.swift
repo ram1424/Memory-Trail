@@ -62,7 +62,7 @@ struct SettingsView: View {
                             }
                         }
 
-                        Text("Memory Trail requests Accessibility access automatically on launch. If macOS does not show the prompt, use Request Access or open Accessibility Settings, then enable Memory Trail.")
+                        Text("Memory Trails requests Accessibility access automatically on launch. If macOS does not show the prompt, use Request Access or open Accessibility Settings, then enable Memory Trails.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -71,7 +71,7 @@ struct SettingsView: View {
                 settingsCard("Excluded Apps & Services", systemImage: "hand.raised.slash") {
                     HStack(alignment: .center, spacing: 14) {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Choose installed apps Memory Trail should ignore.")
+                            Text("Choose installed apps Memory Trails should ignore.")
                                 .font(.subheadline)
 
                             Text("\(excludedInstalledAppCount) installed app\(excludedInstalledAppCount == 1 ? "" : "s") currently excluded.")
@@ -180,7 +180,7 @@ struct SettingsView: View {
                         Text("Privacy-first by design")
                             .font(.title3.weight(.semibold))
 
-                        Text("Memory Trail is a private, locally run macOS app. Its captured activity history is processed and stored on this computer.")
+                        Text("Memory Trails is a private, locally run macOS app. Its captured activity history is processed and stored on this computer.")
                             .foregroundStyle(.secondary)
                     }
 
@@ -195,37 +195,37 @@ struct SettingsView: View {
                     privacyStatement(
                         icon: "icloud.slash.fill",
                         title: "No captured-data transmission",
-                        text: "Memory Trail does not upload, sync, or send your captured timeline data outside of this computer."
+                        text: "Memory Trails does not upload, sync, or send your captured timeline data outside of this computer."
                     )
 
                     privacyStatement(
                         icon: "link",
                         title: "No connectors of any kind",
-                        text: "Memory Trail has no external data connectors. It does not connect your captured activity to cloud drives, email accounts, calendars, collaboration platforms, AI providers, analytics services, advertising systems, or other external services."
+                        text: "Memory Trails has no external data connectors. It does not connect your captured activity to cloud drives, email accounts, calendars, collaboration platforms, AI providers, analytics services, advertising systems, or other external services."
                     )
 
                     privacyStatement(
                         icon: "person.crop.circle.badge.xmark",
                         title: "No account to create",
-                        text: "There is no Memory Trail account, sign-in, subscription account, remote profile, or cloud identity required to use the app."
+                        text: "There is no Memory Trails account, sign-in, subscription account, remote profile, or cloud identity required to use the app."
                     )
 
                     privacyStatement(
                         icon: "icloud.slash.fill",
                         title: "No cloud processing or storage",
-                        text: "Captured timeline data, clipboard history, files and paths, conversations, searches, Favorites, and manual memories are not processed, sent, synchronized, backed up, or stored on cloud services by Memory Trail."
+                        text: "Captured timeline data, clipboard history, files and paths, conversations, searches, Favorites, and manual memories are not processed, sent, synchronized, backed up, or stored on cloud services by Memory Trails."
                     )
 
                     privacyStatement(
                         icon: "brain.head.profile",
                         title: "No AI scraping or training",
-                        text: "Memory Trail does not scrape your activity for AI, send captured data to AI providers, use it to train or fine-tune models, or perform remote AI summarization, profiling, embeddings, or inference."
+                        text: "Memory Trails does not scrape your activity for AI, send captured data to AI providers, use it to train or fine-tune models, or perform remote AI summarization, profiling, embeddings, or inference."
                     )
 
                     privacyStatement(
                         icon: "checkmark.shield.fill",
                         title: "Verifiable source code",
-                        text: "The source code is available publicly so you can review and verify how Memory Trail captures, processes, and stores data."
+                        text: "The source code is available publicly so you can review and verify how Memory Trails captures, processes, and stores data."
                     )
 
                     Divider()
@@ -261,7 +261,7 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.bordered)
 
-                    Text("Resets cached capture state and Memory Trail preferences without deleting your activity history.")
+                    Text("Resets cached capture state and Memory Trails preferences without deleting your activity history.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -272,7 +272,7 @@ struct SettingsView: View {
                             Text("Stay on the freshest trail")
                                 .font(.subheadline.weight(.semibold))
 
-                            Text("Memory Trail checks for new releases when it launches and periodically while it’s running.")
+                            Text("Memory Trails checks for new releases when it launches and periodically while it’s running.")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                         }
@@ -315,7 +315,7 @@ struct SettingsView: View {
                         Label("Show Welcome Tutorial", systemImage: "sparkles")
                     }
 
-                    Text("Replay the first-launch walkthrough for Memory Trail.")
+                    Text("Replay the first-launch walkthrough for Memory Trails.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -409,7 +409,7 @@ struct SettingsView: View {
                 Text("Settings")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
 
-                Text("Tune what Memory Trail remembers, protects, and keeps close.")
+                Text("Tune what Memory Trails remembers, protects, and keeps close.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -497,7 +497,7 @@ struct SettingsView: View {
     private var settingsFooter: some View {
         HStack {
             Link(destination: URL(string: "https://github.com/ram1424/Memory-Trail")!) {
-                Label("Memory Trail on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                Label("Memory Trails on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
             }
             .font(.caption.weight(.semibold))
             .buttonStyle(.plain)
@@ -566,7 +566,7 @@ struct SettingsView: View {
                     Text("30-day local history")
                         .font(.subheadline.weight(.semibold))
 
-                    Text("Memory Trail keeps captured history on this Mac for 30 days by default. Items older than 30 days are removed automatically.")
+                    Text("Memory Trails keeps captured history on this Mac for 30 days by default. Items older than 30 days are removed automatically.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -648,7 +648,7 @@ struct SettingsView: View {
             storageResultMessage = "Deleted \(matches.count) local history item\(matches.count == 1 ? "" : "s") from \(range.title.lowercased())."
             showingStorageResult = true
         } catch {
-            storageResultMessage = "Memory Trail could not clear the selected history: \(error.localizedDescription)"
+            storageResultMessage = "Memory Trails could not clear the selected history: \(error.localizedDescription)"
             showingStorageResult = true
         }
     }
@@ -676,7 +676,7 @@ struct SettingsView: View {
             let data = try encoder.encode(export)
 
             let panel = NSSavePanel()
-            panel.title = "Export Memory Trail Activity"
+            panel.title = "Export Memory Trails Activity"
             panel.prompt = "Export"
             panel.nameFieldStringValue = "MemoryTrail-Activity-\(Self.exportDateFormatter.string(from: Date())).json"
             panel.allowedContentTypes = [.json]
@@ -693,7 +693,7 @@ struct SettingsView: View {
                 byteCount: Int64(data.count)
             )
         } catch {
-            storageResultMessage = "Memory Trail could not export activity: \(error.localizedDescription)"
+            storageResultMessage = "Memory Trails could not export activity: \(error.localizedDescription)"
             showingStorageResult = true
         }
 #endif
@@ -829,7 +829,7 @@ enum MemoryTrailHistoryClearRange: Identifiable {
         case .lastMonth:
             "This permanently deletes all locally stored activity from the last 30 days."
         case .all:
-            "This permanently deletes all locally stored Memory Trail history."
+            "This permanently deletes all locally stored Memory Trails history."
         }
     }
 
@@ -1131,7 +1131,7 @@ private struct MemoryTrailClearCacheSheet: View {
 
                 Text(
                     didClear
-                        ? "Memory Trail’s temporary capture state and preferences are refreshed. Your Timeline entries stayed exactly where they belong."
+                        ? "Memory Trails’ temporary capture state and preferences are refreshed. Your Timeline entries stayed exactly where they belong."
                         : "This refreshes cached capture state and restores preferences to their defaults. Your Timeline history will not be deleted."
                 )
                 .font(.system(size: 14.5, weight: .medium))
@@ -1278,7 +1278,7 @@ private struct InstalledAppPicker: View {
                     Text("Exclude Installed Apps")
                         .font(.system(size: 24, weight: .bold, design: .rounded))
 
-                    Text("Selected apps will be ignored by Memory Trail capture.")
+                    Text("Selected apps will be ignored by Memory Trails capture.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

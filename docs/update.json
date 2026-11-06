@@ -67,15 +67,15 @@
       "title": "About Build Label",
       "symbol": "info.circle.fill",
       "items": [
-        "About Memory Trail displays Version 1.2 • Build 2 as one clean line."
+        "About Memory Trails displays Version 1.2 • Build 2 as one clean line."
       ]
     },
     {
-      "title": "Ask Memory Trail, Expanded",
+      "title": "Ask Memory Trails, Expanded",
       "symbol": "bubble.left.and.bubble.right.fill",
       "items": [
         "What conversations did I have today? now returns the complete matching conversation history for today.",
-        "Supporting Activity uses the same full-width alignment for every Ask Memory Trail result.",
+        "Supporting Activity uses the same full-width alignment for every Ask Memory Trails result.",
         "Specific keyword searches keep their focused result cap to avoid overwhelming the user."
       ]
     },
@@ -117,8 +117,8 @@
       "title": "Freshest Trail, Reimagined",
       "symbol": "checkmark.seal.fill",
       "items": [
-        "Replaced the plain update-current screen with a full illustrated Memory Trail scene.",
-        "Added a laptop with the real Memory Trail icon and a green success badge.",
+        "Replaced the plain update-current screen with a full illustrated Memory Trails scene.",
+        "Added a laptop with the real Memory Trails icon and a green success badge.",
         "The version/build pill and Keep Exploring action remain dynamic and functional."
       ]
     },
@@ -153,7 +153,7 @@
       "title": "Storage & History",
       "symbol": "internaldrive.fill",
       "items": [
-        "Memory Trail now stores activity in a clearly named MemoryTrail.store under its local Application Support folder.",
+        "Memory Trails now stores activity in a clearly named MemoryTrail.store under its local Application Support folder.",
         "Existing default SwiftData history is migrated forward automatically when possible.",
         "Export local history as JSON and manage deletion from Settings."
       ]
@@ -185,7 +185,7 @@
       ]
     },
     {
-      "title": "Ask Memory Trail",
+      "title": "Ask Memory Trails",
       "symbol": "magnifyingglass",
       "items": [
         "Natural-language local search by time, app, subject, page, conversation, filename, and nearby activity.",
@@ -253,7 +253,7 @@
       "symbol": "lock.shield.fill",
       "items": [
         "Captured activity is sourced, processed, and stored locally using SwiftData.",
-        "No Memory Trail account, cloud timeline sync, analytics SDK, advertising SDK, or external timeline service.",
+        "No Memory Trails account, cloud timeline sync, analytics SDK, advertising SDK, or external timeline service.",
         "Source code is available for review."
       ]
     },

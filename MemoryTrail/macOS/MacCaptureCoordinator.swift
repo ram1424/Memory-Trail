@@ -4804,7 +4804,7 @@ final class MacCaptureCoordinator {
         }
 
         // Only replace +N when Teams actually exposed enough individual names.
-        // This prevents Memory Trail from inventing or partially guessing members.
+        // This prevents Memory Trails from inventing or partially guessing members.
         guard names.count == targetCount else {
             teamsGroupExpansionCache[cacheKey] = TeamsGroupExpansionCacheEntry(
                 title: title,

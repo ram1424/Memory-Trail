@@ -1,30 +1,30 @@
-# Memory Trail
+# Memory Trails
 
-> 🔒 **Privacy Policy:** [Read the official Memory Trail Privacy Policy](https://github.com/ram1424/Memory-Trail/blob/main/PRIVACY.md)
+> 🔒 **Privacy Policy:** [Read the official Memory Trails Privacy Policy](https://github.com/ram1424/Memory-Trail/blob/main/PRIVACY.md)
 
 
 <p align="center">
-  <img src="Branding/MemoryTrailIconMaster.png" width="168" alt="Memory Trail app icon">
+  <img src="Branding/MemoryTrailIconMaster.png" width="168" alt="Memory Trails app icon">
 </p>
 
 <p align="center"><strong>Your workday, remembered locally.</strong></p>
 
-Memory Trail is a privacy-first macOS activity timeline for retracing what you were doing across browsers, email, chat, files, documents, and the clipboard. It turns useful local app/window context into a searchable chronological history without requiring a cloud account or external data connector.
+Memory Trails is a privacy-first macOS activity timeline for retracing what you were doing across browsers, email, chat, files, documents, and the clipboard. It turns useful local app/window context into a searchable chronological history without requiring a cloud account or external data connector.
 
 [![Latest Release](https://img.shields.io/github/v/release/ram1424/Memory-Trail?display_name=release&label=Latest%20Release)](https://github.com/ram1424/Memory-Trail/releases/latest)
 
 ## Download
 
-[**Download the latest Memory Trail release for macOS**](https://github.com/ram1424/Memory-Trail/releases/latest)
+[**Download the latest Memory Trails release for macOS**](https://github.com/ram1424/Memory-Trail/releases/latest)
 
-The link above always opens the newest published Memory Trail release, so the README does not need to be updated for each version.
+The link above always opens the newest published Memory Trails release, so the README does not need to be updated for each version.
 
 Requires **macOS 14 or later**. Detailed window and activity capture requires macOS Accessibility permission.
 
-## What Memory Trail Does
+## What Memory Trails Does
 
 - **Live activity timeline** with the newest activity first
-- **Ask Memory Trail** search across locally stored history
+- **Ask Memory Trails** search across locally stored history
 - **Browser context** including page/tab titles and URLs when exposed by supported browsers
 - **Outlook and Mail context** including subject-level activity when available
 - **Teams context** including supported conversation/window titles
@@ -37,7 +37,7 @@ Requires **macOS 14 or later**. Detailed window and activity capture requires ma
 - **Pause capture** control
 - **Menu bar operation**
 - **Insights and dynamic timeline filters**
-- **Built-in update checking** from the Memory Trail app menu plus periodic automatic checks
+- **Built-in update checking** from the Memory Trails app menu plus periodic automatic checks
 - **First-launch What's New** release overview
 - **Local SwiftData storage**
 - **Privacy-focused onboarding and Settings controls**
@@ -46,13 +46,13 @@ Requires **macOS 14 or later**. Detailed window and activity capture requires ma
 ## Screenshots
 
 ### Today
-![Memory Trail Today view](docs/screenshots/today-ui.png)
+![Memory Trails Today view](docs/screenshots/today-ui.png)
 
-### Ask Memory Trail
-![Ask Memory Trail](docs/screenshots/ask-memory-trail-ui.png)
+### Ask Memory Trails
+![Ask Memory Trails](docs/screenshots/ask-memory-trail-ui.png)
 
 ### Favorites
-![Memory Trail Favorites](docs/screenshots/favorites-ui.png)
+![Memory Trails Favorites](docs/screenshots/favorites-ui.png)
 
 _All screenshots use generic demo data._
 
@@ -60,7 +60,7 @@ _All screenshots use generic demo data._
 
 **Official Privacy Policy:** [https://github.com/ram1424/Memory-Trail/blob/main/PRIVACY.md](https://github.com/ram1424/Memory-Trail/blob/main/PRIVACY.md)
 
-Memory Trail is designed around a simple principle: **your captured activity history stays on your Mac.**
+Memory Trails is designed around a simple principle: **your captured activity history stays on your Mac.**
 
 ### Local capture and storage
 
@@ -73,7 +73,7 @@ Memory Trail is designed around a simple principle: **your captured activity his
 
 - **No cloud timeline sync**
 - **No external data connectors**
-- **No Memory Trail account**
+- **No Memory Trails account**
 - **No remote account required for capture**
 - **No analytics SDK**
 - **No advertising SDK**
@@ -89,21 +89,21 @@ Memory Trail is designed around a simple principle: **your captured activity his
 - Clear cached capture state/preferences without deleting activity history.
 - Review the source code in this repository to verify capture, storage, and privacy behavior.
 
-Memory Trail is intended as a personal productivity and activity-retracing tool. It is **not** designed as employee monitoring software, a keylogger, or a screen recorder.
+Memory Trails is intended as a personal productivity and activity-retracing tool. It is **not** designed as employee monitoring software, a keylogger, or a screen recorder.
 
 ## Accessibility Permission
 
-Memory Trail uses macOS Accessibility access to read the active application and supported focused-window titles so it can build a useful local timeline.
+Memory Trails uses macOS Accessibility access to read the active application and supported focused-window titles so it can build a useful local timeline.
 
 Enable it under:
 
 **System Settings → Privacy & Security → Accessibility**
 
-If Memory Trail does not appear automatically, use the **+** button to add **Memory Trail.app**, enable it, and relaunch the app.
+If Memory Trails does not appear automatically, use the **+** button to add **Memory Trails.app**, enable it, and relaunch the app.
 
 ## Data Sources
 
-Depending on the app and what macOS exposes, Memory Trail can retain useful context such as:
+Depending on the app and what macOS exposes, Memory Trails can retain useful context such as:
 
 - Active application names
 - Focused window titles
@@ -113,13 +113,13 @@ Depending on the app and what macOS exposes, Memory Trail can retain useful cont
 - Folder, file, and document names/paths
 - Copied text, links, and code when clipboard capture is enabled
 
-Memory Trail records metadata/context exposed by supported apps; it is not a screen recorder.
+Memory Trails records metadata/context exposed by supported apps; it is not a screen recorder.
 
 ## Build From Source
 
 1. Clone this repository.
-2. Open **Memory Trail.xcodeproj** in Xcode.
-3. Select the **Memory Trail** scheme.
+2. Open **Memory Trails.xcodeproj** in Xcode.
+3. Select the **Memory Trails** scheme.
 4. Build and run the macOS target.
 5. Grant Accessibility permission when prompted.
 
@@ -129,4 +129,4 @@ Memory Trail records metadata/context exposed by supported apps; it is not a scr
 
 Only the current production release is retained on the GitHub Releases page.
 
-[View the latest Memory Trail release](https://github.com/ram1424/Memory-Trail/releases/latest)
+[View the latest Memory Trails release](https://github.com/ram1424/Memory-Trail/releases/latest)

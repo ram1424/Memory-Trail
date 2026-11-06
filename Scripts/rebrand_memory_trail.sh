@@ -14,11 +14,18 @@ move_if_needed() {
   fi
 }
 
-move_if_needed "Memory Lane.xcodeproj" "Memory Trail.xcodeproj"
+move_if_needed "Memory Lane.xcodeproj" "Memory Trails.xcodeproj"
+move_if_needed "Memory Trail.xcodeproj" "Memory Trails.xcodeproj"
 move_if_needed "MemoryLane" "MemoryTrail"
 move_if_needed \
-  "Memory Trail.xcodeproj/xcshareddata/xcschemes/Memory Lane.xcscheme" \
-  "Memory Trail.xcodeproj/xcshareddata/xcschemes/Memory Trail.xcscheme"
+  "Memory Trails.xcodeproj/xcshareddata/xcschemes/Memory Lane.xcscheme" \
+  "Memory Trails.xcodeproj/xcshareddata/xcschemes/Memory Trails.xcscheme"
+move_if_needed \
+  "Memory Trails.xcodeproj/xcshareddata/xcschemes/Memory Trail.xcscheme" \
+  "Memory Trails.xcodeproj/xcshareddata/xcschemes/Memory Trails.xcscheme"
+move_if_needed \
+  "Memory Trails.xcodeproj/xcshareddata/xcschemes/Memory Trail App Store.xcscheme" \
+  "Memory Trails.xcodeproj/xcshareddata/xcschemes/Memory Trails App Store.xcscheme"
 move_if_needed \
   "MemoryTrail/macOS/MemoryLaneApp.swift" \
   "MemoryTrail/macOS/MemoryTrailApp.swift"
@@ -44,11 +51,11 @@ excluded = {
 }
 
 replacements = (
-    ("Memory Lane", "Memory Trail"),
+    ("Memory Lane", "Memory Trails"),
     ("MemoryLane", "MemoryTrail"),
     ("memorylane", "memorytrail"),
-    ("MEMORY LANE", "MEMORY TRAIL"),
-    ("memory lane", "memory trail"),
+    ("MEMORY LANE", "MEMORY TRAILS"),
+    ("memory lane", "memory trails"),
     ("generate_app_icons.swift", "generate_memory_trail_icons.swift"),
     ("ask-memory-lane-ui.png", "ask-memory-trail-ui.png"),
     ("timeline-ui.png", "today-ui.png"),
@@ -72,6 +79,11 @@ for path in root.rglob("*"):
     updated = text
     for old, new in replacements:
         updated = updated.replace(old, new)
+
+    # Keep the singular-to-plural product rename idempotent.
+    updated = re.sub(r"Memory Trail(?!s)", "Memory Trails", updated)
+    updated = re.sub(r"MEMORY TRAIL(?!S)", "MEMORY TRAILS", updated)
+    updated = re.sub(r"memory trail(?!s)", "memory trails", updated)
 
     if updated != text:
         path.write_text(updated, encoding="utf-8")
@@ -120,8 +132,8 @@ if readme.exists():
     if marker in text and "Branding/MemoryTrailIconMaster.png" not in text:
         text = text.replace(marker, marker + logo, 1)
     text = text.replace("### Timeline\n", "### Today\n")
-    text = text.replace("![Memory Trail Timeline](docs/screenshots/today-ui.png)", "![Memory Trail Today view](docs/screenshots/today-ui.png)")
+    text = text.replace("![Memory Trails Timeline](docs/screenshots/today-ui.png)", "![Memory Trails Today view](docs/screenshots/today-ui.png)")
     readme.write_text(text, encoding="utf-8")
 PY
 
-printf 'Memory Trail rebrand and macOS icon safeguards applied successfully.\n'
+printf 'Memory Trails rebrand and macOS icon safeguards applied successfully.\n'

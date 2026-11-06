@@ -142,7 +142,7 @@ struct SearchView: View {
                 )
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Ask Memory Trail")
+                Text("Ask Memory Trails")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
 
 #if APP_STORE_EDITION
@@ -272,7 +272,7 @@ struct SearchView: View {
 
                 searchCapabilityCard(
                     title: "Local by design",
-                    detail: "Queries run against your locally stored Memory Trail history. Your timeline is not sent to a cloud search service.",
+                    detail: "Queries run against your locally stored Memory Trails history. Your timeline is not sent to a cloud search service.",
                     symbol: "lock.shield.fill",
                     category: .remoteAccess
                 )
@@ -294,7 +294,7 @@ struct SearchView: View {
                 )
                 searchCapabilityCard(
                     title: "Local by design",
-                    detail: "Queries run against your locally stored Memory Trail history. Your timeline is not sent to a cloud search service.",
+                    detail: "Queries run against your locally stored Memory Trails history. Your timeline is not sent to a cloud search service.",
                     symbol: "lock.shield.fill",
                     category: .remoteAccess
                 )
@@ -403,7 +403,7 @@ struct SearchView: View {
                     .background(Color.accentColor.opacity(0.11), in: RoundedRectangle(cornerRadius: 10))
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Memory Trail found")
+                    Text("Memory Trails found")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
 

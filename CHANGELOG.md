@@ -1,8 +1,8 @@
-# Memory Trail Changelog
+# Memory Trails Changelog
 
 ## 1.4 (Build 1) - November 5, 2026
 
-Memory Trail 1.4 is a polished release focused on reliable Outlook capture, clearer activity history, more useful Ask Memory Trail results, and a cleaner overall experience.
+Memory Trails 1.4 is a polished release focused on reliable Outlook capture, clearer activity history, more useful Ask Memory Trails results, and a cleaner overall experience.
 
 ### Outlook Capture & Reliability
 
@@ -20,7 +20,7 @@ Memory Trail 1.4 is a polished release focused on reliable Outlook capture, clea
 - Added Go to Today for easier navigation back to the current day.
 - Improved Top Apps Today label handling.
 
-### Ask Memory Trail
+### Ask Memory Trails
 
 - Removed arbitrary Supporting Activity result-count limits.
 - Fuller day-level conversation and email history can be returned when it matches the query.
@@ -32,7 +32,7 @@ Memory Trail 1.4 is a polished release focused on reliable Outlook capture, clea
 
 - Cleaner Insights dashboard with Top Apps, Key Takeaways, activity patterns, and recent files.
 - Clearer Favorites context and empty state.
-- More consistent visual structure across Insights, Favorites, Clipboard History, Ask Memory Trail, and Settings.
+- More consistent visual structure across Insights, Favorites, Clipboard History, Ask Memory Trails, and Settings.
 
 ### Storage, History & Export
 
@@ -55,20 +55,20 @@ Memory Trail 1.4 is a polished release focused on reliable Outlook capture, clea
 
 ## 1.3 (Build 12) - November 5, 2026
 
-Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
+Memory Trails 1.3 focuses on reliable Outlook activity capture, a clearer timeline experience, stronger local history controls, and overall polish.
 
 ### What’s New Reorganization
 
 - Reorganized the in-app **What’s New** screen into a cleaner release-style flow.
 - Consolidated the many Outlook implementation bullets into one concise **Outlook Capture & Reliability** section.
-- Separated the rest of the release into **Today & Timeline**, **Ask Memory Trail**, **Insights, Favorites & Consistency**, **Storage, History & Export**, **Settings, Updates & Polish**, and **Privacy First**.
-- Removed repetitive technical wording while preserving the user-facing improvements included in Memory Trail 1.3.
+- Separated the rest of the release into **Today & Timeline**, **Ask Memory Trails**, **Insights, Favorites & Consistency**, **Storage, History & Export**, **Settings, Updates & Polish**, and **Privacy First**.
+- Removed repetitive technical wording while preserving the user-facing improvements included in Memory Trails 1.3.
 
 ### New Outlook Fail-Closed Header Fix
 
 - Fixed a Build 10 regression where the last-resort non-column fallback scanned the entire Outlook window. That allowed navigation/account chrome such as `All Accounts` to be paired with a real sender and logged as if it were an email subject.
 - Reading-pane parsing now requires either an explicit semantic reading/message pane or a structural Message Header container.
-- If neither is exposed, Memory Trail falls back to the selected Outlook message object/row instead of scanning unrelated Outlook UI.
+- If neither is exposed, Memory Trails falls back to the selected Outlook message object/row instead of scanning unrelated Outlook UI.
 - Added `All Accounts`, `All Mailboxes`, `All Folders`, and account-list labels to the Outlook navigation-chrome filter.
 - Added the same navigation-chrome validation to the clicked-subject fallback so invalid labels cannot re-enter after reading-pane rejection.
 - `Presence Unknown` and `Unknown Presence` are now treated as Outlook presence metadata and removed from the captured From value.
@@ -76,7 +76,7 @@ Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timelin
 
 ### New Outlook Non-Column Layout Fix
 
-- Confirmed a layout-specific bug: Column Layout/right-side reading pane worked more reliably because Memory Trail still contained geometry assumptions that the message list was on the left and the message header was in the right side of the Outlook window.
+- Confirmed a layout-specific bug: Column Layout/right-side reading pane worked more reliably because Memory Trails still contained geometry assumptions that the message list was on the left and the message header was in the right side of the Outlook window.
 - Removed the horizontal left-side cutoff from clicked message-row identity. New Outlook can now identify the actual selected row when the message list spans the full width above a bottom reading pane.
 - Increased selected-row Accessibility scanning from 500 to 1,500 elements for the larger hierarchy used by non-column layouts.
 - Selected-row identity now comes from Outlook's `AXSelectedRows` first and includes row frame information, making it layout-independent and better at distinguishing repeated messages.
@@ -90,7 +90,7 @@ Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timelin
 ### New Outlook Selection-State Reliability
 
 - Fixed an architectural bug where New Outlook was re-detected from transient UI labels on every capture. The same New Outlook process could therefore be treated as New in Inbox but Classic in Search, Sent, custom folders, or full-width/open-message layouts.
-- Once New Outlook is positively identified for the running Outlook process, Memory Trail now keeps that mode for the lifetime of the process.
+- Once New Outlook is positively identified for the running Outlook process, Memory Trails now keeps that mode for the lifetime of the process.
 - Broadened New Outlook detection to recognize web-content roles, reading/message pane identifiers, and structural Message header signals, with a larger Accessibility scan budget.
 - Carries the clicked message-row identity into the asynchronous reading-pane capture without making row detection a prerequisite for capture.
 - Distinct emails with identical Subject and From values can now be logged independently when the clicked row proves the selection changed.
@@ -116,17 +116,17 @@ Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timelin
 - Subject selection now requires the subject to be positioned above the confirmed sender line, reducing the need for risky text-content filtering.
 - Sender parsing now tolerates angle-bracket and ellipsis characters that New Outlook may expose in sender display strings.
 
-### Ask Memory Trail Quick-Start Icons
+### Ask Memory Trails Quick-Start Icons
 
 - Replaced category-reused quick-start icons with prompt-specific SF Symbols.
 - Email uses an envelope while conversations use paired chat bubbles, making those two prompts visually distinct.
 - Websites, files, projects, weekly activity, recent activity, and earlier/today prompts now use icons that match their actual intent.
 
-### Ask Memory Trail Navigation & Supporting Activity
+### Ask Memory Trails Navigation & Supporting Activity
 
 - Removed the arbitrary Supporting Activity count limits from general searches, Outlook email searches, and before/after activity searches.
 - Supporting Activity can now contain the full set of locally stored activity matching the interpreted query and its date/app/content filters.
-- Added a floating **Back to Top** control to Ask Memory Trail so long result sets can be navigated without manually scrolling back to the query area.
+- Added a floating **Back to Top** control to Ask Memory Trails so long result sets can be navigated without manually scrolling back to the query area.
 - Added a clearly visible **Close** button directly in the expanded activity header. The existing toolbar close control remains available.
 
 ### New Outlook Subject Reliability Fix
@@ -135,7 +135,7 @@ Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timelin
 - Strings such as `Sent on: Today at 9:27 AM`, Sent/Received timestamps, recipient lines, date/time labels, presence states, and other header metadata can no longer become the captured subject.
 - Expanded the valid subject/header region while keeping sender-relative geometry as the primary structure check, improving capture of wrapped and lower-positioned subjects.
 - New Outlook now retains timestamps found inside Sent/Received metadata for message identity instead of discarding them.
-- If the visible message header does not yield a complete valid Subject/From pair, Memory Trail falls back to the selected Outlook message object and then the selected row instead of ignoring the email.
+- If the visible message header does not yield a complete valid Subject/From pair, Memory Trails falls back to the selected Outlook message object and then the selected row instead of ignoring the email.
 - Fixed an internal de-duplication inconsistency so the stored last-message key now uses the same identity + subject + sender format as the capture scheduler.
 
 ### New Outlook Full-Width Header Fix
@@ -175,16 +175,16 @@ Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timelin
 - Improved Top Apps Today so longer application names fit more cleanly.
 - Refined Insights with more consistent cards and useful context including Top Apps, Key Takeaways, and recent files/documents.
 
-### Ask Memory Trail, Favorites & App Consistency
+### Ask Memory Trails, Favorites & App Consistency
 
 - Broader day-level conversation questions can return the complete matching conversation history instead of stopping at a small fixed result set.
 - Supporting Activity is full-width, easier to scan, and shows the number of returned items.
 - Favorites has clearer saved-item context and a more useful empty state.
-- Ask Memory Trail, Favorites, Clipboard History, Insights, and Settings use more consistent headers, cards, spacing, and visual treatment.
+- Ask Memory Trails, Favorites, Clipboard History, Insights, and Settings use more consistent headers, cards, spacing, and visual treatment.
 
 ### Storage, History & Export
 
-- Local activity uses the clearly named `MemoryTrail.store` database in Memory Trail's Application Support folder.
+- Local activity uses the clearly named `MemoryTrail.store` database in Memory Trails’ Application Support folder.
 - Default local history retention is 30 days.
 - Added controls to clear the last week, last month, or all history.
 - JSON export remains local and now provides a cleaner completion view with filename, item count, file size, and Show in Finder.
@@ -195,7 +195,7 @@ Memory Trail 1.3 focuses on reliable Outlook activity capture, a clearer timelin
 - Reorganized Settings into a cleaner continuous card layout.
 - Moved privacy, exclusions, and storage/history controls higher for easier access.
 - Refined the update confirmation experience while keeping the simple up-to-date flow.
-- About Memory Trail now presents version and build information more clearly.
+- About Memory Trails now presents version and build information more clearly.
 
 ### Privacy
 

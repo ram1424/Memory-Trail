@@ -240,12 +240,12 @@ func validate(_ url: URL, pixels: Int) throws {
 
 guard let exactSource = CGImageSourceCreateWithURL(masterURL as CFURL, nil),
       let master = CGImageSourceCreateImageAtIndex(exactSource, 0, nil) else {
-    fputs("Unable to load exact Memory Trail master icon.\n", stderr)
+    fputs("Unable to load exact Memory Trails master icon.\n", stderr)
     exit(4)
 }
 
 guard master.width == master.height else {
-    fputs("Memory Trail master icon must be square.\n", stderr)
+    fputs("Memory Trails master icon must be square.\n", stderr)
     exit(5)
 }
 
@@ -266,4 +266,4 @@ for (name, pixels) in [("OnboardingIcon.png", 512), ("OnboardingIcon@2x.png", 10
     try writePNG(resize(master, to: pixels), to: url)
     try validate(url, pixels: pixels)
 }
-print("Generated and verified clean Memory Trail macOS icon assets.")
+print("Generated and verified clean Memory Trails macOS icon assets.")

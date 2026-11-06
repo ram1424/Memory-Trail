@@ -53,7 +53,7 @@ enum SearchService {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             return MemoryTrailAnswer(
-                summary: "Ask about a time, app, file, page, email, chat, or project in your local Memory Trail history.",
+                summary: "Ask about a time, app, file, page, email, chat, or project in your local Memory Trails history.",
                 items: [],
                 interpretedQuery: ""
             )
@@ -742,7 +742,7 @@ enum SearchService {
         let summary: String
 
         if let nearest = result.first {
-            summary = "Immediately \(relationship) the \(targetApp.displayName) activity at \(target.createdAt.formatted(date: .omitted, time: .shortened)), Memory Trail found \(nearest.sourceApp): “\(nearest.displayTitle)”."
+            summary = "Immediately \(relationship) the \(targetApp.displayName) activity at \(target.createdAt.formatted(date: .omitted, time: .shortened)), Memory Trails found \(nearest.sourceApp): “\(nearest.displayTitle)”."
         } else {
             summary = "I found the \(targetApp.displayName) activity, but there wasn't a matching captured activity within an hour \(relationship) it."
         }
