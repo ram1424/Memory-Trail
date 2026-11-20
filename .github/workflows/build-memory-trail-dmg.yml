@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Increment RELEASE_BUILD for every app change published on the same version.
+  # Restored release: Memory Trails 1.4 Build 9.
   RELEASE_VERSION: "1.4"
   RELEASE_BUILD: "9"
 
