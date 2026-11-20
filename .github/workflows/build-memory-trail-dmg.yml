@@ -25,7 +25,7 @@ concurrency:
 env:
   # Increment RELEASE_BUILD for every app change published on the same version.
   RELEASE_VERSION: "1.4"
-  RELEASE_BUILD: "8"
+  RELEASE_BUILD: "9"
 
 jobs:
   build-dmg:
@@ -381,6 +381,24 @@ jobs:
               "$API/releases/assets/$ASSET_ID" \
               >/dev/null
           fi
+
+          # Remove the legacy pre-rename DMG so only MemoryTrails-$RELEASE_VERSION.dmg remains.
+          LEGACY_DMG="MemoryTrail-$RELEASE_VERSION.dmg"
+          curl -fsSL \
+            -H "$AUTH_HEADER" \
+            -H "$ACCEPT_HEADER" \
+            -H "$VERSION_HEADER" \
+            "$API/releases/$RELEASE_ID/assets" \
+            | jq -r --arg name "$LEGACY_DMG" '.[] | select(.name == $name) | .id' \
+            | while read -r LEGACY_ASSET_ID; do
+                [ -z "$LEGACY_ASSET_ID" ] && continue
+                curl -fsSL -X DELETE \
+                  -H "$AUTH_HEADER" \
+                  -H "$ACCEPT_HEADER" \
+                  -H "$VERSION_HEADER" \
+                  "$API/releases/assets/$LEGACY_ASSET_ID" \
+                  >/dev/null
+              done
 
           curl -fsSL -X POST \
             -H "$AUTH_HEADER" \

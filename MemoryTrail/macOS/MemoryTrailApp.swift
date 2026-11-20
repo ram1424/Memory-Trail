@@ -1038,12 +1038,12 @@ private enum MemoryTrailUpdatePresentation: Identifiable {
 
 private enum MemoryTrailUpdateService {
     private static let githubLatestReleaseURL = URL(
-        string: "https://api.github.com/repos/NTT-GDC-AI-Champions/Memory-Trail/releases/latest"
+        string: "https://api.github.com/repos/ram1424/Memory-Trail/releases/latest"
     )!
 
     private static let manifestURLs = [
-        URL(string: "https://ntt-gdc-ai-champions.github.io/Memory-Trail/update.json")!,
-        URL(string: "https://raw.githubusercontent.com/NTT-GDC-AI-Champions/Memory-Trail/main/docs/update.json")!
+        URL(string: "https://ram1424.github.io/Memory-Trail/update.json")!,
+        URL(string: "https://raw.githubusercontent.com/ram1424/Memory-Trail/main/docs/update.json")!
     ]
 
     private struct GitHubRelease: Decodable {
@@ -1182,8 +1182,8 @@ private enum MemoryTrailUpdateService {
     static func isAuthoritative(_ manifest: MemoryTrailUpdateManifest) -> Bool {
         let release = manifest.releaseURL.lowercased()
         let download = manifest.downloadURL.lowercased()
-        return release.contains("github.com/ntt-gdc-ai-champions/memory-trail")
-            || download.contains("github.com/ntt-gdc-ai-champions/memory-trail")
+        return release.contains("github.com/ram1424/memory-trail")
+            || download.contains("github.com/ram1424/memory-trail")
     }
 
     static func isNewer(
