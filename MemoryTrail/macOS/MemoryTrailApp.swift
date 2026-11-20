@@ -258,12 +258,11 @@ struct MemoryTrailApp: App {
                         updatePresentation = nil
                         refreshAccessibilityAndPromptIfNeeded()
                     },
-                    onOpenReleases: {
-                        if let url = URL(string: "https://github.com/ram1424/Memory-Trail/releases/latest") {
-                            NSWorkspace.shared.open(url)
-                        }
+                    onRetryUpdateCheck: {
                         updatePresentation = nil
-                        refreshAccessibilityAndPromptIfNeeded()
+                        Task {
+                            await checkForUpdates(manual: true)
+                        }
                     },
                     onDismiss: {
                         updatePresentation = nil
@@ -372,9 +371,9 @@ struct MemoryTrailApp: App {
                     title: "Memory Trails",
                     symbol: "signpost.right.and.left.fill",
                     items: [
-                        "The app has been renamed from Memory Trail to Memory Trails across the interface, About panel, What’s New, installer, DMG, and Mac App Store target.",
+                        "The app has been renamed from Memory Trails to Memory Trails across the interface, About panel, What’s New, installer, DMG, and Mac App Store target.",
                         "The Xcode project, schemes, built app products, and release packaging now use the Memory Trails name.",
-                        "Existing local history is migrated automatically from the previous Memory Trail storage location and database name."
+                        "Existing local history is migrated automatically from the previous Memory Trails storage location and database name."
                     ]
                 ),
                 MemoryTrailChangeSection(
@@ -681,12 +680,18 @@ struct MemoryTrailApp: App {
 
                 updatePresentation = .updateAvailable(manifest)
             } else if manual {
-                updatePresentation = .upToDate(Self.displayVersion)
+                if MemoryTrailUpdateService.isAuthoritative(manifest) {
+                    updatePresentation = .upToDate(Self.displayVersion)
+                } else {
+                    updatePresentation = .unavailable(
+                        "Memory Trails reached an outdated update feed and could not verify the latest build. Open Releases to check manually."
+                    )
+                }
             }
         } catch {
             guard manual else { return }
             updatePresentation = .unavailable(
-                "Memory Trails couldn’t reach the update service. Check your connection and try again, or open Releases to download the latest version manually."
+                "Memory Trails couldn’t reach the update service. Check your connection and try again."
             )
         }
     }
@@ -702,7 +707,7 @@ struct MemoryTrailApp: App {
             } catch {
                 isInstallingUpdate = false
                 updatePresentation = .unavailable(
-                    "The update could not be installed automatically. Your current copy of Memory Trails is unchanged. You can open Releases and install the update manually."
+                    "The update could not be installed automatically. Your current copy of Memory Trails is unchanged. Check your connection and try again."
                 )
             }
         }
@@ -1033,12 +1038,12 @@ private enum MemoryTrailUpdatePresentation: Identifiable {
 
 private enum MemoryTrailUpdateService {
     private static let githubLatestReleaseURL = URL(
-        string: "https://api.github.com/repos/ram1424/Memory-Trail/releases/latest"
+        string: "https://api.github.com/repos/NTT-GDC-AI-Champions/Memory-Trail/releases/latest"
     )!
 
     private static let manifestURLs = [
-        URL(string: "https://raw.githubusercontent.com/ram1424/Memory-Trail/main/docs/update.json")!,
-        URL(string: "https://ram1424.github.io/Memory-Trail/update.json")!
+        URL(string: "https://ntt-gdc-ai-champions.github.io/Memory-Trail/update.json")!,
+        URL(string: "https://raw.githubusercontent.com/NTT-GDC-AI-Champions/Memory-Trail/main/docs/update.json")!
     ]
 
     private struct GitHubRelease: Decodable {
@@ -1172,6 +1177,13 @@ private enum MemoryTrailUpdateService {
         }
 
         throw lastError
+    }
+
+    static func isAuthoritative(_ manifest: MemoryTrailUpdateManifest) -> Bool {
+        let release = manifest.releaseURL.lowercased()
+        let download = manifest.downloadURL.lowercased()
+        return release.contains("github.com/ntt-gdc-ai-champions/memory-trail")
+            || download.contains("github.com/ntt-gdc-ai-champions/memory-trail")
     }
 
     static func isNewer(
@@ -1467,7 +1479,7 @@ private struct MemoryTrailUpdateSheet: View {
     let onUpdate: (MemoryTrailUpdateManifest) -> Void
     let onRemindTomorrow: (MemoryTrailUpdateManifest) -> Void
     let onSkipVersion: (MemoryTrailUpdateManifest) -> Void
-    let onOpenReleases: () -> Void
+    let onRetryUpdateCheck: () -> Void
     let onDismiss: () -> Void
 
     private let primaryText = Color(red: 0.07, green: 0.14, blue: 0.27)
@@ -1516,8 +1528,8 @@ private struct MemoryTrailUpdateSheet: View {
                 symbolColor: .orange,
                 title: "Couldn’t check for updates",
                 message: message,
-                primaryButton: "Open Releases",
-                primaryAction: onOpenReleases
+                primaryButton: "Try Again",
+                primaryAction: onRetryUpdateCheck
             )
         }
     }

@@ -23,9 +23,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Release sequence: 1.1.0 Build 1 -> 1.1.1 Build 2 -> 1.1.2 Build 3 -> ...
+  # Increment RELEASE_BUILD for every app change published on the same version.
   RELEASE_VERSION: "1.4"
-  RELEASE_BUILD: "2"
+  RELEASE_BUILD: "8"
 
 jobs:
   build-dmg:

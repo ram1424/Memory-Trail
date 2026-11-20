@@ -2,6 +2,14 @@ import AppKit
 import SwiftUI
 import SwiftData
 
+private struct TodayScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 struct TimelineView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(RecallPreferences.self) private var preferences
@@ -13,6 +21,7 @@ struct TimelineView: View {
     @State private var dayOffset = 0
     @State private var pendingTimelineClear: MemoryTrailHistoryClearRange?
     @State private var now = Date()
+    @State private var showsBackToTop = false
     @AppStorage("today.showPanels") private var showsPanels = true
 
     var body: some View {
@@ -20,54 +29,113 @@ struct TimelineView: View {
         let visibleItems = filteredItems(dayItems)
         let durations = durationLookup(for: dayItems)
         let latestItemID = dayItems.first?.id
-        let topApps = appUsage(for: dayItems)
+        let topApps = Array(appUsage(for: dayItems).prefix(4))
         let currentSelectedItem = selectedMemoryID.flatMap { id in
             dayItems.first { $0.id == id }
         }
 
         HStack(spacing: 0) {
-            ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                todayHeader
+            VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 16) {
+                    todayHeader
 
-                atAGlanceCard(
-                    items: dayItems,
-                    activeSeconds: activeTime(for: dayItems)
+                    atAGlanceCard(
+                        items: dayItems,
+                        activeSeconds: activeTime(for: dayItems)
+                    )
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
+                .background(
+                    MemoryTrailPalette.canvasTop.opacity(0.98)
                 )
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 16) {
-                        timelineCard(
-                            visibleItems,
-                            dayItems: dayItems,
-                            durations: durations,
-                            latestItemID: latestItemID
-                        )
-                        .frame(minWidth: 620, maxWidth: .infinity)
+                Divider()
+                    .opacity(0.35)
 
-                        VStack(spacing: 14) {
-                            topAppsCard(topApps)
-                            keyTakeawaysCard(dayItems)
-                            recentDocumentsCard(dayItems)
+                ScrollViewReader { proxy in
+                    ZStack(alignment: .bottomTrailing) {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Color.clear
+                                    .frame(height: 1)
+                                    .id("today-scroll-top")
+                                    .background(
+                                        GeometryReader { geometry in
+                                            Color.clear.preference(
+                                                key: TodayScrollOffsetPreferenceKey.self,
+                                                value: geometry.frame(in: .named("todayActivityScroll")).minY
+                                            )
+                                        }
+                                    )
+
+                                ViewThatFits(in: .horizontal) {
+                                    HStack(alignment: .top, spacing: 16) {
+                                        timelineCard(
+                                            visibleItems,
+                                            dayItems: dayItems,
+                                            durations: durations,
+                                            latestItemID: latestItemID
+                                        )
+                                        .frame(minWidth: 620, maxWidth: .infinity)
+
+                                        VStack(spacing: 14) {
+                                            keyTakeawaysCard(dayItems)
+                                            recentDocumentsCard(dayItems)
+                                        }
+                                        .frame(width: 390)
+                                    }
+
+                                    VStack(spacing: 16) {
+                                        timelineCard(
+                                            visibleItems,
+                                            dayItems: dayItems,
+                                            durations: durations,
+                                            latestItemID: latestItemID
+                                        )
+
+                                        keyTakeawaysCard(dayItems)
+                                        recentDocumentsCard(dayItems)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 12)
+                            .padding(.bottom, 20)
                         }
-                        .frame(width: 390)
-                    }
+                        .coordinateSpace(name: "todayActivityScroll")
+                        .onPreferenceChange(TodayScrollOffsetPreferenceKey.self) { offset in
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                showsBackToTop = offset < -160
+                            }
+                        }
 
-                    VStack(spacing: 16) {
-                        timelineCard(
-                            visibleItems,
-                            dayItems: dayItems,
-                            durations: durations,
-                            latestItemID: latestItemID
-                        )
-
-                        topAppsCard(topApps)
-                        keyTakeawaysCard(dayItems)
-                        recentDocumentsCard(dayItems)
+                        if showsBackToTop {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    proxy.scrollTo("today-scroll-top", anchor: .top)
+                                }
+                            } label: {
+                                Label("Back to Top", systemImage: "arrow.up")
+                                    .font(.caption.weight(.semibold))
+                                    .padding(.horizontal, 13)
+                                    .frame(height: 36)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Color.white)
+                            .background(
+                                MemoryTrailCategory.allApps.filterTint,
+                                in: Capsule()
+                            )
+                            .shadow(color: Color.black.opacity(0.14), radius: 8, y: 3)
+                            .padding(.trailing, 28)
+                            .padding(.bottom, 24)
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                            .help("Return to the top of Today activity")
+                        }
                     }
                 }
-            }
-            .padding(20)
             }
 
             if showsPanels {
@@ -76,6 +144,7 @@ struct TimelineView: View {
 
                 TimelineSummaryColumn(
                     dayItems: dayItems,
+                    topApps: topApps,
                     selectedItem: currentSelectedItem,
                     selectedDuration: currentSelectedItem.map {
                         durations[$0.id] ?? 0
@@ -1267,6 +1336,7 @@ private struct BrightTimelineRow: View {
 
 private struct TimelineSummaryColumn: View {
     let dayItems: [MemoryItem]
+    let topApps: [TodayAppUsage]
     let selectedItem: MemoryItem?
     let selectedDuration: TimeInterval
     let selectedDay: Date
@@ -1359,29 +1429,39 @@ private struct TimelineSummaryColumn: View {
                 )
             }
 
-            if !topSummaryApps.isEmpty {
+            if !topApps.isEmpty {
                 Divider()
                     .opacity(0.55)
 
-                VStack(alignment: .leading, spacing: 9) {
-                    Text("Top Apps")
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Top Apps Today")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
 
-                    HStack(spacing: 8) {
-                        ForEach(topSummaryApps) { item in
-                            let category = MemoryTrailCategory.category(for: item)
-
+                    HStack(alignment: .top, spacing: 8) {
+                        ForEach(topApps) { app in
                             VStack(spacing: 5) {
-                                summaryAppIcon(item, category: category)
+                                TodayAppIcon(
+                                    bundleID: app.bundleID,
+                                    category: app.category,
+                                    size: 38
+                                )
 
-                                Text(item.sourceApp)
-                                    .font(.system(size: 10.5, weight: .medium))
+                                Text(app.name)
+                                    .font(.system(size: 10.5, weight: .semibold))
+                                    .foregroundStyle(.primary)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.78)
+                                    .allowsTightening(true)
+                                    .frame(maxWidth: .infinity, minHeight: 27, alignment: .top)
+
+                                Text(summaryDurationLabel(app.seconds))
+                                    .font(.system(size: 10, weight: .medium))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
-                                    .frame(maxWidth: 66)
                             }
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, alignment: .top)
                         }
                     }
                 }
@@ -1395,51 +1475,16 @@ private struct TimelineSummaryColumn: View {
         }
     }
 
-    private var topSummaryApps: [MemoryItem] {
-        let groups = Dictionary(grouping: dayItems) { item in
-            item.sourceBundleID.isEmpty
-                ? item.sourceApp.lowercased()
-                : item.sourceBundleID.lowercased()
+    private func summaryDurationLabel(_ seconds: TimeInterval) -> String {
+        let totalMinutes = max(0, Int(seconds / 60))
+
+        if totalMinutes == 0 {
+            return seconds > 0 ? "<1m" : "0m"
         }
 
-        return groups.values
-            .sorted {
-                if $0.count == $1.count {
-                    return ($0.first?.sourceApp ?? "") < ($1.first?.sourceApp ?? "")
-                }
-                return $0.count > $1.count
-            }
-            .compactMap(\.first)
-            .prefix(4)
-            .map { $0 }
-    }
-
-    @ViewBuilder
-    private func summaryAppIcon(
-        _ item: MemoryItem,
-        category: MemoryTrailCategory
-    ) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(category.filterBackground)
-
-            if let icon = AppIconCache.shared.icon(for: item.sourceBundleID) {
-                Image(nsImage: icon)
-                    .resizable()
-                    .interpolation(.high)
-                    .scaledToFit()
-                    .padding(4)
-            } else {
-                Image(systemName: category.symbol)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(category.filterTint)
-            }
-        }
-        .frame(width: 38, height: 38)
-        .overlay {
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .stroke(category.filterTint.opacity(0.18), lineWidth: 1)
-        }
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        return hours > 0 ? "\(hours)h \(minutes)m" : "\(minutes)m"
     }
 
     @ViewBuilder

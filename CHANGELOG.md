@@ -6,11 +6,11 @@ Memory Trails 1.4 is a polished release focused on reliable Outlook capture, cle
 
 ### Memory Trails Rebrand
 
-- Renamed the macOS app from **Memory Trail** to **Memory Trails** throughout the user interface, About panel, What’s New, Xcode targets/schemes, built app bundle, DMG packaging, release metadata, and Mac App Store target.
+- Renamed the macOS app from **Memory Trails** to **Memory Trails** throughout the user interface, About panel, What’s New, Xcode targets/schemes, built app bundle, DMG packaging, release metadata, and Mac App Store target.
 - The direct-download app is now built as `Memory Trails.app`.
 - The release DMG is now named `MemoryTrails-1.4.dmg`.
 - Local storage now uses `~/Library/Application Support/Memory Trails/MemoryTrails.store`.
-- Existing history is automatically migrated from the previous `Memory Trail/MemoryTrail.store`, the transitional `Memory Trails/MemoryTrail.store`, or the older `default.store` location.
+- Existing history is automatically migrated from the previous `Memory Trails/MemoryTrail.store`, the transitional `Memory Trails/MemoryTrail.store`, or the older `default.store` location.
 - The bundle identifier remains `com.ram1424.memorytrail` intentionally for signing and App Store continuity.
 
 ### Outlook Capture & Reliability
