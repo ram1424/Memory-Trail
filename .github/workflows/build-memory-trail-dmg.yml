@@ -35,6 +35,44 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Remove legacy pre-rename DMG asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="v$RELEASE_VERSION"
+          LEGACY_DMG="MemoryTrail-$RELEASE_VERSION.dmg"
+          API="https://api.github.com/repos/$GITHUB_REPOSITORY"
+          AUTH_HEADER="Authorization: Bearer $GH_TOKEN"
+          ACCEPT_HEADER="Accept: application/vnd.github+json"
+          VERSION_HEADER="X-GitHub-Api-Version: 2022-11-28"
+
+          STATUS="$(curl -sS -o legacy-release.json -w '%{http_code}' \
+            -H "$AUTH_HEADER" \
+            -H "$ACCEPT_HEADER" \
+            -H "$VERSION_HEADER" \
+            "$API/releases/tags/$TAG")"
+
+          if [ "$STATUS" = "200" ]; then
+            RELEASE_ID="$(jq -r '.id' legacy-release.json)"
+            curl -fsSL \
+              -H "$AUTH_HEADER" \
+              -H "$ACCEPT_HEADER" \
+              -H "$VERSION_HEADER" \
+              "$API/releases/$RELEASE_ID/assets" \
+              | jq -r --arg name "$LEGACY_DMG" '.[] | select(.name == $name) | .id' \
+              | while read -r LEGACY_ASSET_ID; do
+                  [ -z "$LEGACY_ASSET_ID" ] && continue
+                  curl -fsSL -X DELETE \
+                    -H "$AUTH_HEADER" \
+                    -H "$ACCEPT_HEADER" \
+                    -H "$VERSION_HEADER" \
+                    "$API/releases/assets/$LEGACY_ASSET_ID" \
+                    >/dev/null
+                  echo "Deleted legacy asset $LEGACY_DMG."
+                done
+          fi
+
       - name: Apply Memory Trails safeguards
         run: bash "$PWD/Scripts/rebrand_memory_trail.sh"
 
