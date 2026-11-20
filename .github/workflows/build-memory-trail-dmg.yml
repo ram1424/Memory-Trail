@@ -24,8 +24,8 @@ concurrency:
 
 env:
   # Increment RELEASE_BUILD for every app change published on the same version.
-  RELEASE_VERSION: "1.4"
-  RELEASE_BUILD: "9"
+  RELEASE_VERSION: "1.5"
+  RELEASE_BUILD: "1"
 
 jobs:
   build-dmg:
@@ -287,25 +287,195 @@ jobs:
 
           codesign --verify --deep --strict --verbose=2 "$APP"
 
-      - name: Create DMG
+      - name: Create branded DMG
         run: |
           set -euo pipefail
           APP="$PWD/build/Build/Products/Release/Memory Trails.app"
           DMG="$PWD/MemoryTrails-$RELEASE_VERSION.dmg"
+          RW_DMG="$PWD/MemoryTrails-$RELEASE_VERSION-rw.dmg"
+          ROOT="$PWD/dmg-root"
+          BG="$ROOT/.background/installer.png"
+          MASTER="$PWD/Branding/MemoryTrailIconMaster.png"
+          DRAW="$RUNNER_TEMP/draw-memory-trails-installer.swift"
+
           test -d "$APP"
+          test -s "$MASTER"
 
-          rm -rf "$PWD/dmg-root"
-          mkdir -p "$PWD/dmg-root"
-          ditto "$APP" "$PWD/dmg-root/Memory Trails.app"
-          ln -s /Applications "$PWD/dmg-root/Applications"
+          rm -rf "$ROOT" "$DMG" "$RW_DMG"
+          mkdir -p "$ROOT/.background"
+          ditto "$APP" "$ROOT/Memory Trails.app"
+          ln -s /Applications "$ROOT/Applications"
 
-          hdiutil create \
-            -volname "Memory Trails" \
-            -srcfolder "$PWD/dmg-root" \
-            -ov \
-            -format UDZO \
-            "$DMG"
+          cat > "$DRAW" <<'SWIFT'
+          import AppKit
+          import Foundation
 
+          guard CommandLine.arguments.count >= 3 else { exit(2) }
+          let iconURL = URL(fileURLWithPath: CommandLine.arguments[1])
+          let outputURL = URL(fileURLWithPath: CommandLine.arguments[2])
+          guard let icon = NSImage(contentsOf: iconURL) else { exit(3) }
+
+          let canvas = NSSize(width: 1200, height: 800)
+          let image = NSImage(size: canvas)
+          image.lockFocus()
+
+          let rect = NSRect(origin: .zero, size: canvas)
+          let gradient = NSGradient(colors: [
+              NSColor(calibratedRed: 0.025, green: 0.075, blue: 0.25, alpha: 1),
+              NSColor(calibratedRed: 0.09, green: 0.18, blue: 0.52, alpha: 1),
+              NSColor(calibratedRed: 0.43, green: 0.16, blue: 0.64, alpha: 1),
+              NSColor(calibratedRed: 0.98, green: 0.39, blue: 0.30, alpha: 1)
+          ])!
+          gradient.draw(in: rect, angle: 90)
+
+          func mountain(_ points: [NSPoint], color: NSColor) {
+              guard let first = points.first else { return }
+              let p = NSBezierPath()
+              p.move(to: first)
+              for pt in points.dropFirst() { p.line(to: pt) }
+              p.close()
+              color.setFill()
+              p.fill()
+          }
+
+          mountain([
+              NSPoint(x: 0, y: 275), NSPoint(x: 150, y: 470), NSPoint(x: 260, y: 340),
+              NSPoint(x: 390, y: 520), NSPoint(x: 535, y: 330), NSPoint(x: 690, y: 490),
+              NSPoint(x: 840, y: 335), NSPoint(x: 990, y: 455), NSPoint(x: 1200, y: 290),
+              NSPoint(x: 1200, y: 0), NSPoint(x: 0, y: 0)
+          ], color: NSColor(calibratedRed: 0.035, green: 0.10, blue: 0.27, alpha: 0.94))
+
+          mountain([
+              NSPoint(x: 0, y: 165), NSPoint(x: 210, y: 315), NSPoint(x: 370, y: 210),
+              NSPoint(x: 555, y: 350), NSPoint(x: 730, y: 205), NSPoint(x: 930, y: 325),
+              NSPoint(x: 1200, y: 175), NSPoint(x: 1200, y: 0), NSPoint(x: 0, y: 0)
+          ], color: NSColor(calibratedRed: 0.02, green: 0.065, blue: 0.18, alpha: 0.98))
+
+          let trail = NSBezierPath()
+          trail.move(to: NSPoint(x: 40, y: 55))
+          trail.curve(to: NSPoint(x: 445, y: 135),
+                      controlPoint1: NSPoint(x: 175, y: 10),
+                      controlPoint2: NSPoint(x: 290, y: 180))
+          trail.curve(to: NSPoint(x: 760, y: 210),
+                      controlPoint1: NSPoint(x: 540, y: 105),
+                      controlPoint2: NSPoint(x: 650, y: 255))
+          trail.curve(to: NSPoint(x: 1180, y: 330),
+                      controlPoint1: NSPoint(x: 875, y: 155),
+                      controlPoint2: NSPoint(x: 1020, y: 370))
+          trail.lineWidth = 12
+          let shadow = NSShadow()
+          shadow.shadowColor = NSColor.systemPink.withAlphaComponent(0.85)
+          shadow.shadowBlurRadius = 22
+          shadow.shadowOffset = .zero
+          shadow.set()
+          NSColor(calibratedRed: 1.0, green: 0.60, blue: 0.10, alpha: 0.95).setStroke()
+          trail.stroke()
+          NSGraphicsContext.current?.saveGraphicsState()
+          NSShadow().set()
+          trail.lineWidth = 4
+          NSColor.white.withAlphaComponent(0.9).setStroke()
+          trail.stroke()
+          NSGraphicsContext.current?.restoreGraphicsState()
+
+          icon.draw(in: NSRect(x: 78, y: 620, width: 128, height: 128),
+                    from: .zero, operation: .sourceOver, fraction: 1)
+
+          let titleAttrs: [NSAttributedString.Key: Any] = [
+              .font: NSFont.systemFont(ofSize: 70, weight: .bold),
+              .foregroundColor: NSColor.white
+          ]
+          ("Memory Trails" as NSString).draw(at: NSPoint(x: 232, y: 678), withAttributes: titleAttrs)
+
+          let subtitleAttrs: [NSAttributedString.Key: Any] = [
+              .font: NSFont.systemFont(ofSize: 29, weight: .medium),
+              .foregroundColor: NSColor.white.withAlphaComponent(0.82)
+          ]
+          ("Your private timeline for everything you do" as NSString)
+              .draw(at: NSPoint(x: 235, y: 632), withAttributes: subtitleAttrs)
+
+          let arrow = NSBezierPath()
+          arrow.move(to: NSPoint(x: 495, y: 405))
+          arrow.line(to: NSPoint(x: 705, y: 405))
+          arrow.move(to: NSPoint(x: 655, y: 455))
+          arrow.line(to: NSPoint(x: 705, y: 405))
+          arrow.line(to: NSPoint(x: 655, y: 355))
+          arrow.lineWidth = 12
+          arrow.lineCapStyle = .round
+          arrow.lineJoinStyle = .round
+          let arrowShadow = NSShadow()
+          arrowShadow.shadowColor = NSColor.systemBlue.withAlphaComponent(0.9)
+          arrowShadow.shadowBlurRadius = 18
+          arrowShadow.shadowOffset = .zero
+          arrowShadow.set()
+          NSColor.white.withAlphaComponent(0.95).setStroke()
+          arrow.stroke()
+
+          let instructionRect = NSRect(x: 260, y: 52, width: 680, height: 78)
+          let bubble = NSBezierPath(roundedRect: instructionRect, xRadius: 39, yRadius: 39)
+          NSColor(calibratedWhite: 0.03, alpha: 0.58).setFill()
+          bubble.fill()
+          NSColor(calibratedRed: 0.42, green: 0.50, blue: 1.0, alpha: 0.75).setStroke()
+          bubble.lineWidth = 2
+          bubble.stroke()
+
+          let instructionAttrs: [NSAttributedString.Key: Any] = [
+              .font: NSFont.systemFont(ofSize: 26, weight: .semibold),
+              .foregroundColor: NSColor.white
+          ]
+          ("Drag Memory Trails to Applications to install" as NSString)
+              .draw(at: NSPoint(x: 322, y: 78), withAttributes: instructionAttrs)
+
+          image.unlockFocus()
+
+          guard
+              let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff),
+              let png = bitmap.representation(using: .png, properties: [:])
+          else { exit(4) }
+          try png.write(to: outputURL)
+          SWIFT
+
+          xcrun swift "$DRAW" "$MASTER" "$BG"
+          test -s "$BG"
+
+          hdiutil create             -volname "Memory Trails"             -srcfolder "$ROOT"             -ov             -format UDRW             "$RW_DMG"
+
+          hdiutil attach -readwrite -noverify -noautoopen "$RW_DMG"
+          MOUNT="/Volumes/Memory Trails"
+          test -d "$MOUNT"
+
+          osascript <<'APPLESCRIPT'
+          tell application "Finder"
+            tell disk "Memory Trails"
+              open
+              set current view of container window to icon view
+              set toolbar visible of container window to false
+              set statusbar visible of container window to false
+              set pathbar visible of container window to false
+              set bounds of container window to {100, 100, 1300, 900}
+              set opts to icon view options of container window
+              set arrangement of opts to not arranged
+              set icon size of opts to 164
+              set text size of opts to 13
+              set background picture of opts to file ".background:installer.png"
+              set position of item "Memory Trails.app" of container window to {360, 430}
+              set position of item "Applications" of container window to {840, 430}
+              close
+              open
+              update without registering applications
+              delay 2
+            end tell
+          end tell
+          APPLESCRIPT
+
+          chflags hidden "$MOUNT/.background" || true
+          sync
+          hdiutil detach "$MOUNT"
+
+          hdiutil convert "$RW_DMG"             -format UDZO             -imagekey zlib-level=9             -o "$DMG"
+
+          rm -f "$RW_DMG"
+          test -s "$DMG"
           shasum -a 256 "$DMG"
 
       - name: Publish single current GitHub Release
@@ -326,13 +496,11 @@ jobs:
           Build: $RELEASE_BUILD
 
           Highlights:
-          - Memory Trails 1.4 promotes the polished 1.3 feature set into a new major point release with a cleaner, release-style What’s New experience.
-          - Outlook capture includes the latest Classic and New Outlook reliability improvements, support for column and non-column layouts, calendar invitations, sender-aware timeline entries, and stronger protection against Outlook UI chrome being logged as email data.
-          - Today & Timeline include the restored details experience, Go to Today, clearer activity presentation, and improved app-name handling.
-          - Ask Memory Trails returns uncapped matching Supporting Activity, includes Back to Top navigation, clearer quick-start icons, and expanded activity Close controls.
-          - Insights, Favorites, Clipboard History, Storage/History/Export, Settings, update handling, and privacy-first local processing refinements are included.
-          - Version 1.4 remains local-first: no cloud timeline sync, external data connectors, advertising SDKs, or AI timeline summarization.
-
+          - Memory Trails 1.5 introduces the new illustrated Memory Trails installer experience.
+          - The DMG now uses the current Memory Trails app icon, a branded mountain-and-trail background, a clear drag direction, and a polished Applications drop target.
+          - Finder opens the installer at a purpose-built 1200 × 800 layout with the app and Applications icons positioned for a simple drag-and-drop install.
+          - The existing Outlook capture, Today, Ask Memory Trails, Insights, Favorites, Clipboard History, local storage, export, update handling, and privacy-first behavior from 1.4 are retained.
+          - Version 1.5 remains local-first: no cloud timeline sync, external data connectors, advertising SDKs, or AI timeline summarization.
 
           Privacy:
           - Captured activity is sourced, processed, and stored locally on the Mac.

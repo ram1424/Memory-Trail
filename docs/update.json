@@ -1,15 +1,25 @@
 {
-  "version": "1.4",
-  "build": 9,
+  "version": "1.5",
+  "build": 1,
   "publishedAt": "2026-11-20",
-  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.4/MemoryTrails-1.4.dmg",
+  "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.5/MemoryTrails-1.5.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
-    "The in-app updater now checks the personal ram1424/Memory-Trail repository for new builds.",
-    "Update Now downloads the latest MemoryTrails DMG from the personal repository and installs it in-app.",
-    "The release workflow removes the legacy MemoryTrail-1.4.dmg asset so only the current MemoryTrails DMG remains."
+    "A completely redesigned branded DMG installer now matches the current Memory Trails visual identity.",
+    "The installer uses the current Memory Trails app icon, illustrated mountain-and-trail artwork, and a clear drag-to-Applications layout.",
+    "Memory Trails 1.5 retains the full privacy-first local feature set from 1.4."
   ],
   "changelog": [
+    {
+      "title": "A New Trail to Install",
+      "symbol": "externaldrive.badge.plus",
+      "items": [
+        "Introduces a custom illustrated Memory Trails DMG installer.",
+        "Uses the current Memory Trails app icon as the visual anchor.",
+        "Adds a branded mountain-and-trail background with a clear drag arrow and Applications target.",
+        "Opens in a polished 1200 × 800 Finder layout designed for straightforward drag-and-drop installation."
+      ]
+    },
     {
       "title": "Memory Trails",
       "symbol": "signpost.right.and.left.fill",
