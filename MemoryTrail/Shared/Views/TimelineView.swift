@@ -70,35 +70,13 @@ struct TimelineView: View {
                                         }
                                     )
 
-                                ViewThatFits(in: .horizontal) {
-                                    HStack(alignment: .top, spacing: 16) {
-                                        timelineCard(
-                                            visibleItems,
-                                            dayItems: dayItems,
-                                            durations: durations,
-                                            latestItemID: latestItemID
-                                        )
-                                        .frame(minWidth: 620, maxWidth: .infinity)
-
-                                        VStack(spacing: 14) {
-                                            keyTakeawaysCard(dayItems)
-                                            recentDocumentsCard(dayItems)
-                                        }
-                                        .frame(width: 390)
-                                    }
-
-                                    VStack(spacing: 16) {
-                                        timelineCard(
-                                            visibleItems,
-                                            dayItems: dayItems,
-                                            durations: durations,
-                                            latestItemID: latestItemID
-                                        )
-
-                                        keyTakeawaysCard(dayItems)
-                                        recentDocumentsCard(dayItems)
-                                    }
-                                }
+                                timelineCard(
+                                    visibleItems,
+                                    dayItems: dayItems,
+                                    durations: durations,
+                                    latestItemID: latestItemID
+                                )
+                                .frame(maxWidth: .infinity)
                             }
                             .padding(.horizontal, 20)
                             .padding(.top, 12)
@@ -153,8 +131,11 @@ struct TimelineView: View {
                     preferences: preferences,
                     onFavorite: toggleFavorite,
                     onDelete: deleteSelectedItem
-                )
-                .frame(width: 365)
+                ) {
+                    keyTakeawaysCard(dayItems)
+                    recentDocumentsCard(dayItems)
+                }
+                .frame(width: 390)
             }
         }
         .background(
@@ -1334,7 +1315,7 @@ private struct BrightTimelineRow: View {
     }
 }
 
-private struct TimelineSummaryColumn: View {
+private struct TimelineSummaryColumn<SupplementalContent: View>: View {
     let dayItems: [MemoryItem]
     let topApps: [TodayAppUsage]
     let selectedItem: MemoryItem?
@@ -1343,12 +1324,36 @@ private struct TimelineSummaryColumn: View {
     let preferences: RecallPreferences
     let onFavorite: () -> Void
     let onDelete: () -> Void
+    let supplementalContent: SupplementalContent
+
+    init(
+        dayItems: [MemoryItem],
+        topApps: [TodayAppUsage],
+        selectedItem: MemoryItem?,
+        selectedDuration: TimeInterval,
+        selectedDay: Date,
+        preferences: RecallPreferences,
+        onFavorite: @escaping () -> Void,
+        onDelete: @escaping () -> Void,
+        @ViewBuilder supplementalContent: () -> SupplementalContent
+    ) {
+        self.dayItems = dayItems
+        self.topApps = topApps
+        self.selectedItem = selectedItem
+        self.selectedDuration = selectedDuration
+        self.selectedDay = selectedDay
+        self.preferences = preferences
+        self.onFavorite = onFavorite
+        self.onDelete = onDelete
+        self.supplementalContent = supplementalContent()
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
                 statusBar
                 summaryCard
+                supplementalContent
 
                 if let selectedItem {
                     detailCard(selectedItem)

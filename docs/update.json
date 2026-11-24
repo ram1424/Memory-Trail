@@ -1,15 +1,26 @@
 {
   "version": "1.4",
-  "build": 9,
-  "publishedAt": "2026-11-20",
+  "build": 10,
+  "publishedAt": "2026-11-24",
   "downloadURL": "https://github.com/ram1424/Memory-Trail/releases/download/v1.4/MemoryTrails-1.4.dmg",
   "releaseURL": "https://github.com/ram1424/Memory-Trail/releases/latest",
   "highlights": [
+    "Key Takeaways and Recent Files & Documents now live in the right-side Today Summary panel.",
+    "The main Today activity timeline now uses the full available center width.",
     "The in-app updater now checks the personal ram1424/Memory-Trail repository for new builds.",
     "Update Now downloads the latest MemoryTrails DMG from the personal repository and installs it in-app.",
     "The release workflow removes the legacy MemoryTrail-1.4.dmg asset so only the current MemoryTrails DMG remains."
   ],
   "changelog": [
+    {
+      "title": "Today Summary, Consolidated",
+      "symbol": "sidebar.right",
+      "items": [
+        "Moved Key Takeaways into the right-side Today Summary column.",
+        "Moved Recent Files & Documents into the same right-side summary column.",
+        "Freed the main Today timeline to use the full center content width."
+      ]
+    },
     {
       "title": "Memory Trails",
       "symbol": "signpost.right.and.left.fill",

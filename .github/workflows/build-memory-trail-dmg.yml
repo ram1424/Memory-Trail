@@ -25,7 +25,7 @@ concurrency:
 env:
   # Restored release: Memory Trails 1.4 Build 9.
   RELEASE_VERSION: "1.4"
-  RELEASE_BUILD: "9"
+  RELEASE_BUILD: "10"
 
 jobs:
   build-dmg:

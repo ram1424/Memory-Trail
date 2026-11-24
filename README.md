@@ -11,7 +11,7 @@
 
 Memory Trails is a privacy-first macOS activity timeline for retracing what you were doing across browsers, email, chat, files, documents, and the clipboard. It turns useful local app/window context into a searchable chronological history without requiring a cloud account or external data connector.
 
-[![Latest Release](https://img.shields.io/badge/Latest%20Release-Memory%20Trails%201.4%20(Build%209)-0A84FF)](https://github.com/ram1424/Memory-Trail/releases/tag/v1.4)
+[![Latest Release](https://img.shields.io/badge/Latest%20Release-Memory%20Trails%201.4%20(Build%2010)-0A84FF)](https://github.com/ram1424/Memory-Trail/releases/tag/v1.4)
 
 ## Download
 
